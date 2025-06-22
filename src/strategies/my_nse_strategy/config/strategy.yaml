@@ -1,0 +1,21 @@
+# NSE Strategy configuration
+# Fill in your parameters here 
+
+# NSE Intraday Options Strategy Config
+
+
+sl_pct: 0.02  # legacy, not used in new logic
+tp_pct: 0.03
+atm_window: "15min"
+position_size: 1
+end_time: "15:15"  # HH:MM
+# entry_buffer_pct:  0.1
+# lookback_intervals:  4
+# min_iv: float = 25
+# min_oi_change:  0
+min_iv: 0
+entry_buffer_pct: 0.01
+lookback_intervals: 2
+min_oi_change: -100
+breakeven_trigger_pct: 2
+sar_enabled: true
