@@ -20,7 +20,7 @@ wheels/
 .installed.cfg
 *.egg
 *.zip
-
+catalog-data/
 # Virtual Environment
 venv/
 ENV/
