@@ -3,6 +3,7 @@
 
 # NSE Intraday Options Strategy Config
 
+instrument_id: "BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE"  # Default instrument to trade
 
 sl_pct: 0.02  # legacy, not used in new logic
 tp_pct: 0.03

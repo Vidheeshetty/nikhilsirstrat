@@ -9,7 +9,7 @@ BANKNIFTY options with breakout-based entry logic and comprehensive risk managem
 
 Package Structure:
     - strategy.py: Core strategy implementation with breakout logic
-    - config.py: Configuration classes for different execution modes
+    - config.py: Configuration class and utilities for YAML loading
     - runners/: Execution runners for different trading modes
         - backtest_runner.py: Historical backtesting
         - papertrade_runner.py: Paper trading simulation
@@ -22,13 +22,14 @@ Key Features:
     - Trailing stop-loss with breakeven triggers
     - End-of-day position management
     - Comprehensive metadata integration
+    - YAML-based configuration management
 
 Usage:
     from strategies.my_nse_strategy import MyNSEStrategy, MyNSEStrategyConfig
     
     # Configure strategy
     config = MyNSEStrategyConfig(
-        instrument_id="BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE",
+        instrument_id=InstrumentId.from_str("BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE"),
         position_size=1,
         sl_pct=0.02,
         tp_pct=0.03
@@ -39,7 +40,7 @@ Usage:
 """
 
 from .strategy import MyNSEStrategy  # Import the main strategy class
-from .config import MyNSEStrategyConfig  # Import the configuration class
+from .config import MyNSEStrategyConfig  # Import the configuration class from config module
 
 __all__ = ["MyNSEStrategy", "MyNSEStrategyConfig"]  # Define public API
 

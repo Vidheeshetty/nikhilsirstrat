@@ -1,318 +1,237 @@
 #!/usr/bin/env python3
 """
-Backtest Runner for MyNSEStrategy
+Simple Backtest Runner for MyNSEStrategy
 
-This module provides a comprehensive backtesting framework for the MyNSEStrategy,
-enabling historical performance analysis and strategy optimization.
-
-The backtest runner handles:
-    - Data loading from Parquet catalogs
-    - Strategy configuration and initialization
-    - Backtest engine setup and execution
-    - Performance analysis and reporting
-    - Logging and debugging support
-
-Key Features:
-    - Flexible data source configuration
-    - Configurable backtest parameters
-    - Comprehensive performance metrics
-    - Detailed trade logging
-    - Error handling and validation
+This module provides a simplified backtesting interface that reads configuration
+from YAML and allows command-line overrides.
 
 Usage:
+    # Run with default config
     python backtest_runner.py --instrument_id "BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE"
-    python backtest_runner.py --config_file config/strategy.yaml
-
-Author: Trading Strategy Developer
-Version: 1.0.0
+    
+    # Override specific parameters
+    python backtest_runner.py --instrument_id "BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE" --start_time "2025-06-18T12:00:00"
+    
+    # Use custom config file
+    python backtest_runner.py --instrument_id "BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE" --config_file "custom_config.yaml"
 """
 
-import sys  # Import system module for path manipulation
-import os  # Import os for file operations
-from pathlib import Path  # Import Path for cross-platform path handling
-import argparse  # Import argparse for command line argument parsing
-import yaml  # Import yaml for configuration file parsing
-from datetime import datetime  # Import datetime for timestamp handling
+import sys
+import os
+from pathlib import Path
+import argparse
+import yaml
+from datetime import datetime
 
 # Add parent directories to Python path for imports
-sys.path.append(str(Path(__file__).parent.parent.parent.parent))  # Add src directory to path
-sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))  # Add project root to path
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
 
 from nautilus_trader.backtest.config import (
-    BacktestVenueConfig, BacktestDataConfig, BacktestEngineConfig, BacktestRunConfig  # Import backtest configs
+    BacktestVenueConfig, BacktestDataConfig, BacktestEngineConfig, BacktestRunConfig
 )
-from nautilus_trader.backtest.node import BacktestNode  # Import backtest node
-from nautilus_trader.config import ImportableStrategyConfig  # Import strategy config wrapper
-from nautilus_trader.model.identifiers import InstrumentId  # Import instrument ID
-from nautilus_trader.model.currencies import INR  # Import INR currency
+from nautilus_trader.backtest.node import BacktestNode
+from nautilus_trader.config import ImportableStrategyConfig
+from nautilus_trader.model.identifiers import InstrumentId
+from nautilus_trader.model.currencies import INR
 
 
 def load_config_from_file(config_file: str) -> dict:
-    """
-    Load strategy configuration from a YAML file.
+    """Load strategy configuration from a YAML file."""
+    if not os.path.exists(config_file):
+        raise FileNotFoundError(f"Configuration file not found: {config_file}")
     
-    This function reads a YAML configuration file and returns a dictionary
-    containing strategy parameters. It validates the configuration and
-    provides default values for missing parameters.
-    
-    Args:
-        config_file: Path to the YAML configuration file
-        
-    Returns:
-        Dictionary containing strategy configuration parameters
-        
-    Raises:
-        FileNotFoundError: If the configuration file doesn't exist
-        yaml.YAMLError: If the YAML file is malformed
-    """
-    if not os.path.exists(config_file):  # Check if config file exists
-        raise FileNotFoundError(f"Configuration file not found: {config_file}")  # Raise error if missing
-    
-    with open(config_file, 'r') as file:  # Open config file for reading
-        config = yaml.safe_load(file)  # Load YAML configuration
-        return config  # Return configuration dictionary
+    with open(config_file, 'r') as file:
+        config = yaml.safe_load(file)
+        return config or {}
 
 
-def run_backtest(
-    instrument_id: str,
-    config_file: str = None,
-    catalog_path: str = "catalog-data/my_nse_strategy/catalog",
-    meta_catalog_path: str = "catalog-data/my_nse_strategy/catalog-meta",
-    start_time: str = "2025-06-26T09:15:00",
-    end_time: str = "2025-06-26T15:30:00",
-    **strategy_params
-):
+def run_backtest(config_file: str = None, **overrides):
     """
-    Run a complete backtest for the MyNSEStrategy.
-    
-    This function orchestrates the entire backtesting process including
-    configuration setup, data loading, strategy initialization, and
-    execution. It provides comprehensive logging and error handling.
+    Run a backtest with configuration from YAML and optional overrides.
     
     Args:
-        instrument_id: Target instrument ID for trading
         config_file: Optional path to YAML configuration file
-        catalog_path: Path to the data catalog
-        meta_catalog_path: Path to metadata catalog
-        start_time: Backtest start time (ISO format)
-        end_time: Backtest end time (ISO format)
-        **strategy_params: Additional strategy parameters
-        
-    Returns:
-        BacktestNode object with completed backtest results
+        **overrides: Command-line parameter overrides
     """
-    print(f"=== STARTING BACKTEST FOR {instrument_id} ===")  # Log backtest start
-    print(f"Start Time: {start_time}")  # Log start time
-    print(f"End Time: {end_time}")  # Log end time
-    print(f"Catalog Path: {catalog_path}")  # Log catalog path
+    # Load from YAML file
+    if config_file:
+        config = load_config_from_file(config_file)
+    else:
+        # Use default config file
+        default_config_path = Path(__file__).parent.parent / "config" / "strategy.yaml"
+        if not default_config_path.exists():
+            raise FileNotFoundError(f"Default configuration file not found: {default_config_path}")
+        config = load_config_from_file(str(default_config_path))
     
-    # Load configuration from file if provided
-    if config_file:  # Check if config file provided
-        print(f"Loading configuration from: {config_file}")  # Log config file loading
-        file_config = load_config_from_file(config_file)  # Load config from file
-        strategy_params.update(file_config)  # Update strategy params with file config
+    # Apply command-line overrides
+    config.update(overrides)
+    
+    # Validate required fields
+    if 'instrument_id' not in config:
+        raise ValueError("instrument_id is required (either in YAML or command-line)")
+    
+    instrument_id = config['instrument_id']
+    print(f"=== STARTING BACKTEST FOR {instrument_id} ===")
+    print(f"Start Time: {config.get('start_time', 'Not specified')}")
+    print(f"End Time: {config.get('end_time', 'Not specified')}")
+    print(f"Catalog Path: {config.get('catalog_path', 'catalog-data/my_nse_strategy/catalog')}")
     
     # 1. Venue config
     venue = BacktestVenueConfig(
-        name="NSE",  # Venue name
-        oms_type="NETTING",  # Order management system type
-        account_type="MARGIN",  # Account type
-        starting_balances=["1000000 INR"],  # Starting balance
-        base_currency="INR"  # Base currency
+        name="NSE",
+        oms_type="NETTING",
+        account_type="MARGIN",
+        starting_balances=["1000000 INR"],
+        base_currency="INR"
     )
     
     # 2. Data config
     data = BacktestDataConfig(
-        catalog_path=catalog_path,  # Path to data catalog
-        data_cls="nautilus_trader.model.data:QuoteTick",  # Data class (fully qualified path)
-        instrument_id=InstrumentId.from_str(instrument_id),  # Instrument ID
-        start_time=start_time,  # Start time
-        end_time=end_time  # End time
+        catalog_path=config.get('catalog_path', 'catalog-data/my_nse_strategy/catalog'),
+        data_cls="nautilus_trader.model.data:QuoteTick",
+        instrument_id=InstrumentId.from_str(instrument_id),
+        start_time=config.get('start_time', '2025-06-18T12:00:00'),
+        end_time=config.get('end_time', '2025-06-18T14:15:00')
     )
     
-    # 3. Engine config (strategy config must be importable)
-    # Use all strategy_params already present in the runner
+    # 3. Engine config - pass all config parameters to strategy
+    strategy_config = {
+        "instrument_id": instrument_id,
+        "sl_pct": config.get('sl_pct', 0.02),
+        "tp_pct": config.get('tp_pct', 0.03),
+        "position_size": config.get('position_size', 1),
+        "min_iv": config.get('min_iv', 0),
+        "entry_buffer_pct": config.get('entry_buffer_pct', 0.01),
+        "lookback_intervals": config.get('lookback_intervals', 2),
+        "min_oi_change": config.get('min_oi_change', -100),
+        "breakeven_trigger_pct": config.get('breakeven_trigger_pct', 2),
+        "sar_enabled": config.get('sar_enabled', True),
+        "atm_window": config.get('atm_window', "15min"),
+        "meta_catalog_path": config.get('meta_catalog_path', 'catalog-data/my_nse_strategy/catalog-meta'),
+    }
+    
     engine = BacktestEngineConfig(
         strategies=[
             ImportableStrategyConfig(
-                strategy_path="strategies.my_nse_strategy.strategy:MyNSEStrategy",  # Path to strategy class
-                config_path="strategies.my_nse_strategy.strategy:MyNSEStrategyConfig",  # Path to config class
-                config={
-                    "instrument_id": instrument_id,
-                    **strategy_params  # All other strategy params
-                }
+                strategy_path="strategies.my_nse_strategy.strategy:MyNSEStrategy",
+                config_path="strategies.my_nse_strategy.strategy:MyNSEStrategyConfig",
+                config=strategy_config
             )
         ]
     )
     
     # 4. Run config
     run_config = BacktestRunConfig(
-        venues=[venue],  # List of venue configs
-        data=[data],  # List of data configs
-        engine=engine  # Engine config
+        venues=[venue],
+        data=[data],
+        engine=engine
     )
     
     # 5. Run the backtest
-    node = BacktestNode(configs=[run_config])  # Create backtest node
-    print("Backtest node initialized successfully")  # Log node initialization
+    node = BacktestNode(configs=[run_config])
+    print("Backtest node initialized successfully")
     
-    print("Starting backtest execution...")  # Log execution start
-    results = node.run()  # Execute backtest
+    print("Starting backtest execution...")
+    results = node.run()
     
     # Print results
-    print("\n=== BACKTEST RESULTS ===")  # Log results header
+    print("\n=== BACKTEST RESULTS ===")
     for result in results:
-        print(f"Run ID: {getattr(result, 'id', 'N/A')}")  # Log run ID if available
-        print(f"Total P&L: {getattr(result, 'total_pnl', 'N/A')}")  # Log total P&L if available
-        print(f"Total Trades: {getattr(result, 'total_trades', 'N/A')}")  # Log total trades if available
-    print("=== BACKTEST COMPLETED ===")  # Log backtest completion
+        print(f"Run ID: {getattr(result, 'id', 'N/A')}")
+        print(f"Total P&L: {getattr(result, 'total_pnl', 'N/A')}")
+        print(f"Total Trades: {getattr(result, 'total_trades', 'N/A')}")
+    print("=== BACKTEST COMPLETED ===")
     
-    return node  # Return node with results
+    return node
 
 
 def main():
-    """
-    Main function for command-line execution.
-    
-    This function parses command-line arguments and executes the backtest
-    with the specified parameters. It provides a user-friendly interface
-    for running backtests from the command line.
-    """
-    parser = argparse.ArgumentParser(description="Run MyNSEStrategy backtest")  # Create argument parser
-    
-    # Required arguments
-    parser.add_argument(  # Add instrument ID argument
-        "--instrument_id",
-        type=str,
-        required=True,
-        help="Instrument ID to trade (e.g., 'BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE')"
+    """Main function for command-line execution."""
+    parser = argparse.ArgumentParser(
+        description="Run MyNSEStrategy backtest with YAML config",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Run with default config (reads from config/strategy.yaml)
+  python backtest_runner.py
+  
+  # Override instrument_id
+  python backtest_runner.py --instrument_id "BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE"
+  
+  # Override specific parameters
+  python backtest_runner.py --instrument_id "BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE" --start_time "2025-06-18T12:00:00"
+  
+  # Use custom config file
+  python backtest_runner.py --config_file "custom_config.yaml"
+        """
     )
     
     # Optional arguments
-    parser.add_argument(  # Add config file argument
+    parser.add_argument(
+        "--instrument_id",
+        type=str,
+        help="Instrument ID to trade (overrides YAML)"
+    )
+    
+    parser.add_argument(
         "--config_file",
         type=str,
-        help="Path to YAML configuration file"
+        help="Path to YAML configuration file (default: config/strategy.yaml)"
     )
     
-    parser.add_argument(  # Add catalog path argument
-        "--catalog_path",
-        type=str,
-        default="catalog-data/my_nse_strategy/catalog",
-        help="Path to data catalog (default: catalog-data/my_nse_strategy/catalog)"
-    )
-    
-    parser.add_argument(  # Add metadata catalog path argument
-        "--meta_catalog_path",
-        type=str,
-        default="catalog-data/my_nse_strategy/catalog-meta",
-        help="Path to metadata catalog (default: catalog-data/my_nse_strategy/catalog-meta)"
-    )
-    
-    parser.add_argument(  # Add start time argument
+    parser.add_argument(
         "--start_time",
         type=str,
-        default="2025-06-26T09:15:00",
-        help="Backtest start time in ISO format (default: 2025-06-26T09:15:00)"
+        help="Backtest start time in ISO format (overrides YAML)"
     )
     
-    parser.add_argument(  # Add end time argument
+    parser.add_argument(
         "--end_time",
         type=str,
-        default="2025-06-26T15:30:00",
-        help="Backtest end time in ISO format (default: 2025-06-26T15:30:00)"
+        help="Backtest end time in ISO format (overrides YAML)"
     )
     
-    # Strategy parameters
-    parser.add_argument(  # Add stop-loss argument
-        "--sl_pct",
-        type=float,
-        default=0.02,
-        help="Stop-loss percentage (default: 0.02)"
-    )
-    
-    parser.add_argument(  # Add take-profit argument
-        "--tp_pct",
-        type=float,
-        default=0.03,
-        help="Take-profit percentage (default: 0.03)"
-    )
-    
-    parser.add_argument(  # Add position size argument
+    parser.add_argument(
         "--position_size",
         type=int,
-        default=1,
-        help="Position size in contracts (default: 1)"
+        help="Position size in contracts (overrides YAML)"
     )
     
-    parser.add_argument(  # Add minimum IV argument
-        "--min_iv",
+    parser.add_argument(
+        "--sl_pct",
         type=float,
-        default=0,
-        help="Minimum implied volatility threshold (default: 0)"
+        help="Stop-loss percentage (overrides YAML)"
     )
     
-    parser.add_argument(  # Add entry buffer argument
-        "--entry_buffer_pct",
+    parser.add_argument(
+        "--tp_pct",
         type=float,
-        default=0.01,
-        help="Entry buffer percentage (default: 0.01)"
-    )
-    
-    parser.add_argument(  # Add lookback intervals argument
-        "--lookback_intervals",
-        type=int,
-        default=2,
-        help="Rolling window size (default: 2)"
-    )
-    
-    parser.add_argument(  # Add minimum OI change argument
-        "--min_oi_change",
-        type=float,
-        default=-100,
-        help="Minimum open interest change (default: -100)"
-    )
-    
-    parser.add_argument(  # Add breakeven trigger argument
-        "--breakeven_trigger_pct",
-        type=float,
-        default=2,
-        help="Breakeven trigger percentage (default: 2)"
+        help="Take-profit percentage (overrides YAML)"
     )
     
     # Parse arguments
-    args = parser.parse_args()  # Parse command line arguments
+    args = parser.parse_args()
     
-    # Extract strategy parameters
-    strategy_params = {  # Create strategy parameters dictionary
-        'sl_pct': args.sl_pct,  # Stop-loss percentage
-        'tp_pct': args.tp_pct,  # Take-profit percentage
-        'position_size': args.position_size,  # Position size
-        'min_iv': args.min_iv,  # Minimum IV threshold
-        'entry_buffer_pct': args.entry_buffer_pct,  # Entry buffer
-        'lookback_intervals': args.lookback_intervals,  # Lookback intervals
-        'min_oi_change': args.min_oi_change,  # Minimum OI change
-        'breakeven_trigger_pct': args.breakeven_trigger_pct,  # Breakeven trigger
-    }
+    # Collect overrides (only non-None values)
+    overrides = {}
+    for key, value in vars(args).items():
+        if value is not None and key != 'config_file':
+            overrides[key] = value
     
     try:
         # Run the backtest
-        node = run_backtest(  # Execute backtest
-            instrument_id=args.instrument_id,  # Set instrument ID
-            config_file=args.config_file,  # Set config file
-            catalog_path=args.catalog_path,  # Set catalog path
-            meta_catalog_path=args.meta_catalog_path,  # Set metadata catalog path
-            start_time=args.start_time,  # Set start time
-            end_time=args.end_time,  # Set end time
-            **strategy_params  # Pass strategy parameters
+        node = run_backtest(
+            config_file=args.config_file,
+            **overrides
         )
         
-        print("Backtest completed successfully!")  # Log successful completion
+        print("Backtest completed successfully!")
         
-    except Exception as e:  # Handle exceptions
-        print(f"Error running backtest: {e}")  # Log error message
-        sys.exit(1)  # Exit with error code
+    except Exception as e:
+        print(f"Error running backtest: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    main()  # Execute main function when script is run directly 
+    main() 

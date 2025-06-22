@@ -53,14 +53,10 @@ def run_live_trading(config: MyNSEStrategyConfig) -> Dict[str, Any]:
 def main():
     """Main function to run live trading for MyNSEStrategy."""
     
-    # Configuration
+    # Configuration - using the correct MyNSEStrategyConfig from strategy.py
     config = MyNSEStrategyConfig(
-        catalog_path="catalog-data/my_nse_strategy/catalog",  # Not needed for live trading
-        instrument_id="BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE",
-        log_level="INFO",
-        venue_name="NSE",
-        venue_base_currency="INR",
-        venue_starting_balance=Money(1_000_000, INR),
+        instrument_id=InstrumentId.from_str("BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE"),
+        # Other parameters will use defaults from the config class
     )
     
     # Run live trading

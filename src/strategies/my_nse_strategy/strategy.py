@@ -24,7 +24,7 @@ Author: Trading Strategy Developer
 Version: 1.0.0
 """
 
-from nautilus_trader.trading.strategy import Strategy, StrategyConfig  # Import base strategy classes
+from nautilus_trader.trading.strategy import Strategy  # Import base strategy class
 from nautilus_trader.model import InstrumentId, Quantity  # Import trading model objects
 from nautilus_trader.model.enums import OrderSide, TimeInForce  # Import trading enums
 from nautilus_trader.model.events import PositionOpened, OrderFilled  # Import trading events
@@ -32,69 +32,17 @@ from nautilus_trader.core.message import Event  # Import event base class
 from nautilus_trader.model import QuoteTick  # Import quote tick data
 from nautilus_trader.model.objects import Price  # Import price object
 
+# Import configuration from config module
+try:
+    from .config import MyNSEStrategyConfig
+except ImportError:
+    # Fallback for direct execution
+    from config import MyNSEStrategyConfig
+
 import pandas as pd  # Import pandas for data manipulation
 from datetime import time  # Import time for end-of-day logic
 from collections import deque  # Import deque for rolling window
 import os  # Import os for file operations
-
-# Configuration class for the strategy
-class MyNSEStrategyConfig(StrategyConfig):
-    """
-    Configuration class for MyNSEStrategy parameters.
-    
-    This class defines all configurable parameters for the strategy's behavior,
-    including risk management, entry/exit logic, and market filters.
-    
-    Attributes:
-        instrument_id: Target instrument for trading
-        meta_catalog_path: Path to metadata catalog for IV/OI data
-        sl_pct: Stop-loss percentage from entry price
-        tp_pct: Take-profit percentage from entry price
-        position_size: Number of contracts to trade
-        end_time: Latest time to take new trades (HH:MM format)
-        min_iv: Minimum implied volatility threshold
-        entry_buffer_pct: Price buffer for breakout confirmation
-        lookback_intervals: Rolling window size for breakout detection
-        min_oi_change: Minimum open interest change threshold
-        breakeven_trigger_pct: Price gain % to move SL to breakeven
-        sar_enabled: Enable Stop-And-Reverse logic (future feature)
-    """
-    
-    instrument_id: InstrumentId  # Target instrument ID for trading
-    """Target instrument ID for trading."""
-    
-    meta_catalog_path: str = "catalog-data/my_nse_strategy/catalog-meta"  # Path to metadata catalog
-    """Path to the Parquet metadata files containing IV/OI data."""
-    
-    sl_pct: float = 0.02  # 2% stop-loss default
-    """Stop-loss percentage from entry price (2% default)."""
-    
-    tp_pct: float = 0.03  # 3% take-profit default
-    """Take-profit target as a percentage from entry price (3% default)."""
-    
-    position_size: int = 1  # Default position size
-    """Number of contracts to trade per position."""
-    
-    end_time: str = "15:15"  # End time for new trades
-    """Latest time to take new trades in HH:MM format."""
-    
-    min_iv: float = 0  # Minimum implied volatility threshold
-    """Minimum implied volatility filter threshold."""
-    
-    entry_buffer_pct: float = 0.01  # 1% entry buffer
-    """Entry trigger buffer percentage for breakout confirmation."""
-    
-    lookback_intervals: int = 2  # Rolling window size
-    """Rolling window size for price breakout detection."""
-    
-    min_oi_change: float = -100  # Minimum open interest change
-    """Minimum open interest change threshold for entry filtering."""
-    
-    breakeven_trigger_pct: float = 2  # 2% breakeven trigger
-    """Price gain percentage to move stop-loss to breakeven."""
-    
-    sar_enabled: bool = True  # Stop-and-reverse flag
-    """Enable Stop-And-Reverse logic (reserved for future implementation)."""
 
 
 class MyNSEStrategy(Strategy):
@@ -136,7 +84,7 @@ class MyNSEStrategy(Strategy):
     """
     
     # Class attribute to reference the config class
-    config_class = MyNSEStrategyConfig  # Reference to configuration class
+    config_class = MyNSEStrategyConfig  # Reference to configuration class from config module
     
     def __init__(self, config: MyNSEStrategyConfig):
         """

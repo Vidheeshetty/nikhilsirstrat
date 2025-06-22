@@ -1,118 +1,164 @@
 """
-Configuration Module for MyNSEStrategy
+Configuration Utilities for MyNSEStrategy
 
-This module contains configuration classes for the MyNSEStrategy, providing
-flexible parameter management for different execution modes (backtest, paper trade, live).
+This module provides the main configuration class and utility functions for loading 
+and managing configuration from YAML files for the MyNSEStrategy.
 
-The configuration system allows for easy customization of strategy parameters
-without modifying the core strategy logic, enabling rapid experimentation and
-optimization across different market conditions.
-
-Classes:
-    MyNSEStrategyConfig: Main configuration class for strategy parameters
+The MyNSEStrategyConfig class extends StrategyConfig from Nautilus Trader and defines
+all configurable parameters for the strategy's behavior.
 """
 
-from dataclasses import dataclass, field  # Import dataclass utilities
-from typing import Optional, List  # Import type hints
-from nautilus_trader.model.identifiers import InstrumentId, Venue  # Import trading identifiers
-from nautilus_trader.model.enums import AccountType, OmsType  # Import trading enums
-from nautilus_trader.model.objects import Money  # Import money object
-from nautilus_trader.model.currencies import INR  # Import INR currency
+import os
+import yaml
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+from nautilus_trader.trading.strategy import StrategyConfig
+from nautilus_trader.model import InstrumentId
 
 
-@dataclass
-class MyNSEStrategyConfig:
+class MyNSEStrategyConfig(StrategyConfig):
     """
-    Configuration class for MyNSEStrategy execution parameters.
+    Configuration class for MyNSEStrategy parameters.
     
-    This class encapsulates all configurable parameters for the strategy,
-    including data sources, venue settings, risk management, and execution logic.
+    This class defines all configurable parameters for the strategy's behavior,
+    including risk management, entry/exit logic, and market filters.
     
     Attributes:
-        catalog_path: Path to the data catalog containing historical data
-        instrument_id: Target instrument ID for trading (e.g., "BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE")
-        venue_name: Trading venue name (default: "NSE")
-        venue_oms_type: Order management system type (default: NETTING)
-        venue_account_type: Account type for margin calculations (default: MARGIN)
-        venue_base_currency: Base currency for the trading account (default: "INR")
-        venue_starting_balance: Initial account balance for backtesting
-        log_level: Logging level for strategy execution (default: "INFO")
-        bypass_logging: Flag to bypass detailed logging for performance (default: False)
+        instrument_id: Target instrument for trading
+        meta_catalog_path: Path to metadata catalog for IV/OI data
+        sl_pct: Stop-loss percentage from entry price
+        tp_pct: Take-profit percentage from entry price
+        position_size: Number of contracts to trade
+        end_time: Latest time to take new trades (HH:MM format)
+        min_iv: Minimum implied volatility threshold
+        entry_buffer_pct: Price buffer for breakout confirmation
+        lookback_intervals: Rolling window size for breakout detection
+        min_oi_change: Minimum open interest change threshold
+        breakeven_trigger_pct: Price gain % to move SL to breakeven
+        sar_enabled: Enable Stop-And-Reverse logic (future feature)
     """
     
-    # Data Configuration
-    catalog_path: str = "catalog-data/my_nse_strategy/catalog"  # Default catalog path for historical data
-    """Path to the data catalog containing historical market data."""
+    instrument_id: InstrumentId  # Target instrument ID for trading
+    """Target instrument ID for trading."""
     
-    instrument_id: Optional[str] = None  # Target instrument ID for trading
-    """Target instrument ID for trading. Format: 'SYMBOL.OPT.EXPIRY.STRIKE.TYPE.EXCHANGE'"""
+    meta_catalog_path: str = "catalog-data/my_nse_strategy/catalog-meta"  # Path to metadata catalog
+    """Path to the Parquet metadata files containing IV/OI data."""
     
-    # Venue Configuration
-    venue_name: str = "NSE"  # Default trading venue
-    """Trading venue name (National Stock Exchange)."""
+    sl_pct: float = 0.02  # 2% stop-loss default
+    """Stop-loss percentage from entry price (2% default)."""
     
-    venue_oms_type: OmsType = OmsType.NETTING  # Order management system type
-    """Order management system type - NETTING for single position per instrument."""
+    tp_pct: float = 0.03  # 3% take-profit default
+    """Take-profit target as a percentage from entry price (3% default)."""
     
-    venue_account_type: AccountType = AccountType.MARGIN  # Account type for margin calculations
-    """Account type for margin calculations and position management."""
+    position_size: int = 1  # Default position size
+    """Number of contracts to trade per position."""
     
-    venue_base_currency: str = "INR"  # Base currency for trading account
-    """Base currency for the trading account (Indian Rupees)."""
+    end_time: str = "15:15"  # End time for new trades
+    """Latest time to take new trades in HH:MM format."""
     
-    venue_starting_balance: Money = field(default_factory=lambda: Money(1_000_000, INR))  # 1 million INR starting balance
-    """Initial account balance for backtesting (1 million INR)."""
+    min_iv: float = 0  # Minimum implied volatility threshold
+    """Minimum implied volatility filter threshold."""
     
-    # Logging Configuration
-    log_level: str = "INFO"  # Default logging level
-    """Logging level for strategy execution and debugging."""
+    entry_buffer_pct: float = 0.01  # 1% entry buffer
+    """Entry trigger buffer percentage for breakout confirmation."""
     
-    bypass_logging: bool = False  # Flag to bypass detailed logging
-    """Flag to bypass detailed logging for performance optimization."""
+    lookback_intervals: int = 2  # Rolling window size
+    """Rolling window size for price breakout detection."""
     
-    # Strategy configuration
-    strategy_config: Optional[dict] = None
+    min_oi_change: float = -100  # Minimum open interest change
+    """Minimum open interest change threshold for entry filtering."""
     
-    # Time configuration
-    start_time: Optional[str] = None
-    end_time: Optional[str] = None
+    breakeven_trigger_pct: float = 2  # 2% breakeven trigger
+    """Price gain percentage to move stop-loss to breakeven."""
     
-    def __post_init__(self):
-        """Validate configuration after initialization."""
-        if self.instrument_id and not isinstance(self.instrument_id, str):
-            raise ValueError("instrument_id must be a string")
+    sar_enabled: bool = True  # Stop-and-reverse flag
+    """Enable Stop-And-Reverse logic (reserved for future implementation)."""
+
+
+def load_config_from_file(config_file: str) -> Dict[str, Any]:
+    """
+    Load configuration from a YAML file.
+    
+    Args:
+        config_file: Path to the YAML configuration file
         
-        if self.start_time and self.end_time:
-            # Add validation for time format if needed
-            pass
+    Returns:
+        Dictionary containing configuration parameters
+        
+    Raises:
+        FileNotFoundError: If the config file doesn't exist
+        yaml.YAMLError: If the YAML file is malformed
+    """
+    if not os.path.exists(config_file):
+        raise FileNotFoundError(f"Configuration file not found: {config_file}")
+    
+    with open(config_file, 'r') as file:
+        try:
+            config = yaml.safe_load(file)
+            return config or {}
+        except yaml.YAMLError as e:
+            raise yaml.YAMLError(f"Error parsing YAML file {config_file}: {e}")
 
 
-@dataclass
-class VenueConfig:
-    """Configuration for a trading venue."""
+def get_default_config_path() -> str:
+    """
+    Get the default configuration file path.
     
-    name: str
-    oms_type: OmsType = OmsType.NETTING
-    account_type: AccountType = AccountType.MARGIN
-    base_currency: str = "INR"
-    starting_balances: List[Money] = field(default_factory=list)
-    
-    def __post_init__(self):
-        """Set default starting balances if not provided."""
-        if not self.starting_balances:
-            self.starting_balances = [Money(1_000_000, INR)]
+    Returns:
+        Path to the default strategy.yaml configuration file
+    """
+    return str(Path(__file__).parent / "strategy.yaml")
 
 
-@dataclass
-class DataConfig:
-    """Configuration for data loading."""
+def load_default_config() -> Dict[str, Any]:
+    """
+    Load configuration from the default strategy.yaml file.
     
-    catalog_path: str
-    instrument_id: Optional[str] = None
-    start_time: Optional[str] = None
-    end_time: Optional[str] = None
+    Returns:
+        Dictionary containing configuration parameters
+        
+    Raises:
+        FileNotFoundError: If the default config file doesn't exist
+        yaml.YAMLError: If the YAML file is malformed
+    """
+    config_path = get_default_config_path()
+    return load_config_from_file(config_path)
+
+
+def validate_config(config: Dict[str, Any]) -> bool:
+    """
+    Validate configuration parameters.
     
-    def __post_init__(self):
-        """Validate data configuration."""
-        if not self.catalog_path:
-            raise ValueError("catalog_path is required") 
+    Args:
+        config: Configuration dictionary to validate
+        
+    Returns:
+        True if configuration is valid
+        
+    Raises:
+        ValueError: If configuration is invalid
+    """
+    required_fields = ['instrument_id']
+    
+    for field in required_fields:
+        if field not in config or config[field] is None:
+            raise ValueError(f"Required configuration field '{field}' is missing or None")
+    
+    # Validate instrument_id format
+    instrument_id = config['instrument_id']
+    if not isinstance(instrument_id, str) or '.' not in instrument_id:
+        raise ValueError(f"Invalid instrument_id format: {instrument_id}")
+    
+    # Validate numeric fields
+    numeric_fields = ['sl_pct', 'tp_pct', 'position_size', 'min_iv', 'entry_buffer_pct', 
+                     'lookback_intervals', 'min_oi_change', 'breakeven_trigger_pct']
+    
+    for field in numeric_fields:
+        if field in config and config[field] is not None:
+            try:
+                float(config[field])
+            except (ValueError, TypeError):
+                raise ValueError(f"Invalid numeric value for '{field}': {config[field]}")
+    
+    return True 
