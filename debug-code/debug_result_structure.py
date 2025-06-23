@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 
 # Add parent directories to Python path for imports
-sys.path.append(str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from nautilus_trader.backtest.config import (
     BacktestVenueConfig, BacktestDataConfig, BacktestEngineConfig, BacktestRunConfig
@@ -22,6 +22,9 @@ from nautilus_trader.model.currencies import INR
 from nautilus_trader.persistence.catalog.parquet import ParquetDataCatalog
 from nautilus_trader.model.enums import OmsType, AccountType, BookType
 from nautilus_trader.model.objects import Money, Price, Quantity
+from strategies.my_nse_strategy.strategy import MyNSEStrategy
+from strategies.my_nse_strategy.config import MyNSEStrategyConfig
+from nautilus_trader.backtest.results import BacktestResult
 
 def debug_result_structure():
     """Run a backtest and examine the result object structure in detail."""
@@ -68,9 +71,6 @@ def debug_result_structure():
     engine.add_data(data)
     
     # Add strategy
-    from src.strategies.my_nse_strategy.strategy import MyNSEStrategy
-    from src.strategies.my_nse_strategy.config import MyNSEStrategyConfig
-    
     config = {
         "instrument_id": InstrumentId.from_str(instrument_id),
         "entry_buffer_pct": 0.1,
@@ -214,5 +214,18 @@ def debug_result_structure():
     print("DEBUG COMPLETE")
     print("=" * 80)
 
+def debug_backtest_result(result: BacktestResult):
+    print("\n=== DEBUG: BacktestResult Attributes ===")
+    for attr in dir(result):
+        if not attr.startswith("_"):
+            try:
+                value = getattr(result, attr)
+                print(f"{attr}: {value}")
+            except Exception as e:
+                print(f"{attr}: <error: {e}>")
+    print("=== END DEBUG ===\n")
+
 if __name__ == "__main__":
-    debug_result_structure() 
+    # You would import or create a BacktestResult here
+    # For now, just print a message
+    print("Run this script after a backtest to inspect BacktestResult attributes.") 

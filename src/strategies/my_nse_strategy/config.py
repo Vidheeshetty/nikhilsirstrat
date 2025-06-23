@@ -27,6 +27,7 @@ class MyNSEStrategyConfig(StrategyConfig):
     Attributes:
         instrument_id: Target instrument for trading
         meta_catalog_path: Path to metadata catalog for IV/OI data
+        catalog_path: Path to the data catalog for instrument lookup and expiration checks
         sl_pct: Stop-loss percentage from entry price
         tp_pct: Take-profit percentage from entry price
         position_size: Number of contracts to trade
@@ -44,6 +45,9 @@ class MyNSEStrategyConfig(StrategyConfig):
     
     meta_catalog_path: str = "catalog-data/my_nse_strategy/catalog-meta"  # Path to metadata catalog
     """Path to the Parquet metadata files containing IV/OI data."""
+    
+    catalog_path: str = "catalog-data/my_nse_strategy/catalog"  # Path to the data catalog for instrument lookup and expiration checks
+    """Path to the data catalog for instrument lookup and expiration checks."""
     
     sl_pct: float = 0.02  # 2% stop-loss default
     """Stop-loss percentage from entry price (2% default)."""

@@ -40,7 +40,7 @@ except ImportError:
     from config import MyNSEStrategyConfig
 
 import pandas as pd  # Import pandas for data manipulation
-from datetime import time  # Import time for end-of-day logic
+from datetime import time, datetime, timedelta  # Import time for end-of-day logic
 from collections import deque  # Import deque for rolling window
 import os  # Import os for file operations
 
@@ -139,6 +139,19 @@ class MyNSEStrategy(Strategy):
         
         # Load metadata for IV/OI filtering
         self._load_metadata()  # Load implied volatility and open interest data
+        
+        # Cache instrument object for expiration check
+        self.instrument = None
+        try:
+            # Move import here to avoid circular import
+            from strategies.my_nse_strategy.runners.backtest.data_manager import DataManager
+            catalog_path = getattr(config, 'catalog_path', None)
+            if catalog_path is not None:
+                self.instrument = DataManager(catalog_path).get_instrument(str(config.instrument_id))
+            else:
+                self.log.warning("No catalog_path in config; expiration check will be skipped.")
+        except Exception as e:
+            self.log.warning(f"Could not cache instrument for expiration check: {e}")
 
     def _load_metadata(self):
         """
@@ -162,7 +175,7 @@ class MyNSEStrategy(Strategy):
         # Find all parquet files in the metadata directory
         meta_files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith(".parquet")]  # Get all parquet files
         if not meta_files:  # Check if any parquet files found
-            self.log.warn(f"No .parquet files found in metadata catalog: {path}")
+            self.log.warning(f"No .parquet files found in metadata catalog: {path}")
             self.meta_df = pd.DataFrame()  # Create empty DataFrame if no files
             return
 
@@ -251,6 +264,13 @@ class MyNSEStrategy(Strategy):
             
         self.log.info(f"=== RECEIVED QUOTE TICK: {tick} ===")  # Log received tick
         
+        # Expiration check: skip if contract is expired at this tick
+        if self.instrument is not None:
+            expiration_ns = getattr(self.instrument, 'expiration_ns', None)
+            if expiration_ns is not None and tick.ts_event >= expiration_ns:
+                self.log.info(f"Skipping expired contract: {self.config.instrument_id} (expired at {expiration_ns}, tick {tick.ts_event})")
+                return
+        
         # VALIDATE BID/ASK PRICES - Handle zero or invalid prices
         is_valid, bid_price, ask_price = self._validate_quote_tick(tick)
         if not is_valid:
@@ -308,20 +328,25 @@ class MyNSEStrategy(Strategy):
                 
                 try:
                     # Create market order for entry
-                    order = self.order_factory.market(  # Create market order
-                        instrument_id=self.config.instrument_id,  # Target instrument
-                        order_side=OrderSide.BUY,  # Buy order
-                        quantity=Quantity.from_int(self.config.position_size),  # Position size
-                        time_in_force=TimeInForce.DAY,  # Day order
-                        reduce_only=False,  # Allow new position
-                        quote_quantity=False,  # Use quantity not quote amount
-                        tags=[f"entry-long-{self.order_count}"]  # Order tag for tracking
+                    order = self.order_factory.market(
+                        instrument_id=self.config.instrument_id,
+                        order_side=OrderSide.BUY,
+                        quantity=Quantity.from_int(self.config.position_size),
+                        time_in_force=TimeInForce.DAY,
+                        reduce_only=False,
+                        quote_quantity=False,
+                        tags=[f"entry-long-{self.order_count}"]
                     )
-                    
+                    # Expiration check before submitting entry order
+                    if self.instrument is not None:
+                        expiration_ns = getattr(self.instrument, 'expiration_ns', None)
+                        if expiration_ns is not None and tick.ts_event >= expiration_ns:
+                            self.log.info(f"Skipping entry order for expired contract: {self.config.instrument_id} (expired at {expiration_ns}, tick {tick.ts_event})")
+                            return
                     # Submit the order
-                    self.submit_order(order)  # Submit order to exchange
-                    self.order_count += 1  # Increment order counter
-                    self.log.info(f"Market order submitted successfully: {order}")  # Log order submission
+                    self.submit_order(order)
+                    self.order_count += 1
+                    self.log.info(f"Market order submitted successfully: {order}")
 
                     # Set position parameters
                     self.entry_price = price  # Set entry price
@@ -354,37 +379,40 @@ class MyNSEStrategy(Strategy):
                 if not oi_ok:
                     self.log.info(f"OI filter failed: {oi_change_f} < {self.config.min_oi_change}")
 
-        # EXIT LOGIC - Only process if we have a position
-        if self.in_trade and self.direction == "long":  # Check if in long position
-            
-            # Stop-loss check
-            if price <= self.sl_price:  # Check if stop-loss hit
-                self.log.info(f"*** STOP LOSS HIT! *** Price: {price:.2f}, SL: {self.sl_price:.2f}")  # Log stop-loss
-                self._exit_position("SL", price, tick.ts_event)  # Exit position
-                return  # Exit early
-                
-            # Take-profit check
-            elif price >= self.tp_price:  # Check if take-profit hit
-                self.log.info(f"*** TAKE PROFIT HIT! *** Price: {price:.2f}, TP: {self.tp_price:.2f}")  # Log take-profit
-                self._exit_position("TP", price, tick.ts_event)  # Exit position
-                return  # Exit early
-                
-            # Breakeven trigger check
-            elif not self.breakeven_triggered and price >= self.entry_price * (1 + self.config.breakeven_trigger_pct / 100):  # Check breakeven condition
-                self.sl_price = self.entry_price  # Move stop-loss to entry price
-                self.breakeven_triggered = True  # Set breakeven flag
-                self.log.info(f"Breakeven triggered - SL moved to entry price: {self.entry_price:.2f}")  # Log breakeven
-                
-            # Trailing stop-loss update
-            elif prev_bottom > self.sl_price:  # Check if new low is higher than current stop-loss
-                old_sl = self.sl_price  # Store old stop-loss
-                self.sl_price = prev_bottom  # Update to new low
-                self.log.info(f"Trailing stop updated - SL: {old_sl:.2f} -> {self.sl_price:.2f}")  # Log trailing stop update
-
-        # End-of-Day forced exit
-        if tick_time >= eod_squareoff_time and self.in_trade and self.direction == "long":  # Check end-of-day condition
-            self.log.info(f"*** EOD SQUAREOFF! *** Time: {tick_time}")  # Log end-of-day exit
-            self._exit_position("EOD", price, tick.ts_event)  # Force exit position
+        # --- DEBUG: Disable all exits in last 30 minutes of session to force open position ---
+        session_end_time = time(15, 30)  # NSE session ends at 15:30
+        last_n_minutes = 30
+        last_n_start = (datetime.combine(datetime.today(), session_end_time) - timedelta(minutes=last_n_minutes)).time()
+        if tick_time >= last_n_start:
+            # Skip all exit logic in last 30 minutes
+            pass  # No TP/SL/EOD exits
+        else:
+            # EXIT LOGIC - Only process if we have a position
+            if self.in_trade and self.direction == "long":  # Check if in long position
+                # Stop-loss check
+                if price <= self.sl_price:  # Check if stop-loss hit
+                    self.log.info(f"*** STOP LOSS HIT! *** Price: {price:.2f}, SL: {self.sl_price:.2f}")  # Log stop-loss
+                    self._exit_position("SL", price, tick.ts_event)  # Exit position
+                    return  # Exit early
+                # Take-profit check
+                elif price >= self.tp_price:  # Check if take-profit hit
+                    self.log.info(f"*** TAKE PROFIT HIT! *** Price: {price:.2f}, TP: {self.tp_price:.2f}")  # Log take-profit
+                    self._exit_position("TP", price, tick.ts_event)  # Exit position
+                    return  # Exit early
+                # Breakeven trigger check
+                elif not self.breakeven_triggered and price >= self.entry_price * (1 + self.config.breakeven_trigger_pct / 100):  # Check breakeven condition
+                    self.sl_price = self.entry_price  # Move stop-loss to entry price
+                    self.breakeven_triggered = True  # Set breakeven flag
+                    self.log.info(f"Breakeven triggered - SL moved to entry price: {self.entry_price:.2f}")  # Log breakeven
+                # Trailing stop-loss update
+                elif prev_bottom > self.sl_price:  # Check if new low is higher than current stop-loss
+                    old_sl = self.sl_price  # Store old stop-loss
+                    self.sl_price = prev_bottom  # Update to new low
+                    self.log.info(f"Trailing stop updated - SL: {old_sl:.2f} -> {self.sl_price:.2f}")  # Log trailing stop update
+            # End-of-Day forced exit (still commented out for debug)
+            # if tick_time >= eod_squareoff_time and self.in_trade and self.direction == "long":  # Check end-of-day condition
+            #     self.log.info(f"*** EOD SQUAREOFF! *** Time: {tick_time}")  # Log end-of-day exit
+            #     self._exit_position("EOD", price, tick.ts_event)  # Force exit position
 
         # Update rolling window with current price
         self.rolling_last.append(price)  # Add current price to rolling window
@@ -405,20 +433,25 @@ class MyNSEStrategy(Strategy):
         """
         try:
             # Create market order to exit position
-            order = self.order_factory.market(  # Create market exit order
-                instrument_id=self.config.instrument_id,  # Target instrument
-                order_side=OrderSide.SELL,  # Sell order to exit
-                quantity=Quantity.from_int(self.config.position_size),  # Position size
-                time_in_force=TimeInForce.DAY,  # Day order
-                reduce_only=True,  # Only reduce position, don't create new one
-                quote_quantity=False,  # Use quantity not quote amount
-                tags=[f"exit-{reason.lower()}-{self.order_count}"]  # Order tag for tracking
+            order = self.order_factory.market(
+                instrument_id=self.config.instrument_id,
+                order_side=OrderSide.SELL,
+                quantity=Quantity.from_int(self.config.position_size),
+                time_in_force=TimeInForce.DAY,
+                reduce_only=True,
+                quote_quantity=False,
+                tags=[f"exit-{reason.lower()}-{self.order_count}"]
             )
-            
+            # Expiration check before submitting exit order
+            if self.instrument is not None:
+                expiration_ns = getattr(self.instrument, 'expiration_ns', None)
+                if expiration_ns is not None and timestamp >= expiration_ns:
+                    self.log.info(f"Skipping exit order for expired contract: {self.config.instrument_id} (expired at {expiration_ns}, tick {timestamp})")
+                    return
             # Submit the exit order
-            self.submit_order(order)  # Submit exit order
-            self.order_count += 1  # Increment order counter
-            self.log.info(f"Exit order submitted: {order}")  # Log exit order
+            self.submit_order(order)
+            self.order_count += 1
+            self.log.info(f"Exit order submitted: {order}")
 
             # Update current trade with exit information
             if self.current_trade:  # Check if trade is being tracked
