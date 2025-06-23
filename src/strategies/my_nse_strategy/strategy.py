@@ -27,7 +27,7 @@ Version: 1.0.0
 from nautilus_trader.trading.strategy import Strategy  # Import base strategy class
 from nautilus_trader.model import InstrumentId, Quantity  # Import trading model objects
 from nautilus_trader.model.enums import OrderSide, TimeInForce  # Import trading enums
-from nautilus_trader.model.events import PositionOpened, OrderFilled  # Import trading events
+from nautilus_trader.model.events import PositionOpened, OrderFilled, PositionClosed  # Import trading events
 from nautilus_trader.core.message import Event  # Import event base class
 from nautilus_trader.model import QuoteTick  # Import quote tick data
 from nautilus_trader.model.objects import Price  # Import price object
@@ -179,6 +179,45 @@ class MyNSEStrategy(Strategy):
             self.log.error("Metadata DataFrame is missing 'instrument_id' or 'timestamp' columns.")  # Log error if columns missing
             self.meta_df = pd.DataFrame()  # Create empty DataFrame
 
+    def _validate_quote_tick(self, tick: QuoteTick) -> tuple[bool, float, float]:
+        """
+        Validate quote tick prices and return safe bid/ask values.
+        
+        This method checks if the quote tick has valid bid and ask prices,
+        filters out ticks with zero or negative prices, and validates
+        the bid/ask spread for reasonableness.
+        
+        Args:
+            tick: Quote tick to validate
+            
+        Returns:
+            tuple: (is_valid, bid_price, ask_price)
+                - is_valid: Boolean indicating if tick should be processed
+                - bid_price: Validated bid price (float)
+                - ask_price: Validated ask price (float)
+        """
+        bid_price = float(tick.bid_price)
+        ask_price = float(tick.ask_price)
+        
+        # Check for zero or negative prices
+        if bid_price <= 0 or ask_price <= 0:
+            self.log.debug(f"Invalid prices detected - bid: {bid_price}, ask: {ask_price}")
+            return False, bid_price, ask_price
+        
+        # Check for unreasonable bid/ask spread
+        if bid_price > 0:  # Avoid division by zero
+            spread_pct = (ask_price - bid_price) / bid_price * 100
+            if spread_pct > 50:  # Skip if spread is more than 50%
+                self.log.debug(f"Unreasonable spread detected - bid: {bid_price}, ask: {ask_price}, spread: {spread_pct:.2f}%")
+                return False, bid_price, ask_price
+        
+        # Check for price sanity (options shouldn't be extremely expensive)
+        if bid_price > 10000 or ask_price > 10000:
+            self.log.debug(f"Extremely high prices detected - bid: {bid_price}, ask: {ask_price}")
+            return False, bid_price, ask_price
+        
+        return True, bid_price, ask_price
+
     def on_start(self):
         """
         Called when the strategy starts.
@@ -212,6 +251,12 @@ class MyNSEStrategy(Strategy):
             
         self.log.info(f"=== RECEIVED QUOTE TICK: {tick} ===")  # Log received tick
         
+        # VALIDATE BID/ASK PRICES - Handle zero or invalid prices
+        is_valid, bid_price, ask_price = self._validate_quote_tick(tick)
+        if not is_valid:
+            self.log.info(f"Skipping tick with invalid prices - bid: {bid_price}, ask: {ask_price}")
+            return
+        
         # Get metadata for IV/OI filtering
         try:
             meta = self.meta_df.loc[(str(tick.instrument_id), tick.ts_event)]  # Get metadata for this tick
@@ -222,14 +267,15 @@ class MyNSEStrategy(Strategy):
         iv = meta.get("impliedVolatility", 0)  # Get implied volatility
         oi = meta.get("openInterest", 0)  # Get open interest
 
-        # Calculate mid price from bid/ask
-        price = float(tick.bid_price + tick.ask_price) / 2  # Mid price calculation
+        # Calculate mid price from bid/ask (now safe since we validated prices)
+        price = (bid_price + ask_price) / 2  # Mid price calculation
         tick_time = pd.Timestamp(tick.ts_event, unit='ns').time()  # Convert timestamp to time
         eod_squareoff_time = time(hour=15, minute=20)  # End-of-day square-off time
 
         # Warm-up: wait until we have enough data points for analysis
         if len(self.rolling_last) < self.config.lookback_intervals:  # Check if enough data for analysis
             self.rolling_last.append(price)  # Add current price to rolling window
+            self.log.info(f"Warming up - rolling window size: {len(self.rolling_last)}/{self.config.lookback_intervals}")  # DIAGNOSTIC
             return  # Exit early if not enough data
 
         # Calculate breakout levels from rolling window
@@ -246,59 +292,70 @@ class MyNSEStrategy(Strategy):
         # Skip entry logic if already in a trade
         if self.in_trade:  # Check if already in position
             self.log.info(f"Already in trade, skipping entry logic. Position: {self.position}")  # Log skip reason
-            return  # Exit early if in trade
+        else:
+            # Apply market filters
+            buy_pressure = meta.get('totalBuyQuantity', 0) > meta.get('totalSellQuantity', 0)  # Check buy vs sell pressure
+            iv_ok = iv_f >= self.config.min_iv                    # Implied volatility filter
+            oi_ok = oi_change_f >= self.config.min_oi_change      # Open interest filter
 
-        # Apply market filters
-        buy_pressure = meta.get('totalBuyQuantity', 0) > meta.get('totalSellQuantity', 0)  # Check buy vs sell pressure
-        iv_ok = iv_f >= self.config.min_iv                    # Implied volatility filter
-        oi_ok = oi_change_f >= self.config.min_oi_change      # Open interest filter
+            # DIAGNOSTIC: Log entry condition values
+            self.log.info(f"DIAGNOSTIC - Entry conditions: price={price:.2f}, prev_top={prev_top:.2f}, entry_trigger={entry_trigger}, iv_f={iv_f:.4f}, iv_ok={iv_ok}, oi_change_f={oi_change_f}, oi_ok={oi_ok}")
+            self.log.info(f"DIAGNOSTIC - Config values: min_iv={self.config.min_iv}, min_oi_change={self.config.min_oi_change}, entry_buffer_pct={self.config.entry_buffer_pct}")
 
-        # ENTRY LOGIC
-        if entry_trigger and iv_ok and oi_ok:  # Check all entry conditions
-            self.log.info(f"*** ENTRY TRIGGERED! *** Price: {price:.2f}, IV: {iv_f:.4f}, OI: {oi_change_f}")  # Log entry trigger
-            
-            try:
-                # Create market order for entry
-                order = self.order_factory.market(  # Create market order
-                    instrument_id=self.config.instrument_id,  # Target instrument
-                    order_side=OrderSide.BUY,  # Buy order
-                    quantity=Quantity.from_int(self.config.position_size),  # Position size
-                    time_in_force=TimeInForce.DAY,  # Day order
-                    reduce_only=False,  # Allow new position
-                    quote_quantity=False,  # Use quantity not quote amount
-                    tags=[f"entry-long-{self.order_count}"]  # Order tag for tracking
-                )
+            # ENTRY LOGIC
+            if entry_trigger and iv_ok and oi_ok:  # Check all entry conditions
+                self.log.info(f"*** ENTRY TRIGGERED! *** Price: {price:.2f}, IV: {iv_f:.4f}, OI: {oi_change_f}")  # Log entry trigger
                 
-                # Submit the order
-                self.submit_order(order)  # Submit order to exchange
-                self.order_count += 1  # Increment order counter
-                self.log.info(f"Market order submitted successfully: {order}")  # Log order submission
+                try:
+                    # Create market order for entry
+                    order = self.order_factory.market(  # Create market order
+                        instrument_id=self.config.instrument_id,  # Target instrument
+                        order_side=OrderSide.BUY,  # Buy order
+                        quantity=Quantity.from_int(self.config.position_size),  # Position size
+                        time_in_force=TimeInForce.DAY,  # Day order
+                        reduce_only=False,  # Allow new position
+                        quote_quantity=False,  # Use quantity not quote amount
+                        tags=[f"entry-long-{self.order_count}"]  # Order tag for tracking
+                    )
+                    
+                    # Submit the order
+                    self.submit_order(order)  # Submit order to exchange
+                    self.order_count += 1  # Increment order counter
+                    self.log.info(f"Market order submitted successfully: {order}")  # Log order submission
 
-                # Set position parameters
-                self.entry_price = price  # Set entry price
-                self.sl_price = prev_bottom                    # Stop-loss at rolling window low
-                self.tp_price = price * (1 + self.config.tp_pct / 100)  # Take-profit at percentage
-                self.position_open_time = tick.ts_event  # Set position open time
-                self.breakeven_triggered = False  # Reset breakeven flag
-                self.direction = "long"  # Set position direction
-                
-                # Track current trade details
-                self.current_trade = {  # Initialize trade tracking
-                    "entry_time": tick.ts_event,  # Entry timestamp
-                    "entry_price": price,  # Entry price
-                    "iv": iv_f,  # Implied volatility at entry
-                    "oi_change": oi_change_f,  # Open interest change at entry
-                    "entry_reason": "breakout"  # Entry reason
-                }
-                
-                self.log.info(f"Trade parameters set - Entry: {price:.2f}, SL: {self.sl_price:.2f}, TP: {self.tp_price:.2f}")  # Log trade setup
+                    # Set position parameters
+                    self.entry_price = price  # Set entry price
+                    self.sl_price = prev_bottom                    # Stop-loss at rolling window low
+                    self.tp_price = price * (1 + self.config.tp_pct / 100)  # Take-profit at percentage
+                    self.position_open_time = tick.ts_event  # Set position open time
+                    self.breakeven_triggered = False  # Reset breakeven flag
+                    self.direction = "long"  # Set position direction
+                    
+                    # Track current trade details
+                    self.current_trade = {  # Initialize trade tracking
+                        "entry_time": tick.ts_event,  # Entry timestamp
+                        "entry_price": price,  # Entry price
+                        "iv": iv_f,  # Implied volatility at entry
+                        "oi_change": oi_change_f,  # Open interest change at entry
+                        "entry_reason": "breakout"  # Entry reason
+                    }
+                    
+                    self.log.info(f"Trade parameters set - Entry: {price:.2f}, SL: {self.sl_price:.2f}, TP: {self.tp_price:.2f}")  # Log trade setup
 
-            except Exception as e:
-                self.log.error(f"ERROR creating/submitting order: {e}")  # Log order error
-                return  # Exit on error
+                except Exception as e:
+                    self.log.error(f"ERROR creating/submitting order: {e}")  # Log order error
+                    return  # Exit on error
+            else:
+                # DIAGNOSTIC: Log why entry was not triggered
+                if not entry_trigger:
+                    self.log.info(f"Entry not triggered: price {price:.2f} <= prev_top {prev_top:.2f} * (1 + {self.config.entry_buffer_pct/100:.4f}) = {prev_top * (1 + self.config.entry_buffer_pct / 100):.2f}")
+                if not iv_ok:
+                    self.log.info(f"IV filter failed: {iv_f:.4f} < {self.config.min_iv}")
+                if not oi_ok:
+                    self.log.info(f"OI filter failed: {oi_change_f} < {self.config.min_oi_change}")
 
         # EXIT LOGIC - Only process if we have a position
-        if self.position and self.direction == "long":  # Check if in long position
+        if self.in_trade and self.direction == "long":  # Check if in long position
             
             # Stop-loss check
             if price <= self.sl_price:  # Check if stop-loss hit
@@ -325,7 +382,7 @@ class MyNSEStrategy(Strategy):
                 self.log.info(f"Trailing stop updated - SL: {old_sl:.2f} -> {self.sl_price:.2f}")  # Log trailing stop update
 
         # End-of-Day forced exit
-        if tick_time >= eod_squareoff_time and self.position and self.direction == "long":  # Check end-of-day condition
+        if tick_time >= eod_squareoff_time and self.in_trade and self.direction == "long":  # Check end-of-day condition
             self.log.info(f"*** EOD SQUAREOFF! *** Time: {tick_time}")  # Log end-of-day exit
             self._exit_position("EOD", price, tick.ts_event)  # Force exit position
 
@@ -397,6 +454,11 @@ class MyNSEStrategy(Strategy):
             self.position = self.cache.position(event.position_id)  # Get position object
             self.in_trade = True  # Set in-trade flag
             self.log.info(f"Position opened: {self.position}")  # Log position opening
+            
+        # Handle position closed events
+        elif isinstance(event, PositionClosed):  # Check if position closed event
+            self.log.info(f"Position closed: {event}")  # Log position closure
+            self._reset_position()  # Reset position state for next trade
             
         # Handle order filled events
         elif isinstance(event, OrderFilled):  # Check if order filled event

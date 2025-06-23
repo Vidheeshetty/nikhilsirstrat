@@ -42,6 +42,7 @@ env/
 
 # Logs
 *.log
+*.zip
 logs/
 
 # Nautilus Trader (reference only)
