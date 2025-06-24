@@ -14,7 +14,7 @@ from .config_manager import ConfigManager
 from .data_manager import DataManager
 from .engine_manager import EngineManager
 from .results_processor import ResultsProcessor
-from backtest_utils.report_generator import ReportGenerator
+from ..report_generator import ReportGenerator
 from strategies.my_nse_strategy.strategy import MyNSEStrategy
 from .batch_helpers import run_single_backtest_wrapper_for_pool
 
@@ -36,12 +36,12 @@ class BacktestOrchestrator:
         self.config_manager.validate_config()
     
     def run_single_backtest(self, 
-                               instrument_id: str,
-                               start_time: Optional[str] = None,
-                               end_time: Optional[str] = None,
-                               log_file: Optional[str] = None,
-                               verbose: bool = True,
-                               batch_mode: bool = False) -> Dict[str, Any]:
+                           instrument_id: str,
+                           start_time: Optional[str] = None,
+                           end_time: Optional[str] = None,
+                           log_file: Optional[str] = None,
+                           verbose: bool = True,
+                           batch_mode: bool = False) -> Dict[str, Any]:
         """Run backtest for a single instrument."""
         
         # Setup logging only if log_file is not None
@@ -133,10 +133,7 @@ class BacktestOrchestrator:
         except Exception as e:
             print(f"Error running backtest for {instrument_id}: {e}")
             self.engine_manager.cleanup()
-            if batch_mode:  # Return a structured error dictionary for batch mode
-                return {"instrument_id": instrument_id, "error": str(e), "summary": {}, "detailed_data": {}, "stats_pnls": {}, "account": {}}
-            else:
-                raise  # Re-raise for single non-batch runs (original behavior)
+            raise
     
     def run_batch_backtest(self, 
                           instrument_ids: List[str],
@@ -182,10 +179,11 @@ class BacktestOrchestrator:
 
             for i, future in enumerate(concurrent.futures.as_completed(futures), 1):
                 result = future.result()
-                all_results.append(result) # Always append the result
                 if "error" in result:
                     if verbose:
                         print(f"Failed to run backtest for {result['instrument_id']}: {result['error']}")
+                else:
+                    all_results.append(result)
                 if not verbose:
                     msg = f"Processing {i}/{total}"
                     print('\r' + msg.ljust(40), end='', flush=True)
@@ -193,15 +191,28 @@ class BacktestOrchestrator:
                 print('\r' + ' ' * 40, end='\r')  # Clear the line
                 print()  # Move to next line after progress bar
         
-        # After all_results is populated, generate the consolidated report
+        # After all_results is populated, write the report in the correct order
         if all_results:
-            # Use create_consolidated_summary for the full report
-            self.report_generator.create_consolidated_summary(all_results, batch_log_file)
-            if verbose:
-                print(f"Batch backtest report saved to: {batch_log_file}")
+            # 1. Write the detailed BACKTEST RESULTS SUMMARY (totals/aggregates) at the top
+            self.report_generator.write_batch_results_summary(batch_log_file, all_results)
 
+            # 2. Write the instrument-wise summary table after the detailed summary
+            with open(batch_log_file, "a") as batch_log:
+                batch_log.write("INSTRUMENT-WISE SUMMARY\n")
+                batch_log.write("-" * 100 + "\n")
+                batch_log.write(f"{'Instrument':<40} | {'Orders':>8} | {'Positions':>10} | {'Trades':>8} | {'Realized PnL':>14} | {'Unrealized PnL':>16}\n")
+                batch_log.write("-" * 100 + "\n")
+                for result in all_results:
+                    instrument_id_short = result['instrument_id'][:37] + '...' if len(result['instrument_id']) > 40 else result['instrument_id']
+                    realized_pnl = float(result.get('realized_pnl', 0.0))
+                    unrealized_pnl = float(result.get('unrealized_pnl', 0.0))
+                    batch_log.write(
+                        f"{instrument_id_short:<40} | {result['total_orders']:>8} | {result['total_positions']:>10} | {result['total_trades']:>8} | {realized_pnl:>14,.2f} | {unrealized_pnl:>16,.2f}\n"
+                    )
+                batch_log.write("-" * 100 + "\n\n")
+        
         return all_results
-
+    
     def run_all_instruments_backtest(self,
                                    start_time: Optional[str] = None,
                                    end_time: Optional[str] = None,
@@ -211,6 +222,4 @@ class BacktestOrchestrator:
         instrument_ids = self.data_manager.get_all_instrument_ids()
         if verbose:
             print(f"Found {len(instrument_ids)} instruments for backtesting")
-        return self.run_batch_backtest(instrument_ids, start_time, end_time, verbose=verbose, max_workers=max_workers)
-# Restored from old-code/my_nse_strategy/runners/backtest/backtest_orchestrator.py
-# (No changes made; this is a direct copy for restoration) 
+        return self.run_batch_backtest(instrument_ids, start_time, end_time, verbose=verbose, max_workers=max_workers) 

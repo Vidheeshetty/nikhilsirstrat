@@ -27,4 +27,4 @@ def run_single_backtest_wrapper_for_pool(
             batch_mode=batch_mode
         )
     except Exception as e:
-        return {"instrument_id": instrument_id, "error": str(e), "summary": {}, "detailed_data": {}, "stats_pnls": {}, "account": {}} 
+        return {"instrument_id": instrument_id, "error": str(e)} 

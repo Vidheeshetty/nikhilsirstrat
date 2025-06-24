@@ -36,8 +36,6 @@ class ConfigManager:
         config = self.config.copy()
         if instrument_id is None:
             instrument_id = config.get("instrument_id")
-        if not instrument_id:
-            raise ValueError("No instrument_id provided via CLI or YAML config. Please specify --instrument_id or set instrument_id in your config YAML.")
         config["instrument_id"] = InstrumentId.from_str(instrument_id)
         
         # Remove backtest-specific parameters that are not part of strategy config

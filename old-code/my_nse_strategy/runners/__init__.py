@@ -12,6 +12,7 @@ Future support planned:
 - LiveTrading: Live trading execution
 """
 
+from .report_generator import ReportGenerator
 from .backtest import (
     BacktestOrchestrator,
     ConfigManager,
@@ -21,9 +22,10 @@ from .backtest import (
 )
 
 __all__ = [
+    'ReportGenerator',
     'BacktestOrchestrator',
     'ConfigManager',
-    'DataManager',
+    'DataManager', 
     'EngineManager',
-    'ResultsProcessor'
+    'ResultsProcessor',
 ] 

@@ -140,10 +140,18 @@ class MyNSEStrategy(Strategy):
         # Load metadata for IV/OI filtering
         self._load_metadata()  # Load implied volatility and open interest data
         
-        # Cache instrument object for expiration check (optional)
+        # Cache instrument object for expiration check
         self.instrument = None
-        # Note: Expiration check is disabled for now to avoid import issues
-        # This can be re-enabled when the data manager is properly modularized
+        try:
+            # Move import here to avoid circular import
+            from strategies.my_nse_strategy.runners.backtest.data_manager import DataManager
+            catalog_path = getattr(config, 'catalog_path', None)
+            if catalog_path is not None:
+                self.instrument = DataManager(catalog_path).get_instrument(str(config.instrument_id))
+            else:
+                self.log.warning("No catalog_path in config; expiration check will be skipped.")
+        except Exception as e:
+            self.log.warning(f"Could not cache instrument for expiration check: {e}")
 
     def _load_metadata(self):
         """

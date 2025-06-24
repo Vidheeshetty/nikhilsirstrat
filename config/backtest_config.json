@@ -1,0 +1,19 @@
+{
+    "catalog_path": "catalog-data",
+    "output_dir": "backtest_results",
+    "log_level": "INFO",
+    "risk_engine": {
+        "bypass": true,
+        "max_order_submit_rate": "100/00:00:01",
+        "max_order_modify_rate": "100/00:00:01",
+        "max_notional_per_order": 1000000
+    },
+    "trading_engine": {
+        "bypass": true
+    },
+    "market_hours": {
+        "start_time": "09:15:00",
+        "end_time": "15:30:00"
+    },
+    "venue": "NSE"
+} 

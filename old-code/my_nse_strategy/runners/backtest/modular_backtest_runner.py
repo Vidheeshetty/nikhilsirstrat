@@ -84,7 +84,7 @@ Examples:
         type=str,
         required=False,
         default=None,
-        help="Instrument ID to backtest, or 'all' for all instruments, or 'all-top10' for first 10 instruments. If not provided, uses YAML config.",
+        help="Instrument ID to backtest, or 'all' for all instruments. If not provided, uses YAML config.",
     )
     
     parser.add_argument(
@@ -209,56 +209,8 @@ def run_single_instrument_backtest(orchestrator: BacktestOrchestrator,
             print(f"📊 Results Summary:")
             print(f"   - Total Orders: {result['total_orders']}")
             print(f"   - Total Trades: {result['total_trades']}")
-            try:
-                total_investment_formatted = f"{float(result.get('total_investment', 0.0)):,.2f}"
-            except (ValueError, TypeError):
-                total_investment_formatted = "N/A"
-            print(f"   - Total Investment: {total_investment_formatted} {result['currency']}")
-            try:
-                pnl_total_formatted = f"{float(result.get('pnl_total', 0.0)):,.2f}"
-            except (ValueError, TypeError):
-                pnl_total_formatted = "N/A"
-            print(f"   - Total PnL: {pnl_total_formatted} {result['currency']}")
-            try:
-                pnl_pct_total_formatted = f"{float(result.get('pnl_pct_total', 0.0)):.2f}%"
-            except (ValueError, TypeError):
-                pnl_pct_total_formatted = "N/A"
-            print(f"   - PnL %: {pnl_pct_total_formatted}")
-            try:
-                realized_pnl_formatted = f"{float(result.get('realized_pnl', 0.0)):>14.2f}"
-            except (ValueError, TypeError):
-                realized_pnl_formatted = "N/A"
-            print(f"   - Realized PnL: {realized_pnl_formatted}")
-            try:
-                unrealized_pnl_formatted = f"{float(result.get('unrealized_pnl', 0.0)):>15.2f}"
-            except (ValueError, TypeError):
-                unrealized_pnl_formatted = "N/A"
-            print(f"   - Unrealized PnL: {unrealized_pnl_formatted}")
-            try:
-                sharpe_ratio_formatted = f"{float(result.get('sharpe_ratio', 0.0)):.2f}"
-            except (ValueError, TypeError):
-                sharpe_ratio_formatted = "N/A"
-            print(f"   - Sharpe Ratio: {sharpe_ratio_formatted}")
-            try:
-                starting_balance_formatted = f"{float(result.get('starting_balance', 0.0)):,.2f}"
-            except (ValueError, TypeError):
-                starting_balance_formatted = "N/A"
-            print(f"   - Starting Balance: {starting_balance_formatted} {result.get('base_currency', 'INR')}")
-            try:
-                ending_balance_formatted = f"{float(result.get('ending_balance', 0.0)):,.2f}"
-            except (ValueError, TypeError):
-                ending_balance_formatted = "N/A"
-            print(f"   - Ending Balance: {ending_balance_formatted} {result.get('base_currency', 'INR')}")
-            try:
-                free_balance_formatted = f"{float(result.get('balance_free', 0.0)):,.2f}"
-            except (ValueError, TypeError):
-                free_balance_formatted = "N/A"
-            print(f"   - Free Balance: {free_balance_formatted} {result.get('base_currency', 'INR')}")
-            try:
-                locked_balance_formatted = f"{float(result.get('balance_locked', 0.0)):,.2f}"
-            except (ValueError, TypeError):
-                locked_balance_formatted = "N/A"
-            print(f"   - Locked Balance: {locked_balance_formatted} {result.get('base_currency', 'INR')}")
+            print(f"   - Total PnL: {result['pnl_total']} {result['currency']}")
+            print(f"   - PnL %: {result['pnl_pct_total']}%")
             print(f"   - Log file: {log_file}")
         return result
     except Exception as e:
@@ -269,32 +221,25 @@ def run_all_instruments_backtest(orchestrator: BacktestOrchestrator,
                                start_time: Optional[str],
                                end_time: Optional[str],
                                verbose: bool,
-                               max_workers: int,
-                               limit_instruments: Optional[int] = None):
+                               max_workers: int):
     """Run backtest for all available instruments."""
-    # Get all instrument IDs from the data manager via the orchestrator
-    instrument_ids = orchestrator.data_manager.get_all_instrument_ids()
-    if verbose:
-        print(f"Total instruments found: {len(instrument_ids)}")
-        if limit_instruments is not None:
-            print(f"Limiting batch run to the first {limit_instruments} instruments for testing.")
-    
-    # Limit to the specified instruments for testing
-    instruments_to_run = instrument_ids[:limit_instruments] if limit_instruments else instrument_ids
-
-    results = orchestrator.run_batch_backtest(
-        instrument_ids=instruments_to_run,
-        start_time=start_time,
-        end_time=end_time,
-        verbose=verbose,
-        max_workers=max_workers
-    )
-    print(f"\n✅ Batch backtest completed successfully!")
-    print(f"📊 Summary:")
-    print(f"   - Instruments tested: {len(results)}")
-    print(f"   - Total orders across all instruments: {sum(r['total_orders'] for r in results)}")
-    print(f"   - Total trades across all instruments: {sum(r['total_trades'] for r in results)}")
-    return results
+    # Only print progress (instrument X/Y) unless verbose is set
+    try:
+        results = orchestrator.run_all_instruments_backtest(
+            start_time=start_time,
+            end_time=end_time,
+            verbose=verbose,
+            max_workers=max_workers
+        )
+        print(f"\n✅ Batch backtest completed successfully!")
+        print(f"📊 Summary:")
+        print(f"   - Instruments tested: {len(results)}")
+        print(f"   - Total orders across all instruments: {sum(r['total_orders'] for r in results)}")
+        print(f"   - Total trades across all instruments: {sum(r['total_trades'] for r in results)}")
+        return results
+    except Exception as e:
+        print(f"❌ Batch backtest failed: {e}")
+        raise
 
 
 def main():
@@ -329,30 +274,12 @@ def main():
                 base_dir=args.base_dir
             )
         elif args.instrument_id.lower() == 'all':
-            if args.verbose:
-                print(f"\n{'='*60}")
-                print(f"🚀 Starting Full Batch Backtest for All Instruments")
-                print(f"{'='*60}\n")
             results = run_all_instruments_backtest(
                 orchestrator=orchestrator,
                 start_time=args.start_time,
                 end_time=args.end_time,
                 verbose=args.verbose,
-                max_workers=args.max_workers,
-                limit_instruments=None # No limit for 'all'
-            )
-        elif args.instrument_id.lower() == 'all-top10':
-            if args.verbose:
-                print(f"\n{'='*60}")
-                print(f"🚀 Starting Batch Backtest for Top 10 Instruments")
-                print(f"{'='*60}\n")
-            results = run_all_instruments_backtest(
-                orchestrator=orchestrator,
-                start_time=args.start_time,
-                end_time=args.end_time,
-                verbose=args.verbose,
-                max_workers=args.max_workers,
-                limit_instruments=10 # Limit to first 10 for 'all-top10'
+                max_workers=args.max_workers
             )
         else:
             result = run_single_instrument_backtest(

@@ -1,0 +1,149 @@
+# Live Trading Configuration for MyNSEStrategy
+# This file contains all live trading settings and can be modified without changing code
+
+# Engine Configuration
+engine:
+  trader_id: "LIVE_TRADER-001"
+  strategy_id: "MyNSEStrategy-001"
+  venue: "NSE"
+
+# Account Configuration
+account:
+  account_type: "MARGIN"  # MARGIN, CASH
+  base_currency: "INR"
+  starting_balance: "1_000_000 INR"
+
+# Data Feed Configuration
+data_feed:
+  type: "websocket"  # websocket, rest, file
+  url: "wss://api.example.com/ws"  # Replace with actual data feed URL
+  api_key: ""  # Add your API key here
+  api_secret: ""  # Add your API secret here
+  
+  # For file-based testing
+  file_path: "data/live_feed.csv"
+  
+  # Data feed settings
+  reconnect_interval: 5  # seconds
+  max_reconnect_attempts: 10
+  heartbeat_interval: 30  # seconds
+
+# Broker Configuration
+broker:
+  type: "paper"  # paper, live, simulation
+  name: "NSE_BROKER"  # Replace with actual broker name
+  
+  # For live trading
+  live:
+    url: "https://api.broker.com"  # Replace with actual broker URL
+    api_key: ""  # Add your broker API key
+    api_secret: ""  # Add your broker API secret
+    passphrase: ""  # Add your broker passphrase if required
+    
+  # For paper trading
+  paper:
+    starting_balance: "1_000_000 INR"
+    base_currency: "INR"
+    
+  # Connection settings
+  reconnect_interval: 5  # seconds
+  max_reconnect_attempts: 10
+  order_timeout: 30  # seconds
+
+# Risk Management
+risk_management:
+  max_position_size: 10  # Maximum contracts per position
+  max_daily_loss: 50000.0  # Maximum daily loss in INR
+  max_drawdown: 0.10  # Maximum drawdown as percentage (10%)
+  max_open_positions: 5  # Maximum number of open positions
+  
+  # Position sizing
+  position_size_pct: 0.02  # 2% of account per trade
+  max_risk_per_trade: 0.01  # 1% risk per trade
+  
+  # Emergency stops
+  emergency_stop_loss: 0.05  # 5% emergency stop loss
+  max_daily_trades: 20  # Maximum trades per day
+
+# Strategy Configuration Overrides
+strategy_overrides:
+  # These will override the default strategy config for live trading
+  sl_pct: 0.02  # 2% stop loss
+  tp_pct: 0.03  # 3% take profit
+  position_size: 1  # Number of contracts
+  end_time: "15:15"  # End trading time
+  min_iv: 0  # Minimum implied volatility
+  entry_buffer_pct: 0.01  # 1% entry buffer
+  lookback_intervals: 2  # Rolling window size
+  min_oi_change: -100  # Minimum open interest change
+  breakeven_trigger_pct: 2  # 2% breakeven trigger
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "logs/live_trading.log"
+  max_file_size: "10MB"
+  backup_count: 5
+  
+  # Log specific components
+  log_orders: true
+  log_trades: true
+  log_positions: true
+  log_risk_checks: true
+  log_data_feed: false
+  log_broker_connection: true
+
+# Performance Monitoring
+monitoring:
+  # Performance metrics
+  track_pnl: true
+  track_drawdown: true
+  track_sharpe_ratio: true
+  track_max_drawdown: true
+  
+  # Alerts
+  email_alerts: false
+  email_address: ""
+  smtp_server: ""
+  smtp_port: 587
+  
+  # Webhook notifications
+  webhook_url: ""
+  webhook_secret: ""
+
+# Market Hours (IST - Indian Standard Time)
+market_hours:
+  start_time: "09:15"
+  end_time: "15:30"
+  pre_market_start: "09:00"
+  post_market_end: "15:45"
+  
+  # Trading days (0=Monday, 6=Sunday)
+  trading_days: [0, 1, 2, 3, 4]  # Monday to Friday
+
+# Instrument Configuration
+instruments:
+  # Default instrument for live trading
+  default:
+    symbol: "BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE"
+    
+  # Alternative instruments for testing
+  alternatives:
+    - "BANKNIFTY.OPT.26Jun2025.41000.CALL.NSE"
+    - "BANKNIFTY.OPT.26Jun2025.40000.CALL.NSE"
+    - "BANKNIFTY.OPT.26Jun2025.40500.PUT.NSE"
+
+# Development and Testing
+development:
+  # Enable simulation mode
+  simulation_mode: false
+  
+  # Use historical data for testing
+  use_historical_data: false
+  historical_data_path: "data/historical/"
+  
+  # Enable debug mode
+  debug_mode: false
+  
+  # Enable dry run (no real orders)
+  dry_run: true 

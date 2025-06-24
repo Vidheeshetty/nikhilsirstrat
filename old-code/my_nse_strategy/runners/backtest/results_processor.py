@@ -410,62 +410,36 @@ class ResultsProcessor:
         if isinstance(total_pnl, (float, int)) and total_investment > 0:
             pnl_pct_total = (total_pnl / total_investment) * 100
         else:
-            pnl_pct_total = None # Set to None for proper handling if not calculable
+            pnl_pct_total = 'N/A'
         summary = {
             "instrument_id": instrument_id,
-            "currency": self.pnl_currency,
-            "pnl_total": total_pnl,
-            "pnl_pct_total": pnl_pct_total,
-            "total_investment": total_investment,
-            "total_orders": len(detailed_data.get("orders", [])),
-            "total_positions": len(detailed_data.get("positions", [])),
+            "total_orders": getattr(result, 'total_orders', 0),
+            "total_positions": getattr(result, 'total_positions', 0),
             "total_trades": len(detailed_data.get("trades", [])),
-            "realized_pnl": pnl_data.get('realized_pnl', 0.0),
-            "unrealized_pnl": pnl_data.get('unrealized_pnl', 0.0),
-            "sharpe_ratio": pnl_data.get('sharpe_ratio', 'N/A'),
-            "starting_balance": account_data.get('starting_balance', 0.0),
-            "ending_balance": account_data.get('ending_balance', 0.0),
-            "balance_free": account_data.get('balance_free', 0.0),
-            "balance_locked": account_data.get('balance_locked', 0.0),
+            "total_investment": fmt(total_investment, "{:.2f} "+self.pnl_currency),
+            "pnl_total": fmt(total_pnl, "{:.2f}"),
+            "pnl_pct_total": fmt(pnl_pct_total, "{:.4f}"),
+            "realized_pnl": fmt(pnl_data['realized_pnl'], "{:.2f}"),
+            "unrealized_pnl": fmt(pnl_data['unrealized_pnl'], "{:.2f}"),
+            "sharpe_ratio": fmt(pnl_data['sharpe_ratio'], "{:.4f}"),
+            "currency": self.pnl_currency,
         }
-
-        if batch_mode:
-            # For batch mode, return the raw summary dictionary
-            return summary
+        if account_data and "error" not in account_data:
+            summary.update({
+                "starting_balance": account_data.get("starting_balance", 0.0),
+                "ending_balance": account_data.get("ending_balance", 0.0),
+                "balance_free": account_data.get("balance_free", 0.0),
+                "balance_locked": account_data.get("balance_locked", 0.0),
+                "account_id": account_data.get("account_id", "N/A"),
+                "base_currency": account_data.get("base_currency", self.pnl_currency),
+            })
         else:
-            # For single instrument mode, print formatted summary to console
-            # This part will be handled by modular_backtest_runner.py now
-            return summary
-
-    def create_total_summary_data(self, all_results: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Aggregates summary data from all individual backtest results.
-        """
-        total_pnl = 0.0
-        total_trades = 0
-        total_orders = 0
-        successful_instruments = 0
-        failed_instruments = 0
-        
-        for result in all_results:
-            if "error" not in result:
-                successful_instruments += 1
-                try:
-                    total_pnl += float(str(result.get("pnl_total", "0.0")).replace("INR", "").replace("₹", "").replace(",", "").strip())
-                except (ValueError, TypeError):
-                    pass # Handle cases where pnl_total might be malformed
-                total_trades += int(result.get("total_trades", 0))
-                total_orders += int(result.get("total_orders", 0))
-            else:
-                failed_instruments += 1
-
-        overall_summary = {
-            "total_instruments_processed": len(all_results),
-            "successful_instruments": successful_instruments,
-            "failed_instruments": failed_instruments,
-            "total_aggregated_pnl": f"{total_pnl:,.2f} INR",
-            "total_aggregated_trades": total_trades,
-            "total_aggregated_orders": total_orders,
-            # Add other aggregated metrics as needed
-        }
-        return overall_summary 
+            summary.update({
+                "starting_balance": 0.0,
+                "ending_balance": 0.0,
+                "balance_free": 0.0,
+                "balance_locked": 0.0,
+                "account_id": "N/A",
+                "base_currency": self.pnl_currency,
+            })
+        return summary 
