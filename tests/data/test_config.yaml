@@ -1,0 +1,25 @@
+instrument_id: NIFTY.OPT.19Jun2025.24800.PUT.NSE
+start_time: 2025-06-18T09:15:00
+end_time: 2025-06-18T09:30:00
+catalog_path: catalog-data/my_nse_strategy/catalog
+meta_catalog_path: catalog-data/my_nse_strategy/catalog-meta
+sl_pct: 0.02
+tp_pct: 0.03
+min_qty: 1
+max_qty: 10
+leverage: 10
+fixed_qty: 5
+
+# Backtest engine parameters
+engine_config:
+  log_level: INFO
+  log_file_path: backtest_results/test_log.log
+  bypass_risk_engine: False
+
+# Data parameters
+data_config:
+  tick_data_path: data/options/nse/nifty
+
+# Reporting parameters
+report_config:
+  output_dir: reports/backtest_results 

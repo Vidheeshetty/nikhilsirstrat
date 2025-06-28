@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Testing Framework &ndash; NTbasedPlatform</title>
+  <!-- Project-wide stylesheet -->
+  <link rel="stylesheet" href="../assets/style.css" />
+  <!-- Mermaid for diagrams -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+  </script>
+</head>
+<body class="docs">
+  <h1 id="top">Testing Framework Documentation</h1>
+
+  <div id="toc">
+    <h2>Index</h2>
+    <ol>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#directory-layout">Directory Layout</a></li>
+      <li><a href="#test-levels">Test Levels</a></li>
+      <li><a href="#pytest-configuration">Pytest Configuration</a></li>
+      <li><a href="#writing-tests">Writing &amp; Organising Tests</a></li>
+      <li><a href="#running-tests">Running Tests Locally</a></li>
+      <li><a href="#ci">Continuous Integration (CI)</a></li>
+      <li><a href="#customisation">Customisation Guidelines</a></li>
+      <li><a href="#reference">Reference &amp; Cheat-Sheet</a></li>
+    </ol>
+  </div>
+
+  <h2 id="overview">1&nbsp;&mdash;&nbsp;Overview</h2>
+  <p>
+    The <strong>NTbasedPlatform</strong> relies on an extensive automated test-suite to
+    guarantee correctness, stability, and performance. The framework is built on
+    top of <a href="https://docs.pytest.org/">pytest</a> and embraces a layered
+    approach ranging from fast <em>unit tests</em> to full <em>system backtests</em>.
+  </p>
+
+  <pre class="mermaid">
+  graph LR
+    A(Unit Tests) --> B(Integration Tests) --> C(System / End-to-End)
+  </pre>
+
+  <a class="back-top" href="#top">&uarr; back to top</a>
+
+  <h2 id="directory-layout">2&nbsp;&mdash;&nbsp;Directory Layout</h2>
+  <p>The repository groups tests by purpose:</p>
+  <ul>
+    <li><code>tests/unit/</code> &mdash; pure function/class tests (legacy in <code>legacy_tests/unit/</code>).</li>
+    <li><code>tests/utils/</code> &mdash; helpers, indicators, data-manager units.</li>
+    <li><code>tests/runners/</code> &mdash; <code>BatchRunner</code> &amp; strategy runner behaviour.</li>
+    <li><code>tests/strategies/&lt;name&gt;/</code> &mdash; strategy-specific behaviour (entry/exit).</li>
+    <li><code>tests/integration/</code> &mdash; orchestrates multiple modules together.</li>
+    <li><code>tests/system/</code> &mdash; end-to-end backtest via CLI (slow).</li>
+    <li><code>legacy_tests/</code> &mdash; snapshot of pre-refactor tests kept for
+        regression safety; migrate gradually.</li>
+  </ul>
+
+  <pre class="mermaid">
+  graph TD;
+    subgraph tests/
+      U[unit] --> UT1[utils]
+      U --> UT2[runners]
+      U --> UT3[strategies]
+      I[integration] -->|uses| UT2
+      S[system] -->|calls| CLI[run_backtest.py]
+    end
+  </pre>
+
+  <a class="back-top" href="#top">&uarr; back to top</a>
+
+  <h2 id="test-levels">3&nbsp;&mdash;&nbsp;Test Levels</h2>
+  <h3>3.1&nbsp;&nbsp;Unit Tests</h3>
+  <p>
+    Focus on a single function or class. Use fixtures/mocks to isolate external
+    dependencies (file-system, Nautilus objects, network). Tests must be
+    <strong>deterministic</strong> and finish in &lt;100&nbsp;ms each.
+  </p>
+  <h3>3.2&nbsp;&nbsp;Integration Tests</h3>
+  <p>
+    Validate collaboration of several internal modules (e.g. <code>DataManager</code>
+    + <code>EngineManager</code>). They may require small CSV or Parquet samples kept
+    under <code>tests/data/</code>.
+  </p>
+  <h3>3.3&nbsp;&nbsp;System / End-to-End</h3>
+  <p>
+    Drive the public CLI just like a user would. These tests run the slowest and
+    are marked with <code>@pytest.mark.system</code> so they can be deselected on
+    regular developer loops.
+  </p>
+
+  <a class="back-top" href="#top">&uarr; back to top</a>
+
+  <h2 id="pytest-configuration">4&nbsp;&mdash;&nbsp;Pytest Configuration</h2>
+  <p>The root <code>pytest.ini</code> captures shared settings:</p>
+  <ul>
+    <li><code>addopts = -ra -q</code> &mdash; concise summary report.</li>
+    <li><code>testpaths = tests</code> &mdash; single discovery root.</li>
+    <li><code>python_files = test_*.py</code> &mdash; naming convention.</li>
+    <li>Logging is persisted to <code>pytest.log</code> for post-mortem analysis.</li>
+  </ul>
+  <p>
+    Custom markers: <code>system</code>, <code>integration</code>, <code>slow</code> &mdash; see
+    <code>conftest.py</code> for registration.
+  </p>
+
+  <a class="back-top" href="#top">&uarr; back to top</a>
+
+  <h2 id="writing-tests">5&nbsp;&mdash;&nbsp;Writing &amp; Organising Tests</h2>
+  <ol>
+    <li>Mirrors package path: <code>src/utils/data_manager.py</code> →
+        <code>tests/utils/test_data_manager.py</code></li>
+    <li>Fixture reuse lives in <code>tests/conftest.py</code>.</li>
+    <li>Prefer <code>pytest.raises</code> and <code>pytest.param</code> over manual try/except.</li>
+    <li>Keep factories in <code>tests/factories/</code> (create one if missing).</li>
+  </ol>
+  <pre><code class="language-python">def test_scale_prices():
+    prices = [100, 105, 110]
+    scaled = scale_prices(prices, factor=2)
+    assert scaled == [200, 210, 220]
+</code></pre>
+
+  <a class="back-top" href="#top">&uarr; back to top</a>
+
+  <h2 id="running-tests">6&nbsp;&mdash;&nbsp;Running Tests Locally</h2>
+  <p>Common commands:</p>
+  <table>
+    <thead><tr><th>Purpose</th><th>Command</th></tr></thead>
+    <tbody>
+      <tr><td>Fast feedback (exclude slow/system)</td><td><code>pytest -m "not system and not slow"</code></td></tr>
+      <tr><td>Single file</td><td><code>pytest tests/runners/test_batch_runner.py -vv</code></td></tr>
+      <tr><td>Coverage report</td><td><code>pytest --cov=src --cov-report=term-missing</code></td></tr>
+    </tbody>
+  </table>
+
+  <a class="back-top" href="#top">&uarr; back to top</a>
+
+  <h2 id="ci">7&nbsp;&mdash;&nbsp;Continuous Integration (CI)</h2>
+  <p>
+    GitHub Actions (see <code>.github/workflows/ci.yml</code>) execute the full suite
+    on every push. Failing tests block merges into <code>main</code>.
+  </p>
+  <pre class="mermaid">
+  sequenceDiagram
+    participant Dev as Developer
+    participant GH as GitHub Actions
+    participant Runner as Pytest Runner
+    Dev->>GH: Push / PR
+    GH->>Runner: Run <code>pytest</code>
+    Runner-->>GH: Status &amp; coverage
+    GH-->>Dev: ✅ / ❌
+  </pre>
+
+  <a class="back-top" href="#top">&uarr; back to top</a>
+
+  <h2 id="customisation">8&nbsp;&mdash;&nbsp;Customisation Guidelines</h2>
+  <p>When extending the platform:</p>
+  <ul>
+    <li><strong>Start with unit tests</strong> to specify behaviour before coding.</li>
+    <li>Leverage <code>pytest.param(ids=...)</code> to document scenarios.</li>
+    <li>Tag heavy data-dependent tests with <code>@pytest.mark.slow</code>.</li>
+    <li>Prefer fixture injection over global state.</li>
+    <li>Update coverage threshold if new critical paths are added.</li>
+  </ul>
+
+  <a class="back-top" href="#top">&uarr; back to top</a>
+
+  <h2 id="reference">9&nbsp;&mdash;&nbsp;Reference &amp; Cheat-Sheet</h2>
+  <ul>
+    <li><a href="https://docs.pytest.org/en/stable/how-to/fixtures.html">pytest fixtures</a></li>
+    <li><a href="https://docs.pytest.org/en/stable/example/parametrize.html">parametrisation</a></li>
+    <li><a href="https://coverage.readthedocs.io/">coverage.py</a></li>
+    <li><a href="https://mermaid.js.org/">Mermaid diagrams</a></li>
+  </ul>
+
+  <p style="text-align:center; margin-top:3rem;">
+    &copy; 2025 NTbasedPlatform
+  </p>
+</body>
+</html> 

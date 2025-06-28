@@ -1,0 +1,22 @@
+{
+  "reminders": [
+    "Always use nautilus_api_docs.pdf for NautilusTrader.",
+    "State data type, instrument type, and expected tests in prompts."
+  ],
+  "blocks": [
+    {
+      "pattern": "from nautilus_trader.backtest.old",
+      "message": "Deprecated import. Use 'nautilus_trader.backtest.engine'."
+    }
+  ],
+  "suggestions": [
+    {
+      "trigger": "test_",
+      "message": "Check if a similar test exists before generating a new one."
+    },
+    {
+      "trigger": "slippage",
+      "message": "Use slippage logic from utils/ if available."
+    }
+  ]
+}

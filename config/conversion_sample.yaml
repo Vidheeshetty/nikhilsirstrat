@@ -1,0 +1,19 @@
+source_csv: "data/futures/NSER/*.csv"
+destination_catalog: "catalog-data/shared/catalog"
+destination_meta: "catalog-data/shared/catalog-meta"
+
+# Data description
+data_kind: bar
+bar_interval: "1-DAY"
+
+# Instrument metadata
+symbol: NIFTY
+venue: NSE
+price_precision: 2
+price_increment: 0.05
+multiplier: 50
+
+# Extra meta fields
+extra_meta_fields:
+  - impliedVolatility
+  - openInterest 

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How to Run Back-tests</title>
+  <link rel="stylesheet" href="/assets/css/report-style.css" />
+</head>
+<body class="docs">
+  <a class="back-top" href="index.html">&larr; Back to Index</a>
+  <header>
+    <h1>Running Back-tests</h1>
+  </header>
+
+  <main>
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>Back-testing simulates historical trades to gauge a strategy's performance before live deployment. Our platform provides both single-instrument and batch-mode runners.</p>
+    </section>
+
+    <section id="quick-start">
+      <h2>Quick Start</h2>
+      <ol>
+        <li>
+          <p>Ensure your Python environment is activated and dependencies installed:</p>
+          <pre><code>pip install -r requirements.txt</code></pre>
+        </li>
+        <li>
+          <p>Run a single instrument test:</p>
+          <pre><code>python scripts/run_backtest.py --instrument NIFTY20250627.FUT.NSE \
+                               --strategy trend_riding</code></pre>
+        </li>
+        <li>
+          <p>Batch mode across multiple symbols:</p>
+          <pre><code>python scripts/run_batch_backtest.py --strategy trend_riding \
+                                     --symbols-file data/symbols_nifty.txt</code></pre>
+        </li>
+      </ol>
+    </section>
+
+    <section id="result-files">
+      <h2>Understanding Output</h2>
+      <p>Results are written to <code>backtest_results/</code> and include:</p>
+      <ul>
+        <li><code>summary.json</code> – metrics per instrument</li>
+        <li><code>aggregated_results.json</code> – portfolio-level statistics</li>
+        <li>HTML reports under <code>reports/html_reports/</code></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p><a class="back-top" href="index.html">Back to Index</a></p>
+  </footer>
+</body>
+</html> 

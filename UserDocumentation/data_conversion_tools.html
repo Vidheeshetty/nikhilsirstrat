@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Conversion Tools</title>
+  <link rel="stylesheet" href="/assets/css/report-style.css" />
+</head>
+<body class="docs">
+  <a class="back-top" href="index.html">&larr; Back to Index</a>
+  <header>
+    <h1>Data Conversion Tools</h1>
+  </header>
+
+  <main>
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>The project ships utility scripts to convert raw CSV option/futures data into the Parquet catalog format required by NautilusTrader.</p>
+    </section>
+
+    <section id="scripts">
+      <h2>Conversion Scripts</h2>
+      <table>
+        <thead>
+          <tr><th>Script</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>scripts/csv_to_parquet_converter.py</code></td><td>Generic CSV → Parquet converter supporting contract metadata.</td></tr>
+          <tr><td><code>legacy_src/convert_csv_to_parquet_w_meta_fixed_v5.py</code></td><td>Legacy converter kept for regression matching.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="usage">
+      <h2>Usage</h2>
+      <pre><code>python scripts/csv_to_parquet_converter.py \
+       --input data/options/nse/nifty/NIFTY_2025-06-23.csv \
+       --output catalog-data/shared/catalog</code></pre>
+    </section>
+
+    <section id="validation">
+      <h2>Validation</h2>
+      <p>Run the following tests to ensure converted data meets schema expectations:</p>
+      <pre><code>pytest tests/utils/test_converter_*.py</code></pre>
+    </section>
+  </main>
+
+  <footer>
+    <p><a class="back-top" href="index.html">Back to Index</a></p>
+  </footer>
+</body>
+</html> 

@@ -1,0 +1,127 @@
+<table border="1" class="dataframe table table-striped">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Instrument ID</th>
+      <th>Status</th>
+      <th>Total PnL</th>
+      <th>Total PnL %</th>
+      <th>Sharpe Ratio</th>
+      <th>Total Trades</th>
+      <th>Winning Trades</th>
+      <th>Losing Trades</th>
+      <th>Avg Trade PnL</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>NIFTY.OPT.03Jul2025.22800.CALL.NSE</td>
+      <td>COMPLETED</td>
+      <td>0.00 INR</td>
+      <td>0.00%</td>
+      <td>0.0000</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.00 INR</td>
+    </tr>
+    <tr>
+      <td>NIFTY.OPT.03Jul2025.22800.PUT.NSE</td>
+      <td>COMPLETED</td>
+      <td>0.00 INR</td>
+      <td>0.00%</td>
+      <td>0.0000</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.00 INR</td>
+    </tr>
+    <tr>
+      <td>NIFTY.OPT.03Jul2025.22850.CALL.NSE</td>
+      <td>COMPLETED</td>
+      <td>0.00 INR</td>
+      <td>0.00%</td>
+      <td>0.0000</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.00 INR</td>
+    </tr>
+    <tr>
+      <td>NIFTY.OPT.03Jul2025.22850.PUT.NSE</td>
+      <td>COMPLETED</td>
+      <td>0.00 INR</td>
+      <td>0.00%</td>
+      <td>0.0000</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.00 INR</td>
+    </tr>
+    <tr>
+      <td>NIFTY.OPT.03Jul2025.22900.CALL.NSE</td>
+      <td>COMPLETED</td>
+      <td>0.00 INR</td>
+      <td>0.00%</td>
+      <td>0.0000</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.00 INR</td>
+    </tr>
+    <tr>
+      <td>NIFTY.OPT.03Jul2025.22900.PUT.NSE</td>
+      <td>COMPLETED</td>
+      <td>0.00 INR</td>
+      <td>0.00%</td>
+      <td>0.0000</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.00 INR</td>
+    </tr>
+    <tr>
+      <td>NIFTY.OPT.03Jul2025.22950.CALL.NSE</td>
+      <td>COMPLETED</td>
+      <td>0.00 INR</td>
+      <td>0.00%</td>
+      <td>0.0000</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.00 INR</td>
+    </tr>
+    <tr>
+      <td>NIFTY.OPT.03Jul2025.22950.PUT.NSE</td>
+      <td>COMPLETED</td>
+      <td>0.00 INR</td>
+      <td>0.00%</td>
+      <td>0.0000</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.00 INR</td>
+    </tr>
+    <tr>
+      <td>NIFTY.OPT.03Jul2025.23000.CALL.NSE</td>
+      <td>COMPLETED</td>
+      <td>0.00 INR</td>
+      <td>0.00%</td>
+      <td>0.0000</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.00 INR</td>
+    </tr>
+    <tr>
+      <td>NIFTY.OPT.03Jul2025.23000.PUT.NSE</td>
+      <td>COMPLETED</td>
+      <td>0.00 INR</td>
+      <td>0.00%</td>
+      <td>0.0000</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.00 INR</td>
+    </tr>
+  </tbody>
+</table>

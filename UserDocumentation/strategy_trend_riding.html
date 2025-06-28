@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trend-Riding Strategy Guide</title>
+  <link rel="stylesheet" href="/assets/css/report-style.css" />
+</head>
+<body class="docs">
+  <a class="back-top" href="index.html">&larr; Back to Index</a>
+  <header>
+    <h1>Trend-Riding Strategy Guide</h1>
+  </header>
+
+  <main>
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>The Trend-Riding strategy seeks to capture sustained market moves by entering positions when price momentum and volatility align. It is implemented in <code>src/strategies/trend_riding</code>.</p>
+    </section>
+
+    <section id="architecture">
+      <h2>Architecture</h2>
+      <ul>
+        <li><strong>Strategy Class:</strong> <code>TrendRidingStrategy</code></li>
+        <li><strong>Config:</strong> <code>TrendRidingConfig</code> (look-back, SL/TP, etc.)</li>
+        <li><strong>Helpers:</strong> <code>entry.py</code>, <code>risk.py</code>, <code>position.py</code></li>
+      </ul>
+    </section>
+
+    <section id="workflow">
+      <h2>Execution Workflow</h2>
+      <p>When plugged into a back-test runner or live engine, the strategy receives quote events and evaluates entry/exit conditions as follows:</p>
+      <ol>
+        <li>Accumulate quotes until <code>lookback_intervals</code> satisfied.</li>
+        <li>Detect breakout using <code>entry.should_enter</code>.</li>
+        <li>Place market order and track stop-loss / take-profit via <code>RiskManager</code>.</li>
+        <li>Exit when risk conditions met or session ends.</li>
+      </ol>
+    </section>
+
+    <section id="parameters">
+      <h2>Key Parameters</h2>
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>lookback_intervals</code></td><td>Bars to evaluate for trend breakout.</td><td>20</td></tr>
+          <tr><td><code>sl_pct</code></td><td>Stop-loss distance as %.</td><td>1.5</td></tr>
+          <tr><td><code>tp_pct</code></td><td>Take-profit distance as %.</td><td>3.0</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="examples">
+      <h2>Example Usage</h2>
+      <pre><code>from strategies.trend_riding.runner.backtest_runner.single_runner import TrendRidingBacktestRunner
+
+runner = TrendRidingBacktestRunner()
+result = runner.run("NIFTY20250627.FUT.NSE")
+print(result)
+</code></pre>
+    </section>
+  </main>
+
+  <footer>
+    <p><a class="back-top" href="index.html">Back to Index</a></p>
+  </footer>
+</body>
+</html> 
