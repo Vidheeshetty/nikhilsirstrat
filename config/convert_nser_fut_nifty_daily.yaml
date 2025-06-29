@@ -1,0 +1,19 @@
+source_csv: "raw-data/source=NSER/instrument=FUT/venue=NSE/symbol=NIFTY/timeframe=DAILY/year=*/NIFTY_*.csv"
+
+destination_catalog: "catalog-data/source=NSER/instrument=FUT/venue=NSE/symbol=NIFTY/timeframe=DAILY/"
+destination_meta: "catalog-data/_meta/source=NSER/instrument=FUT/venue=NSE/symbol=NIFTY/"
+
+# Instrument details ---------------------------------------------------
+symbol: "NIFTY"
+venue: "NSE"
+
+data_kind: "bar"
+bar_interval: "1-DAY"
+price_precision: 2
+price_increment: 0.05
+multiplier: 1
+
+# Additional CSV fields to include in bar-level metadata
+extra_meta_fields:
+  - OI      # Open Interest
+  - IV      # Implied Volatility 
