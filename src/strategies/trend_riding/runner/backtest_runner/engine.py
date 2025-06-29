@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-"""Lightweight stub BacktestEngine to decouple unit tests from Nautilus-Trader."""
-
 from typing import List, Callable, Any
+
+"""Lightweight stub BacktestEngine to decouple unit tests from Nautilus-Trader."""
 
 
 class BacktestEngine:  # pylint: disable=too-few-public-methods

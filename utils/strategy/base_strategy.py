@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import logging
+from dataclasses import dataclass, asdict
+from typing import Any, Dict
+
 """Base strategy framework for backtesting.
 
 Provides abstract base classes for strategies and their configurations,
@@ -9,10 +13,6 @@ implementations without tight coupling to specific trading frameworks.
 The design supports both simple backtesting scenarios and more complex
 live trading integrations.
 """
-
-import logging
-from dataclasses import dataclass, asdict
-from typing import Any, Dict
 
 
 @dataclass

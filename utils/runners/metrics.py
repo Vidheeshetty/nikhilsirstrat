@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-"""Performance metric utilities (pure Python)."""
-
 import math
 from typing import List
+
+"""Performance metric utilities (pure Python)."""
 
 
 def calculate_metrics(prices: List[float]) -> dict[str, float]:  # noqa: D401

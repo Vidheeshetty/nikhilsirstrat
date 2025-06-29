@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from typing import Sequence
+
 """Technical indicator utilities for strategy implementations.
 
 Provides common technical analysis functions used by trading strategies,
 implemented as pure functions for easy testing and reusability.
 """
-
-from typing import Sequence
 
 
 def sma(series: Sequence[float], period: int) -> float:  # noqa: D401

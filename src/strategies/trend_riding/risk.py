@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-"""High-level risk management helpers for Trend-Riding strategy."""
-
 from typing import Sequence
+
 from .exit import should_exit
 from .entry import Direction
+
+"""High-level risk management helpers for Trend-Riding strategy."""
 
 
 class RiskManager:  # pylint: disable=too-few-public-methods

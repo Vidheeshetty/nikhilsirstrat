@@ -15,8 +15,15 @@ ASSET_SRC = Path(__file__).resolve().parent / "assets"
 class ReportController:  # pylint: disable=too-few-public-methods
     """Generate runlogs folder with CSV & JSON reports (HTML later)."""
 
-    def __init__(self, root: Path | str = "runlogs"):
-        self.root = Path(root)
+    def __init__(self, root: Path | str = "runlogs", mode: str = "backtesting"):
+        """Initialize ReportController.
+
+        Args:
+            root: Root directory for runlogs
+            mode: Either 'backtesting' or 'papertrading' to separate report types
+        """
+        self.root = Path(root) / mode
+        self.mode = mode
         self.csv_renderer = CsvTradeRenderer()
         self.json_renderer = JsonTradeRenderer()
         self.html_renderer = HtmlBatchRenderer()
@@ -32,7 +39,10 @@ class ReportController:  # pylint: disable=too-few-public-methods
 
         The folder layout from v1.2 onwards is::
 
-            runlogs/<mode>/<YYYY-MM-DD>/<HH-MM-SS>_<strategy_name>/
+            runlogs/<mode>/<run_type>/<YYYY-MM-DD>/<HH-MM-SS>_<strategy_name>/
+
+        Where <mode> is either 'backtesting' or 'papertrading', and <run_type>
+        is either 'batch' or 'individual'.
 
         For backward compatibility, *strategy_name* is optional.  When not
         supplied we fall back to the old layout (without suffix).
@@ -82,14 +92,20 @@ class ReportController:  # pylint: disable=too-few-public-methods
     def latest_report_dir(
         cls,
         root: Path | str = "runlogs",
-        mode: str = "batch",
+        mode: str = "backtesting",
+        run_type: str = "batch",
     ) -> Path | None:  # noqa: D401
-        """Return the most recent report directory for *mode* (batch/individual).
+        """Return the most recent report directory for *mode* and *run_type*.
 
-        The folder layout is `root/<mode>/YYYY-MM-DD/HH-MM-SS/` as of v1.1.
+        Args:
+            root: Root directory for runlogs
+            mode: Either 'backtesting' or 'papertrading'
+            run_type: Either 'batch' or 'individual'
+
+        The folder layout is `root/<mode>/<run_type>/YYYY-MM-DD/HH-MM-SS/` as of v1.3.
         Returns `None` if no matching directory is found.
         """
-        root_path = Path(root) / mode
+        root_path = Path(root) / mode / run_type
         if not root_path.exists():
             return None
 

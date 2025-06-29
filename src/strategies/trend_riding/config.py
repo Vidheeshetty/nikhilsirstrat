@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional
+import yaml
+
+from utils.strategy.base_strategy import StrategyConfigBase
+
 """Configuration schema for Trend-Riding strategy.
 
 Provides TrendRidingConfig dataclass that encapsulates all parameters
@@ -8,13 +15,6 @@ and technical analysis settings.
 
 The config can be loaded from YAML files and provides sensible defaults.
 """
-
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Optional
-import yaml
-
-from utils.strategy.base_strategy import StrategyConfigBase
 
 
 @dataclass

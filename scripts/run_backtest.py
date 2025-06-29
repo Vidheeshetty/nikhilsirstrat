@@ -34,6 +34,15 @@ from utils.runners.batch_config import BatchConfig  # noqa: E402
 from utils.reporting.controller import ReportController  # noqa: E402
 
 
+def load_default_config():
+    """Load default configuration from config/backtest_config.json."""
+    config_path = ROOT_DIR / "config" / "backtest_config.json"
+    if config_path.exists():
+        with open(config_path) as f:
+            return json.load(f)
+    return {}
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run Trend-Riding back-test(s)")
     parser.add_argument(
@@ -59,6 +68,10 @@ def parse_args():
 def main() -> None:
     args = parse_args()
 
+    # Load default configuration
+    default_config = load_default_config()
+    default_catalog_path = default_config.get("catalog_path")
+
     strategy_name = args.strategy
 
     # Merge YAML config if provided
@@ -77,15 +90,18 @@ def main() -> None:
         _ = args.end_time
         _ = args.near_expiry_only
 
+    # Use provided catalog_path or fall back to default from config
+    catalog_path = args.catalog_path or default_catalog_path
+
     # Propagate catalog path to any deeper DataManager instances created by
     # strategy runners.  The shared environment variable means we don't have
     # to plumb the argument through every call-stack layer.
-    if args.catalog_path:
+    if catalog_path:
         import os
 
-        os.environ["DATA_CATALOG_ROOTS"] = args.catalog_path
+        os.environ["DATA_CATALOG_ROOTS"] = catalog_path
 
-    dm = DataManager(catalog_path=args.catalog_path)
+    dm = DataManager(catalog_path=catalog_path)
     if len(instruments) == 1 and instruments[0].upper() == "ALL":
         instruments = dm.get_all_instrument_ids()
 
@@ -118,7 +134,9 @@ def main() -> None:
                 agg["results"] = results
                 from utils.reporting.controller import ReportController
 
-                ReportController().generate(results, strategy_name=strategy_name)
+                ReportController(mode="backtesting").generate(
+                    results, strategy_name=strategy_name
+                )
                 return agg
 
         batch_mod = None  # placeholder; we'll supply class later
@@ -149,7 +167,9 @@ def main() -> None:
         summary = {**result}
 
         # Generate runlogs even for single-instrument case
-        ReportController().generate([result], strategy_name=strategy_name)
+        ReportController(mode="backtesting").generate(
+            [result], strategy_name=strategy_name
+        )
     else:
         runner = BatchRunnerCls()
         summary = runner.run(instruments)

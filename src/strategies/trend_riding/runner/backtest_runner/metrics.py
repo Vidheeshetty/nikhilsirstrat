@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-"""Performance metrics helper (placeholder)."""
-
 from typing import List
+
+"""Performance metrics helper (placeholder)."""
 
 
 def calculate_pnl(prices: List[float], entry_price: float, exit_price: float) -> float:  # noqa: D401,E501

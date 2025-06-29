@@ -1,5 +1,8 @@
-"""Runner subpackage for Swing Range Expansion."""
+"""Runner modules for Swing Range Expansion strategy."""
 
-from .backtest_runner import SwingRangeExpansionBacktestRunner  # noqa: F401
+from .backtest_runner import (  # noqa: F401
+    SwingRangeExpansionBacktestRunner,
+    SwingRangeExpansionBatchRunner,
+)
 
-__all__ = ["SwingRangeExpansionBacktestRunner"]
+__all__ = ["SwingRangeExpansionBacktestRunner", "SwingRangeExpansionBatchRunner"]

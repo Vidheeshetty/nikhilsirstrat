@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Any, List
+
+from strategies.trend_riding.strategy import TrendRidingStrategy
+from strategies.trend_riding.config import TrendRidingConfig
+from utils.runners.engine_manager import EngineManager
+from utils.data.data_manager import DataManager
+
 """Single-instrument backtest runner for Trend-Riding strategy.
 
 This runner orchestrates a complete backtest workflow:
@@ -10,16 +20,6 @@ This runner orchestrates a complete backtest workflow:
 
 Can be used standalone or wrapped by BatchRunner for multi-instrument runs.
 """
-
-import sys
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, Any, List
-
-from strategies.trend_riding.strategy import TrendRidingStrategy
-from strategies.trend_riding.config import TrendRidingConfig
-from utils.runners.engine_manager import EngineManager
-from utils.data.data_manager import DataManager
 
 
 class TrendRidingBacktestRunner:  # pylint: disable=too-few-public-methods

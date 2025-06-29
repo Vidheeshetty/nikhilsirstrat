@@ -29,9 +29,16 @@ NTbasedPlatform/
 └── README.md
 ```
 
-## Usage
-- Place your raw NSE data in `src/data/nse/`
-- Use `data_utils.py` to convert CSV to Parquet
-- Use `src/strategies/my_nse_strategy/runners/backtest_runner.py` to backtest your strategy
-- Use `src/strategies/my_nse_strategy/runners/papertrade_runner.py` for paper trading
-- Use `src/strategies/my_nse_strategy/runners/live_runner.py` for live trading 
+## Quick Start
+
+### 📚 Documentation
+- **Getting Started**: See `UserDocumentation/index.html` for user guides
+- **Development**: Check `docs/development-standards/` for framework documentation
+- **Examples**: Explore `examples/` for working code samples
+
+### 🚀 Usage
+- **Data Setup**: Place raw NSE data in `data/` and use conversion tools in `scripts/data_import/`
+- **Strategy Development**: Follow the framework in `docs/development-standards/`
+- **Examples**: Run examples in `examples/data_usage/using_nser_catalog_data.py`
+- **Backtesting**: Use strategy runners or `scripts/run_backtest.py`
+- **Paper Trading**: Configure and run with `scripts/run_paper_trading.py` 

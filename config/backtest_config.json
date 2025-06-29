@@ -1,5 +1,5 @@
 {
-    "catalog_path": "catalog-data",
+    "catalog_path": "catalog-data/source=NSER/instrument=FUT/venue=NSE/symbol=NIFTY/timeframe=DAILY",
     "output_dir": "backtest_results",
     "log_level": "INFO",
     "risk_engine": {

@@ -51,7 +51,9 @@ TrendRidingBatchRunner(max_workers=1).run(instruments)
 # ------------------------------------------------------------------
 # 2. Locate most-recent batch directory --------------------------------
 
-latest_dir = ReportController.latest_report_dir(root=Path("runlogs"), mode="batch")
+latest_dir = ReportController.latest_report_dir(
+    root=Path("runlogs"), mode="backtesting", run_type="batch"
+)
 assert latest_dir is not None, "No batch directory found"
 
 csv_path = latest_dir / "trade_details.csv"

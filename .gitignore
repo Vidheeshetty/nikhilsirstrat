@@ -47,3 +47,18 @@ logs/
 
 # Nautilus Trader (reference only)
 nautilus_trader/
+
+# Data & generated artifacts
+runlogs/
+raw-data/
+data/
+_summary.txts/
+assets/
+
+# Notebooks & binary docs
+*.ipynb
+*.pdf
+
+# Generated reports
+*.html
+*.csv

@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-"""Generic parallel batch runner to execute many back-tests concurrently.
-
-The runner takes a *callable* (e.g. a single-instrument back-test function) and
- executes it over a list of *tasks* (instrument IDs, config paths, etc.).
-
-It is purposely lightweight and free of Nautilus-specific dependencies so it
- can be unit-tested quickly.
-"""
-
 import concurrent.futures as _fut
 import logging
 from typing import Callable, Any, Iterable, List, Dict
+
+"""Generic batch runner infrastructure.
+
+Provides BatchRunner class that can execute any worker function across
+multiple inputs in parallel using ThreadPoolExecutor. Handles result
+aggregation and provides common batch processing patterns.
+
+Used as foundation for strategy-specific batch runners.
+
+The design is intentionally simple and lightweight so strategy-specific batch runners
+can be unit-tested quickly.
+"""
 
 logger = logging.getLogger(__name__)
 

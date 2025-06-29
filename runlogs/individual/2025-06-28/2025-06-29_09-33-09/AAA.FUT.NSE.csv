@@ -1,2 +1,0 @@
-Instrument,Entry_Date,Trade_Type,Exit_Reason,Entry_Price,IV,OI,Exit_Date,Exit_Price,Threshold,SL_Price,Realised_PnL,PnL%,Markdown_pct,Sharpe,Cum_PnL,is_win
-UNKNOWN,N/A,Long,N/A,106.0,,,N/A,145.0,,,39.0,36.79,,174.59,39.0,True

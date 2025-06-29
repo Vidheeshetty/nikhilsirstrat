@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import pandas as pd
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from itertools import product
+from typing import Type, Any, Dict, Iterable, List
+
 """Parameter sweeping utilities for strategy optimization.
 
 Provides ParameterSweeper class that can run multiple backtest configurations
@@ -9,17 +14,22 @@ results for analysis.
 Supports both single-threaded and multi-threaded execution with configurable
 worker pools for efficient parameter space exploration.
 
-Example
--------
->>> from strategies.swing_range_expansion.runner import SwingRangeExpansionBacktestRunner
->>> grid = {"nr_lookback": [5, 7, 10], "target_rr": [1.2, 1.5], "stop_rr": [0.6, 0.75]}
+Examples
+--------
+>>> from utils.experiments.sweeper import ParameterSweeper
+>>> from src.strategies.swing_range_expansion.runner.backtest_runner import SwingRangeExpansionBacktestRunner
+
+>>> # Define parameter grid
+>>> grid = {
+...     'nr_lookback': [5, 7, 10],
+...     'target_rr': [1.0, 1.5, 2.0],
+...     'stop_rr': [0.5, 0.75, 1.0]
+... }
+
+>>> # Run parameter sweep
+>>> sweeper = ParameterSweeper(SwingRangeExpansionBacktestRunner)
 >>> results_df = run_parameter_sweep(SwingRangeExpansionBacktestRunner, grid, ["NIFTY.D.NSE"])
 """
-
-import pandas as pd
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from itertools import product
-from typing import Type, Any, Dict, Iterable, List
 
 
 def _iter_grid(param_grid: Dict[str, Iterable[Any]]):  # noqa: D401

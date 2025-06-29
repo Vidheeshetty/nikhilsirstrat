@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-"""Batch runner for Trend-Riding strategy that utilises the generic BatchRunner."""
-
 from typing import Iterable, Dict, Any, List
 from utils.runners.base_batch_runner import BatchRunner
 from .single_runner import TrendRidingBacktestRunner
+
+"""Batch runner for Trend-Riding strategy that utilises the generic BatchRunner."""
 
 
 class TrendRidingBatchRunner:  # pylint: disable=too-few-public-methods
@@ -23,7 +23,9 @@ class TrendRidingBatchRunner:  # pylint: disable=too-few-public-methods
         # Generate reports
         from utils.reporting.controller import ReportController
 
-        ReportController().generate(results, strategy_name="trend_riding")
+        ReportController(mode="backtesting").generate(
+            results, strategy_name="trend_riding"
+        )
 
         return agg
 

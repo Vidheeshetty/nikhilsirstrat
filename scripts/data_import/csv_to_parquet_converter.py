@@ -285,26 +285,72 @@ def run_conversion(cfg: ConverterConfig):
 
     # ------------------------------------------------------------------
     # After successful conversion – refresh DATA_CATALOG.md --------------
-    def _scan_catalog(root: Path):
+    def _scan_catalog_with_metadata(root: Path, source_csv: str):
+        from datetime import datetime
+
         parts = []
         for p in root.rglob("*.parquet"):
-            parts.append([str(p), p.name])
+            # Get file modification time
+            mod_time = datetime.fromtimestamp(p.stat().st_mtime).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+            parts.append([str(p), p.name, source_csv, mod_time])
         return parts
 
-    rows = _scan_catalog(Path(cfg.destination_catalog))
+    # Get source CSV modification time for reference
+    import os
+    from datetime import datetime
+    from glob import glob
+
+    source_files = glob(cfg.source_csv)
+    source_csv_info = []
+    for csv_file in source_files:
+        if os.path.exists(csv_file):
+            csv_mod_time = datetime.fromtimestamp(os.path.getmtime(csv_file)).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+            source_csv_info.append(f"{csv_file} (modified: {csv_mod_time})")
+
+    source_csv_str = "; ".join(source_csv_info) if source_csv_info else cfg.source_csv
+
+    rows = _scan_catalog_with_metadata(Path(cfg.destination_catalog), source_csv_str)
 
     try:
         from tabulate import tabulate  # optional dependency
 
-        table_md = tabulate(rows, headers=["Path", "File"], tablefmt="github")
+        table_md = tabulate(
+            rows,
+            headers=["Catalog Path", "File", "Source CSV", "Converted"],
+            tablefmt="github",
+        )
     except Exception:
         # Fallback to crude table
-        header = "| Path | File |\n|---|---|\n"
-        body = "\n".join(f"| {r[0]} | {r[1]} |" for r in rows)
+        header = "| Catalog Path | File | Source CSV | Converted |\n|---|---|---|---|\n"
+        body = "\n".join(f"| {r[0]} | {r[1]} | {r[2]} | {r[3]} |" for r in rows)
         table_md = header + body
 
+    # Read existing catalog to merge with new entries (avoid duplicates)
+    catalog_file = Path("DATA_CATALOG.md")
+    if catalog_file.exists():
+        try:
+            with open(catalog_file, "r", encoding="utf-8") as fh:
+                fh.read()
+        except Exception:
+            pass
+
+    # Write updated catalog with timestamp
+    conversion_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    catalog_header = f"""# Data Catalog
+
+**Last Updated**: {conversion_timestamp}  
+**Source CSV Pattern**: `{cfg.source_csv}`
+
+## Available Data
+
+"""
+
     with open("DATA_CATALOG.md", "w", encoding="utf-8") as fh:
-        fh.write("# Data Catalog\n\n" + table_md)
+        fh.write(catalog_header + table_md)
     logger.info("🗒️  Refreshed DATA_CATALOG.md")
 
 

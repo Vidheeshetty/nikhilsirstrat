@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from typing import Sequence
+
+from .breakout import previous_top_bottom, breakout_signal, Direction
+
 """Entry signal computation for Trend-Riding strategy.
 
 The primary function `compute_signal()` combines Dow-theory breakouts
@@ -9,10 +13,6 @@ unit-tested independently of the main Strategy class.
 The implementation handles both LONG and SHORT breakouts with configurable
 buffer percentages to avoid false signals.
 """
-
-from typing import Sequence
-
-from .breakout import previous_top_bottom, breakout_signal, Direction
 
 
 def compute_signal(

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-"""TrendRidingStrategy – minimal implementation compatible with new scaffold."""
-
 from typing import List, Optional
+
 from utils.strategy.base_strategy import BaseStrategy
 from .config import TrendRidingConfig
 from .entry import compute_signal, Direction
 from .risk import RiskManager
 from .position import calculate_size
+
+"""TrendRidingStrategy – minimal implementation compatible with new scaffold."""
 
 
 class TrendRidingStrategy(BaseStrategy):

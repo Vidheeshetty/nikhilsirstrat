@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-"""Core Swing Range Expansion trading logic (pure Python, no I/O)."""
-
 import pandas as pd
+from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
-from typing import List, Dict, Any
 
+from utils.strategy.base_strategy import BaseStrategy
 from .config import SwingRangeConfig
+from .entry import compute_signal, Direction
+from .exit import should_exit, ExitReason
+from .risk import RiskManager
+from .position import calculate_size
+
+"""Swing Range Expansion Strategy – modular implementation compatible with BaseStrategy."""
 
 
 @dataclass
@@ -42,37 +47,168 @@ class TradeRecord:  # pylint: disable=too-many-instance-attributes
         }
 
 
-class SwingRangeExpansionStrategy:  # pylint: disable=too-few-public-methods
+class SwingRangeExpansionStrategy(BaseStrategy):
     """Detect NR7 days and trade breakout next day with R-multiple exits."""
 
-    def __init__(self, config: SwingRangeConfig):
-        self.config = config
+    config_class = SwingRangeConfig
 
-    # ------------------------------------------------------------------
-    @staticmethod
-    def _nr7_mask(high: pd.Series, low: pd.Series, lookback: int) -> pd.Series:  # noqa: D401
-        """Return boolean Series where each True marks an NR*lookback* day."""
-        ranges = high - low
-        rolling_min = ranges.rolling(window=lookback, min_periods=lookback).min()
-        # NR day is when today's range equals rolling minimum of last lookback days
-        return (ranges == rolling_min) & (~rolling_min.isna())
+    def _setup(self) -> None:  # noqa: D401,override
+        """Initialize strategy state."""
+        self._bars: List[Dict[str, Any]] = []
+        self._in_position: bool = False
+        self._entry_price: Optional[float] = None
+        self._position_side: Optional[Direction] = None
+        self._range_val: float = 0.0
+        self._entry_index: Optional[int] = None
+        self._trades: List[TradeRecord] = []
 
-    # ------------------------------------------------------------------
+        self.risk_mgr = RiskManager(self.config.stop_rr, self.config.target_rr)
+        super()._setup()
+
+    def on_quote(self, price: float):  # noqa: D401,override – simplified
+        """Process a new quote price (float for unit-test simplicity).
+
+        We create OHLC bars from the price feed for compatibility with
+        the NR7 breakout logic.
+        """
+        # Create OHLC bar from price (simplified for testing)
+        bar = {
+            "open": price,
+            "high": price * 1.0025,  # Synthetic high
+            "low": price * 0.9975,  # Synthetic low
+            "close": price,
+            "date": len(self._bars),
+        }
+        self._bars.append(bar)
+
+        current_index = len(self._bars) - 1
+
+        if current_index < self.config.nr_lookback:
+            return  # Not enough data yet
+
+        # Convert to DataFrame for signal computation
+        bars_df = pd.DataFrame(self._bars)
+
+        # ------------------------------------------------------------------
+        # ENTRY – check for NR breakout
+        # ------------------------------------------------------------------
+        if not self._in_position:
+            direction, entry_price, range_val, _, _ = compute_signal(
+                bars_df, current_index, self.config.nr_lookback
+            )
+
+            if direction in (Direction.LONG, Direction.SHORT):
+                self._enter_trade(entry_price, direction, range_val, current_index)
+        else:
+            # --------------------------------------------------------------
+            # EXIT – check exit conditions
+            # --------------------------------------------------------------
+            bars_in_trade = current_index - (self._entry_index or 0)
+            current_bar = pd.Series(bar)
+
+            should_exit_now, exit_reason, exit_price = should_exit(
+                current_bar=current_bar,
+                direction=self._position_side or Direction.NONE,
+                entry_price=self._entry_price or 0.0,
+                range_val=self._range_val,
+                target_rr=self.config.target_rr,
+                stop_rr=self.config.stop_rr,
+                bars_in_trade=bars_in_trade,
+                max_bars_in_trade=self.config.max_bars_in_trade,
+            )
+
+            if should_exit_now:
+                self._exit_trade(exit_price, exit_reason, current_index)
+
+    def _enter_trade(
+        self, price: float, direction: Direction, range_val: float, index: int
+    ) -> None:
+        """Enter a new trade."""
+        size = calculate_size(
+            capital=100_000,
+            risk_per_trade_pct=0.01,
+            entry_price=price,
+            stop_price=price - (self.config.stop_rr * range_val)
+            if direction == Direction.LONG
+            else price + (self.config.stop_rr * range_val),
+        )
+
+        self.log.info("Entering %s at %.2f, size=%s", direction.name, price, size)
+        self._in_position = True
+        self._entry_price = price
+        self._position_side = direction
+        self._range_val = range_val
+        self._entry_index = index
+
+    def _exit_trade(self, price: float, reason: str, index: int) -> None:
+        """Exit current trade."""
+        if not self._in_position or self._entry_price is None:
+            return
+
+        # Calculate PnL
+        pnl = price - self._entry_price
+        if self._position_side == Direction.SHORT:
+            pnl = -pnl
+
+        # Create trade record
+        stop_price, target_price = self.risk_mgr.get_exit_prices(
+            self._entry_price, self._range_val, self._position_side or Direction.NONE
+        )
+
+        trade = TradeRecord(
+            instrument=self.config.instrument_id,
+            entry_date=str(self._entry_index or 0),
+            trade_type=self._position_side.value if self._position_side else "UNKNOWN",
+            entry_price=self._entry_price,
+            exit_date=str(index),
+            exit_price=price,
+            exit_reason=reason,
+            target_price=target_price,
+            stop_price=stop_price,
+        )
+        self._trades.append(trade)
+
+        self.log.info(
+            "Exiting %s at %.2f, PnL=%.2f, Reason=%s",
+            self._position_side.name if self._position_side else "?",
+            price,
+            pnl,
+            reason,
+        )
+
+        # Reset position state
+        self._in_position = False
+        self._entry_price = None
+        self._position_side = None
+        self._range_val = 0.0
+        self._entry_index = None
+
+    def on_stop(self):  # noqa: D401,override
+        """Strategy cleanup."""
+        super().on_stop()
+        self.log.info(
+            "Processed %s bars in total. Generated %s trades.",
+            len(self._bars),
+            len(self._trades),
+        )
+
     def generate_trades(
         self, bars: pd.DataFrame, instrument_id: str
     ) -> List[Dict[str, Any]]:  # noqa: D401
-        """Run strategy over *bars* DataFrame and return list of trade dicts."""
+        """Run strategy over *bars* DataFrame and return list of trade dicts.
+
+        This method is kept for backward compatibility with the existing runner.
+        """
         if bars.empty:
             return []
 
         bars = bars.copy().reset_index(drop=True)
-        # Ensure required columns exist; fallback to Close-only bars ----------
+        # Ensure required columns exist; fallback to Close-only bars
         if not {"high", "low"}.issubset(bars.columns):
-            # Create pseudo high/low columns (±0.25% of close) ----------------
             bars["high"] = bars["close"] * 1.0025
             bars["low"] = bars["close"] * 0.9975
         if "date" not in bars.columns:
-            bars["date"] = pd.RangeIndex(len(bars))  # monotonic placeholder
+            bars["date"] = pd.RangeIndex(len(bars))
 
         trades: List[TradeRecord] = []
         open_index: int | None = None
@@ -80,86 +216,66 @@ class SwingRangeExpansionStrategy:  # pylint: disable=too-few-public-methods
         entry_price = target_price = stop_price = 0.0
         range_val = 0.0
 
-        nr_mask = self._nr7_mask(bars["high"], bars["low"], self.config.nr_lookback)
-
         for i in range(1, len(bars)):
-            cur = bars.iloc[i]
-            prev = bars.iloc[i - 1]
+            current_bar = bars.iloc[i]
 
-            # If in position – manage exit conditions ----------------------
+            # If in position – manage exit conditions
             if open_index is not None:
-                # update stop/target check on current bar
-                if long_short == "Long":
-                    # SL first to mimic real market risk management --------
-                    if cur["low"] <= stop_price:
-                        exit_px = stop_price
-                        exit_reason = "SL"
-                    elif cur["high"] >= target_price:
-                        exit_px = target_price
-                        exit_reason = "TP"
-                    elif i - open_index >= self.config.max_bars_in_trade:
-                        exit_px = cur["close"]
-                        exit_reason = "TIME"
-                    else:
-                        continue  # still in trade
-                else:  # Short
-                    if cur["high"] >= stop_price:
-                        exit_px = stop_price
-                        exit_reason = "SL"
-                    elif cur["low"] <= target_price:
-                        exit_px = target_price
-                        exit_reason = "TP"
-                    elif i - open_index >= self.config.max_bars_in_trade:
-                        exit_px = cur["close"]
-                        exit_reason = "TIME"
-                    else:
-                        continue
-
-                # Record trade -------------------------------------------
-                trade = TradeRecord(
-                    instrument=instrument_id,
-                    entry_date=str(bars.iloc[open_index]["date"]),
-                    trade_type=long_short,
+                bars_in_trade = i - open_index
+                should_exit_now, exit_reason, exit_price = should_exit(
+                    current_bar=current_bar,
+                    direction=Direction.LONG
+                    if long_short == "Long"
+                    else Direction.SHORT,
                     entry_price=entry_price,
-                    exit_date=str(cur["date"]),
-                    exit_price=exit_px,
-                    exit_reason=exit_reason,
-                    target_price=target_price,
-                    stop_price=stop_price,
+                    range_val=range_val,
+                    target_rr=self.config.target_rr,
+                    stop_rr=self.config.stop_rr,
+                    bars_in_trade=bars_in_trade,
+                    max_bars_in_trade=self.config.max_bars_in_trade,
                 )
-                trades.append(trade)
-                # Reset position state ----------------------------------
-                open_index = None
-                long_short = None
-                continue
 
-            # If flat, check for NR day and breakout ----------------------
-            if nr_mask.iloc[i - 1]:
-                range_val = prev["high"] - prev["low"]
-                if range_val == 0:
-                    continue  # skip zero-range anomalies
-                breakout_high = prev["high"]
-                breakout_low = prev["low"]
+                if should_exit_now:
+                    # Record trade
+                    trade = TradeRecord(
+                        instrument=instrument_id,
+                        entry_date=str(bars.iloc[open_index]["date"]),
+                        trade_type=long_short or "UNKNOWN",
+                        entry_price=entry_price,
+                        exit_date=str(current_bar["date"]),
+                        exit_price=exit_price,
+                        exit_reason=exit_reason,
+                        target_price=target_price,
+                        stop_price=stop_price,
+                    )
+                    trades.append(trade)
+                    # Reset position state
+                    open_index = None
+                    long_short = None
+                    continue
 
-                # Breakout LONG ---------------------------------------
-                if cur["high"] > breakout_high:
+            # If flat, check for entry signal
+            if open_index is None:
+                direction, entry_px, range_v, _, _ = compute_signal(
+                    bars, i, self.config.nr_lookback
+                )
+
+                if direction == Direction.LONG:
                     long_short = "Long"
-                    entry_price = breakout_high
+                    entry_price = entry_px
+                    range_val = range_v
                     target_price = entry_price + self.config.target_rr * range_val
                     stop_price = entry_price - self.config.stop_rr * range_val
                     open_index = i
-                    continue
-
-                # Breakout SHORT --------------------------------------
-                if cur["low"] < breakout_low:
+                elif direction == Direction.SHORT:
                     long_short = "Short"
-                    entry_price = breakout_low
+                    entry_price = entry_px
+                    range_val = range_v
                     target_price = entry_price - self.config.target_rr * range_val
                     stop_price = entry_price + self.config.stop_rr * range_val
                     open_index = i
-                    continue
 
         return [t.to_dict() for t in trades]
 
 
-__all__ = ["SwingRangeExpansionStrategy"]
+__all__ = ["SwingRangeExpansionStrategy", "TradeRecord"]

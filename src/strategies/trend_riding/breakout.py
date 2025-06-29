@@ -4,6 +4,7 @@ Implements the Dow-theory breakout rules described in the strategy doc.
 
 Functions are decoupled from Strategy so we can unit-test them easily.
 """
+
 from enum import Enum, auto
 from typing import Sequence, Tuple
 

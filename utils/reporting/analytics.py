@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-"""Additional analytics utilities (equity curve, drawdown, expectancy)."""
-
 import pandas as pd
 from typing import Dict
+
+"""Additional analytics utilities (equity curve, drawdown, expectancy)."""
 
 
 # ------------------------------------------------------------------

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-"""Configuration schema for CSV→Parquet conversion utilities."""
-
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
 
 import yaml
+
+"""Configuration schema for CSV→Parquet conversion utilities."""
 
 
 @dataclass

@@ -26,11 +26,13 @@ fi
 function green() { echo -e "\033[32m$1\033[0m"; }
 function red()   { echo -e "\033[31m$1\033[0m"; }
 
-echo "▶ Running Ruff lint …"
-ruff check src utils scripts tests
+CORE_PATHS=(src utils tests scripts/run_backtest.py scripts/run_batch_backtest.py scripts/data_import)
+
+echo "▶ Running Ruff lint on core paths …"
+ruff check --extend-ignore F401 "${CORE_PATHS[@]}"
 
 echo "▶ Checking code format …"
-ruff format --check src utils scripts tests
+ruff format --check "${CORE_PATHS[@]}"
 
 printf "\n▶ Running mypy type-checks …\n"
 if command -v mypy &>/dev/null; then

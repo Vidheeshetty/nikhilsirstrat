@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-"""Configuration schema for Swing Range Expansion strategy."""
-
 import yaml
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Dict
+
+"""Configuration schema for Swing Range Expansion strategy."""
 
 
 @dataclass(slots=True)

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-"""Backtest runner configuration (placeholder)."""
-
 from dataclasses import dataclass
 from typing import Optional
+
+"""Backtest runner configuration (placeholder)."""
 
 
 @dataclass

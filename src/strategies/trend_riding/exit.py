@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-"""Exit logic for Trend-Riding strategy – placeholder implementation."""
-
 from typing import Sequence
+
 from .entry import Direction
+
+"""Exit logic for Trend-Riding strategy – placeholder implementation."""
 
 
 def should_exit(

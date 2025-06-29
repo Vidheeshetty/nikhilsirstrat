@@ -169,14 +169,16 @@ class HtmlBatchRenderer(Renderer):
             trade_df = trade_df.drop(columns=["is_win"])  # keep Win/Loss only
 
         total_trades = len(trade_df)
-        if 'Win/Loss' in trade_df.columns:
-            profitable_trades = (trade_df['Win/Loss'] == 'Win').sum()
-            losing_trades = (trade_df['Win/Loss'] == 'Loss').sum()
+        if "Win/Loss" in trade_df.columns:
+            profitable_trades = (trade_df["Win/Loss"] == "Win").sum()
+            losing_trades = (trade_df["Win/Loss"] == "Loss").sum()
         else:
             profitable_trades = losing_trades = 0
 
         win_rate = (
-            f"{(profitable_trades / total_trades * 100):.2f}%" if total_trades else "N/A"
+            f"{(profitable_trades / total_trades * 100):.2f}%"
+            if total_trades
+            else "N/A"
         )
 
         total_investment = trade_df["Entry_Price"].sum() if not trade_df.empty else 0.0
@@ -210,37 +212,9 @@ class HtmlBatchRenderer(Renderer):
         # ------------------------------------------------------------------
         # Derive *period* and *data source* heuristically -------------------
         # ------------------------------------------------------------------
-        # Instead of relying on inconsistent trade date formats, use a more
-        # robust approach that shows the actual backtest timeframe
-        if not trade_df.empty and {"Entry_Date", "Exit_Date"}.issubset(
-            trade_df.columns
-        ):
-            try:
-                # Check if dates are actual date strings (YYYY-MM-DD format)
-                sample_entry = str(trade_df['Entry_Date'].iloc[0])
-                str(trade_df['Exit_Date'].iloc[-1])
-                
-                if '-' in sample_entry and len(sample_entry) >= 8:
-                    # Real date strings - use them
-                    period = f"{trade_df['Entry_Date'].min()} → {trade_df['Exit_Date'].max()}"
-                else:
-                    # Numeric indices or other format - show data range info
-                    min_idx = trade_df['Entry_Date'].min()
-                    max_idx = trade_df['Exit_Date'].max()
-                    
-                    # Ensure proper ordering (convert to float for comparison)
-                    try:
-                        min_val = float(min_idx)
-                        max_val = float(max_idx)
-                        if min_val > max_val:
-                            min_val, max_val = max_val, min_val
-                        period = f"Day {int(min_val)} → Day {int(max_val)}"
-                    except (ValueError, TypeError):
-                        period = f"Day {min_idx} → Day {max_idx}"
-            except Exception:  # pragma: no cover
-                period = "N/A"
-        else:
-            period = "N/A"
+        # Instead of relying on trade date formats, get the actual data period
+        # from the catalog or environment
+        period = self._get_data_period()
 
         # ------------------------------------------------------------------
         # Determine data source – prefer explicit value from runner results.
@@ -322,6 +296,48 @@ class HtmlBatchRenderer(Renderer):
         )
         outfile.parent.mkdir(parents=True, exist_ok=True)
         outfile.write_text(html, encoding="utf-8")
+
+    # ------------------------------------------------------------------
+    # Helper methods ---------------------------------------------------
+    # ------------------------------------------------------------------
+
+    def _get_data_period(self) -> str:
+        """Get the actual data period from the catalog if available."""
+        import os
+
+        try:
+            # Try to get the catalog path from environment
+            catalog_path = os.environ.get("DATA_CATALOG_ROOTS")
+            if not catalog_path:
+                return "N/A"
+
+            from nautilus_trader.persistence.catalog.parquet import ParquetDataCatalog
+            from nautilus_trader.core.datetime import unix_nanos_to_dt
+
+            cat = ParquetDataCatalog(catalog_path)
+            instruments = cat.instruments()
+            if not instruments:
+                return "N/A"
+
+            all_dates = []
+            for instrument in instruments:
+                bars = cat.bars(
+                    bar_types=[f"{instrument.id}-1-DAY-LAST-EXTERNAL"],
+                    as_nautilus=False,
+                )
+                if bars:
+                    for bar in bars:
+                        date = unix_nanos_to_dt(bar.ts_event)
+                        all_dates.append(date.strftime("%Y-%m-%d"))
+
+            if all_dates:
+                unique_dates = sorted(set(all_dates))
+                return f"{unique_dates[0]} → {unique_dates[-1]}"
+            else:
+                return "N/A"
+
+        except Exception:  # pragma: no cover
+            return "N/A"
 
 
 __all__ = ["HtmlBatchRenderer"]

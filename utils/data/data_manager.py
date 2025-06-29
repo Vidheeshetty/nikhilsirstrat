@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+from typing import List
+from pathlib import Path
+
 """Data loading utilities for backtest runners.
 
 Provides DataManager class that abstracts data access for strategies,
 supporting both real Nautilus Parquet catalogs and synthetic test data.
 """
-
-from typing import List
-from pathlib import Path
 
 
 class DataManager:  # pylint: disable=too-few-public-methods

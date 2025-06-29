@@ -1,27 +1,38 @@
 from __future__ import annotations
 
-"""EngineManager – lightweight wrapper around the in-memory BacktestEngine.
-
-Acts as an adapter so strategy code can later switch to Nautilus-Trader without
-changing the orchestrator & batch-runner layers.
-"""
-
 from typing import Any, List
 import logging
 
 # Try to import Nautilus-Trader; fall back to stub if unavailable ----------------
 try:
     from nautilus_trader.backtest.engine import BacktestEngine as NTBacktestEngine  # type: ignore
+    from nautilus_trader.backtest.node import BacktestNode  # type: ignore
+    from nautilus_trader.config import BacktestRunConfig  # type: ignore
+    from nautilus_trader.model.identifiers import TraderId, Venue  # type: ignore
+    from nautilus_trader.model.enums import LogLevel  # type: ignore
+    from nautilus_trader.common.component import Logger  # type: ignore
     from nautilus_trader.test_kit.stubs.venue import create_venue_config  # type: ignore
-    from nautilus_trader.model.identifiers import Venue  # type: ignore
 
-    HAVE_NAUTILUS = True
-except Exception:  # pragma: no cover  pylint: disable=broad-except
-    HAVE_NAUTILUS = False
+    NAUTILUS_AVAILABLE = True
+except ImportError:
+    NAUTILUS_AVAILABLE = False
+    BacktestNode = None  # type: ignore
+    BacktestRunConfig = None  # type: ignore
+    TraderId = None  # type: ignore
+    LogLevel = None  # type: ignore
+    Logger = None  # type: ignore
     NTBacktestEngine = None  # type: ignore
+    Venue = None  # type: ignore
+    create_venue_config = None  # type: ignore
 
 from strategies.trend_riding.runner.backtest_runner.engine import BacktestEngine  # stub
 from utils.runners.metrics import calculate_metrics
+
+"""Engine management utilities for backtesting.
+
+Provides EngineManager that abstracts backtest execution, supporting both
+Nautilus-Trader engines and lightweight stub engines for testing.
+"""
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +51,7 @@ class EngineManager:  # pylint: disable=too-few-public-methods
         if self._engine is not None:
             raise RuntimeError("Engine already created – call cleanup() first")
         # Decide engine implementation --------------------------------------
-        if HAVE_NAUTILUS:
+        if NAUTILUS_AVAILABLE:
             try:
                 venue_cfg = create_venue_config(Venue("SIM"))
                 self._engine = NTBacktestEngine(venue_cfg)
@@ -78,7 +89,7 @@ class EngineManager:  # pylint: disable=too-few-public-methods
         self._prices = prices
 
     def add_strategy(self, engine, strategy) -> None:  # noqa: D401
-        if HAVE_NAUTILUS and isinstance(engine, NTBacktestEngine):
+        if NAUTILUS_AVAILABLE and isinstance(engine, NTBacktestEngine):
             engine.add_strategy(strategy)
         else:
             # Re-create stub engine with callback
@@ -91,7 +102,7 @@ class EngineManager:  # pylint: disable=too-few-public-methods
 
     # ------------------------------------------------------------------
     def run_backtest(self, engine: BacktestEngine) -> None:  # noqa: D401
-        if HAVE_NAUTILUS and isinstance(engine, NTBacktestEngine):
+        if NAUTILUS_AVAILABLE and isinstance(engine, NTBacktestEngine):
             engine.run()
         else:
             if self._prices is None:
@@ -107,7 +118,7 @@ class EngineManager:  # pylint: disable=too-few-public-methods
         # ------------------------------------------------------------------
         # 1) Try real Nautilus-Trader path if available --------------------
         # ------------------------------------------------------------------
-        if HAVE_NAUTILUS and hasattr(_engine, "trades"):
+        if NAUTILUS_AVAILABLE and hasattr(_engine, "trades"):
             try:
                 for tr in _engine.trades():  # type: ignore[attr-defined]
                     entry_ts = getattr(tr, "open_time", getattr(tr, "entry_time", None))

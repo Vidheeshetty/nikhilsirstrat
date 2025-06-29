@@ -1,4 +1,0 @@
-Instrument,Entry_Date,Trade_Type,Exit_Reason,Entry_Price,IV,OI,Exit_Date,Exit_Price,Threshold,SL_Price,Realised_PnL,PnL%,MDD_pct,Sharpe,Cum_PnL,Win/Loss,is_win
-BBB.FUT.NSE,2025-06-29,Long,TP,109.0,27.25,1090,2025-06-29,148.0,147.29,106.82,39.0,35.78,0.0,178.86,39.0,Win,True
-AAA.FUT.NSE,2025-06-29,Long,TP,106.0,26.5,1060,2025-06-29,145.0,144.29,103.88,39.0,36.79,0.0,174.59,78.0,Win,True
-CCC.FUT.NSE,2025-06-29,Long,TP,112.0,28.0,1120,2025-06-29,151.0,150.3,109.76,39.0,34.82,0.0,183.13,117.0,Win,True

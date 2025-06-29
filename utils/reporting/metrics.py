@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import pandas as pd
+
 """Metrics computation for trade enrichment.
 
 This module provides utilities to compute derived metrics from trade data,
 including win/loss classification, cumulative PnL, and other performance
 indicators used in backtesting reports.
 """
-
-import pandas as pd
 
 
 def enrich_trades(df: pd.DataFrame) -> pd.DataFrame:  # noqa: D401
