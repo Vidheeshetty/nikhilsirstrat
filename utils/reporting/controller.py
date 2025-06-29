@@ -23,12 +23,14 @@ class ReportController:  # pylint: disable=too-few-public-methods
 
     # ------------------------------------------------------------------
     def generate(self, results: List[Dict[str, Any]]) -> Path:  # noqa: D401
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        now = datetime.now()
+        date_part = now.strftime("%Y-%m-%d")
+        time_part = now.strftime("%H-%M-%S")
 
         if len(results) == 1:
             # ----------------------------- INDIVIDUAL RUN --------------------
             inst_id = results[0].get("instrument_id", "UNKNOWN").replace("/", "_")
-            out_dir = self.root / "individual" / timestamp
+            out_dir = self.root / "individual" / date_part / time_part
             out_dir.mkdir(parents=True, exist_ok=True)
 
             assets_dst = out_dir / "assets"
@@ -43,7 +45,7 @@ class ReportController:  # pylint: disable=too-few-public-methods
             return out_dir
 
         # ------------------------------- BATCH RUN ---------------------------
-        batch_dir = self.root / "batch" / timestamp
+        batch_dir = self.root / "batch" / date_part / time_part
         batch_dir.mkdir(parents=True, exist_ok=True)
 
         assets_dst = batch_dir / "assets"
