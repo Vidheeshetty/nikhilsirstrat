@@ -86,3 +86,12 @@ The rules below keep the prompt tidy **and** make it easy to evolve.
 2. **Do NOT add new feature docs, data notes, or strategy files directly under root.**  Think about the most appropriate sub-folder (`documentation/`, `docs/`, `examples/`, `config/`, etc.) and place the file there instead.  
 3. **Ask first if unsure** – If the correct folder is unclear, discuss or reference existing documentation layout before committing a file to the root directory.  
 4. **Migration responsibility** – When you encounter legacy files in the root that belong elsewhere, move them to the proper location and update links accordingly.  
+
+## Static Type-Checking Rules (mypy)
+
+1. All *core* modules under `src/` **must** pass `mypy` using the repository-level configuration (`mypy.ini`).  
+   • The commit gate runs `mypy src --explicit-package-bases`; keep it clean.  
+2. External/third-party libraries are allowed via `ignore_missing_imports=True`; when possible, add proper stubs (`types-PyYAML`, `pandas-stubs`, etc.) and remove the suppression.  
+3. Error codes listed in `disable_error_code` inside `mypy.ini` provide a *temporary* shield while we add richer typing; contributors should aim to **remove** these codes over time.  
+4. New or heavily-modified files should include meaningful type hints and avoid introducing new mypy errors—do **not** rely on the global suppressions.  
+5. When adding new folders, update `mypy.ini` `exclude` pattern if they should be skipped, and ensure the path setup doesn't create duplicate module names.  
