@@ -21,6 +21,7 @@ Run the script with:
 python src/convert_NSER_csv_to_parquet_1IN_v1.py
 ```
 """
+
 from __future__ import annotations
 
 import logging
@@ -53,8 +54,8 @@ META_DIR = PROJECT_ROOT / "catalog-data" / "trend_follow_futures" / "catalog-met
 
 PRICE_PRECISION = 2
 PRICE_INCREMENT = 0.05  # INR ticks
-LOT_MULTIPLIER = 50      # contract size
-BAR_INTERVAL = "1-DAY"   # daily bars
+LOT_MULTIPLIER = 50  # contract size
+BAR_INTERVAL = "1-DAY"  # daily bars
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ log = logging.getLogger(__name__)
 # ----------------------------------------------------------------------------
 # Helpers
 # ----------------------------------------------------------------------------
+
 
 def clear_catalog_dirs() -> None:
     """Delete and recreate parquet catalog & meta directories."""
@@ -173,22 +175,25 @@ def write_meta(meta_df: pd.DataFrame, instrument: FuturesContract) -> None:
 
     meta_df.to_parquet(META_DIR / "bar_metadata.parquet", index=False)
 
-    pd.DataFrame([
-        {
-            "instrument_id": str(instrument.id),
-            "symbol": instrument.raw_symbol.value,
-            "strike": None,
-            "expiry": instrument.expiration_ns,
-            "option_kind": "FUT",
-            "venue": VENUE,
-            "activation_ns": instrument.activation_ns,
-        }
-    ]).to_parquet(META_DIR / "instruments.parquet", index=False)
+    pd.DataFrame(
+        [
+            {
+                "instrument_id": str(instrument.id),
+                "symbol": instrument.raw_symbol.value,
+                "strike": None,
+                "expiry": instrument.expiration_ns,
+                "option_kind": "FUT",
+                "venue": VENUE,
+                "activation_ns": instrument.activation_ns,
+            }
+        ]
+    ).to_parquet(META_DIR / "instruments.parquet", index=False)
 
 
 # ----------------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------------
+
 
 def main() -> None:
     clear_catalog_dirs()
@@ -197,7 +202,9 @@ def main() -> None:
 
     # Determine latest expiry in dataset (if column present); otherwise, push far future
     if "EXPIRY_DT" in df_all.columns and not df_all["EXPIRY_DT"].isna().all():
-        latest_expiry = pd.to_datetime(df_all["EXPIRY_DT"].dropna().max()).tz_localize("UTC")
+        latest_expiry = pd.to_datetime(df_all["EXPIRY_DT"].dropna().max()).tz_localize(
+            "UTC"
+        )
     else:
         latest_expiry = datetime(2100, 1, 1, tzinfo=timezone.utc)
     expiry_ns = dt_to_unix_nanos(latest_expiry + timedelta(hours=23, minutes=59))
@@ -211,8 +218,13 @@ def main() -> None:
     write_catalog(instrument, bars)
     write_meta(meta_df, instrument)
 
-    log.info("🎉 Conversion complete: %d bars for instrument %s from %d CSV rows", len(bars), instrument.id, len(df_all))
+    log.info(
+        "🎉 Conversion complete: %d bars for instrument %s from %d CSV rows",
+        len(bars),
+        instrument.id,
+        len(df_all),
+    )
 
 
 if __name__ == "__main__":
-    main() 
+    main()

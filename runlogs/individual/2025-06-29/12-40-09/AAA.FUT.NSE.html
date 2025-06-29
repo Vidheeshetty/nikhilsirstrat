@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Batch Back-test Summary</title>
+  <link rel="stylesheet" href="assets/report.css"/>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+<h1>Batch Back-test Summary</h1>
+<p>Generated at 2025-06-29 12:40:09</p>
+
+<h2>Overall KPIs</h2>
+<div class="kpi">Total PnL: 39.00</div>
+<div class="kpi">Total Trades: 1</div>
+<div class="kpi">Win Rate: 100.00%</div>
+<div class="kpi">Avg Sharpe: 174.59</div>
+
+<h2>Instrument Leaderboard</h2>
+<table class="table">
+  <thead><tr><th>Instrument</th><th>PnL</th><th>Sharpe</th></tr></thead>
+  <tbody>
+  <tr><td>AAA.FUT.NSE</td><td>39.00</td><td>174.59</td></tr>
+  </tbody>
+</table>
+
+<h2>PnL Bar Chart</h2>
+<div id="pnl_bar"></div>
+<script>
+const data = [{'type': 'bar', 'x': ['AAA.FUT.NSE'], 'y': [39.0], 'marker': {'color': '#4a90e2'}}];
+Plotly.newPlot('pnl_bar', data, {margin:{t:20}});
+</script>
+
+<h2>Trade Details</h2>
+<table class="table">
+  <thead>
+    <tr><th>Instrument</th><th>Entry_Date</th><th>Trade_Type</th><th>Exit_Reason</th><th>Entry_Price</th><th>IV</th><th>OI</th><th>Exit_Date</th><th>Exit_Price</th><th>Threshold</th><th>SL_Price</th><th>Realised_PnL</th><th>PnL%</th><th>Max_Drawdown_pct</th><th>Sharpe</th><th>Cum_PnL</th><th>Win/Loss</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>AAA.FUT.NSE</td><td>2025-06-29</td><td>Long</td><td>TP</td><td>106.00</td><td>26.50</td><td>1060.00</td><td>2025-06-29</td><td>145.00</td><td>144.29</td><td>103.88</td><td>39.00</td><td>36.79</td><td>0.00</td><td>174.59</td><td>39.00</td><td>Win</td></tr>
+  </tbody>
+</table>
+</body></html>

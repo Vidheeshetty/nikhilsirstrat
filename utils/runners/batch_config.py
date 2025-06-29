@@ -20,4 +20,4 @@ class BatchConfig:
         return cls(**data)
 
 
-__all__ = ["BatchConfig"] 
+__all__ = ["BatchConfig"]

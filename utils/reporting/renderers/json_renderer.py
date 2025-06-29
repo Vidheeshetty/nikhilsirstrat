@@ -13,4 +13,4 @@ class JsonTradeRenderer(Renderer):
         out_path.write_text(json.dumps(results, indent=2))
 
 
-__all__ = ["JsonTradeRenderer"] 
+__all__ = ["JsonTradeRenderer"]

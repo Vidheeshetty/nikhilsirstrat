@@ -1,27 +1,62 @@
 from __future__ import annotations
 
-"""Entry signal logic for Trend-Riding strategy.
+"""Entry signal computation for Trend-Riding strategy.
 
-**Current behaviour** (placeholder):
-Entry whenever the *n*-period close is above the *n*-period simple moving
-average by more than *threshold_pct*.
+The primary function `compute_signal()` combines Dow-theory breakouts
+with position-aware logic. This module is stateless and can be
+unit-tested independently of the main Strategy class.
 
-This is intentionally simplistic so that unit tests can exercise the module
-without needing extensive historical data. Replace with actual logic later.
+The implementation handles both LONG and SHORT breakouts with configurable
+buffer percentages to avoid false signals.
 """
 
 from typing import Sequence
 
-from utils.strategy.indicators import sma
+from .breakout import previous_top_bottom, breakout_signal, Direction
 
 
-def should_enter(prices: Sequence[float], period: int = 15, threshold_pct: float = 0.0) -> bool:  # noqa: D401
-    """Decide whether to open a long position.
+def compute_signal(
+    highs: Sequence[float],
+    lows: Sequence[float],
+    closes: Sequence[float],
+    *,
+    period: int,
+    buffer_pct: float,
+) -> Direction:  # noqa: D401
+    """Return breakout **Direction** (LONG / SHORT / NONE).
 
-    For now we only consider long entries: *close* > SMA(period) * (1 + threshold_pct).
+    Raises ``ValueError`` if not enough data.
     """
-    avg = sma(prices, period)
-    return prices[-1] > avg * (1 + threshold_pct)
+
+    if len(closes) < period + 1:
+        raise ValueError("Not enough data for breakout calculation")
+
+    prev_top, prev_bottom = previous_top_bottom(highs[:-1], lows[:-1], period)
+    return breakout_signal(closes[-1], prev_top, prev_bottom, buffer_pct)
 
 
-__all__ = ["should_enter"]
+__all__ = ["compute_signal", "Direction"]
+
+
+# ------------------------------------------------------------------
+# Backwards-compat helper – returns bool for LONG breakout only
+# ------------------------------------------------------------------
+
+
+def should_enter(
+    prices: Sequence[float], *, period: int = 15, buffer_pct: float = 2.0
+) -> bool:  # noqa: D401
+    """Legacy wrapper kept for existing unit tests.
+
+    Treats *prices* as closes and returns *True* for LONG breakout.
+    """
+    try:
+        sig = compute_signal(
+            prices, prices, prices, period=period, buffer_pct=buffer_pct
+        )  # type: ignore[arg-type]
+    except ValueError:
+        raise  # Propagate
+    return sig == Direction.LONG
+
+
+__all__.append("should_enter")

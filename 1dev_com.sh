@@ -1,24 +1,64 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# shellcheck disable=SC2086
+set -euo pipefail
 
-# Check if development branch exists
-if ! git show-ref --verify --quiet refs/heads/development; then
-    echo "Development branch does not exist. Creating it..."
-    git checkout -b development
+# Allow non-interactive usage: 1dev_com.sh --msg "your commit message"
+COMMIT_MSG=""
+if [[ ${1:-""} == "--msg" ]]; then
+  COMMIT_MSG=$2
+  shift 2
 fi
 
-# Switch to development branch
-git checkout development
+# -------------------------------
+# 0. Ensure we are on development
+# -------------------------------
+if ! git rev-parse --verify development &>/dev/null; then
+  echo "[INFO] Creating 'development' branch"
+  git checkout -b development
+else
+  git checkout development
+fi
 
-# Ask for commit label
-read -p "Enter a label for your commit: " commit_label
+# -------------------------------
+# 1. Quality-gate: lint, type-check, unit tests
+# -------------------------------
 
-# Add all changes
-git add .
+function green() { echo -e "\033[32m$1\033[0m"; }
+function red()   { echo -e "\033[31m$1\033[0m"; }
 
-# Commit with the label
-git commit -m "$commit_label"
+echo "▶ Running Ruff lint …"
+ruff check src utils scripts tests
 
-# Push to development branch
+echo "▶ Checking code format …"
+ruff format --check src utils scripts tests
+
+printf "\n▶ Running mypy type-checks …\n"
+if command -v mypy &>/dev/null; then
+  mypy src/ tests/
+else
+  echo "[WARN] mypy not found – skipping type-checks"
+fi
+
+printf "\n▶ Executing test-suite …\n"
+pytest -q
+
+green "✓ All quality checks passed"
+
+# -------------------------------
+# 2. Commit -----------------------------------------------------------
+# -------------------------------
+# If message not supplied, prompt interactively
+if [[ -z "$COMMIT_MSG" ]]; then
+  read -rp "Commit message: " COMMIT_MSG
+fi
+
+git add -u
+if git diff --cached --quiet; then
+  red "Nothing to commit – working tree clean"
+  exit 0
+fi
+
+git commit -m "$COMMIT_MSG"
 git push gitrepo development
 
-echo "Changes have been committed and pushed to development branch." 
+green "✅ Committed & pushed to 'development' successfully" 

@@ -33,7 +33,9 @@ class ConfigManager:
             raise ValueError("Config must contain top-level 'strategy' section")
 
     # ------------------------------------------------------------------
-    def get_strategy_config(self, instrument_id: str, **extras: Any) -> TrendRidingStrategyConfig:  # noqa: D401,E501
+    def get_strategy_config(
+        self, instrument_id: str, **extras: Any
+    ) -> TrendRidingStrategyConfig:  # noqa: D401,E501
         cfg: Dict[str, Any] = dict(self._raw.get("strategy", {}))
         cfg.setdefault("instrument_id", instrument_id)
         cfg.update(extras)
@@ -44,4 +46,4 @@ class ConfigManager:
         return {
             "start_time": start_time or bt.get("start_time"),
             "end_time": end_time or bt.get("end_time"),
-        } 
+        }

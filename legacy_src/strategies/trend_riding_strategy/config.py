@@ -10,6 +10,7 @@ class attributes (no explicit ``__init__``).
 from nautilus_trader.trading.strategy import StrategyConfig  # type: ignore
 from nautilus_trader.model import InstrumentId
 
+
 # -----------------------------------------------------------------------------
 # Strategy Config
 # -----------------------------------------------------------------------------
@@ -32,4 +33,4 @@ class TrendRidingStrategyConfig(StrategyConfig):
     near_expiry_only: bool = False  # process only near-month contracts
 
 
-__all__ = ["TrendRidingStrategyConfig"] 
+__all__ = ["TrendRidingStrategyConfig"]

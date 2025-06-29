@@ -30,9 +30,9 @@ os.makedirs(catalog_meta_dir, exist_ok=True)
 catalog = ParquetDataCatalog(catalog_dir)
 
 # --- Storage lists
-all_ticks = []                 # Stores QuoteTick instances
-instrument_ids = set()         # Keeps track of all unique instrument IDs
-meta_records = []              # Stores auxiliary/meta data as dict rows
+all_ticks = []  # Stores QuoteTick instances
+instrument_ids = set()  # Keeps track of all unique instrument IDs
+meta_records = []  # Stores auxiliary/meta data as dict rows
 
 # --- Loop through each CSV file in the input directory
 for fname in os.listdir(csv_dir):
@@ -49,15 +49,14 @@ for fname in os.listdir(csv_dir):
     # --- Parse rows into QuoteTick objects
     for _, row in df.iterrows():
         try:
-             
             iid_str = row["symbol"].strip()
             parts = iid_str.split(".")
-            symbol = parts[0]               # e.g. BANKNIFTY
-            venue = parts[1]                # e.g. NSE
-            type = parts[2]                 # e.g. OPTION
-            expiry_raw = parts[3]           # e.g. 26Jun2025
+            symbol = parts[0]  # e.g. BANKNIFTY
+            venue = parts[1]  # e.g. NSE
+            type = parts[2]  # e.g. OPTION
+            expiry_raw = parts[3]  # e.g. 26Jun2025
             strike = float(parts[4])
-            right = parts[5].upper()        # CALL or PUT
+            right = parts[5].upper()  # CALL or PUT
             symbolplus = f"{symbol}.{type}.{expiry_raw}.{int(strike)}.{right}"
             instrument_id = InstrumentId(symbol=Symbol(symbolplus), venue=Venue(venue))
 
@@ -77,23 +76,29 @@ for fname in os.listdir(csv_dir):
                 ts_init=int(row["timestamp"]),
                 bid_price=Price(int(bid_val * 10**bid_precision), bid_precision),
                 ask_price=Price(int(ask_val * 10**ask_precision), ask_precision),
-                bid_size=Quantity(int(bid_size_val * 10**size_precision), size_precision),
-                ask_size=Quantity(int(ask_size_val * 10**size_precision), size_precision),
+                bid_size=Quantity(
+                    int(bid_size_val * 10**size_precision), size_precision
+                ),
+                ask_size=Quantity(
+                    int(ask_size_val * 10**size_precision), size_precision
+                ),
             )
 
             all_ticks.append(tick)
-          
+
             instrument_ids.add(instrument_id)
 
             # Save the meta fields separately
-            meta_records.append({
-                "instrument_id": f"{symbolplus}.{venue}",
-                "timestamp": row["timestamp"],
-                "impliedVolatility": row.get("impliedVolatility"),
-                "openInterest": row.get("openInterest"),
-                "last": row.get("last"),
-                "pChange": row.get("pChange"),
-            })
+            meta_records.append(
+                {
+                    "instrument_id": f"{symbolplus}.{venue}",
+                    "timestamp": row["timestamp"],
+                    "impliedVolatility": row.get("impliedVolatility"),
+                    "openInterest": row.get("openInterest"),
+                    "last": row.get("last"),
+                    "pChange": row.get("pChange"),
+                }
+            )
 
         except Exception as e:
             print(f"⚠️ Skipping row due to tick parsing error: {e}")
@@ -109,12 +114,12 @@ for iid in instrument_ids:
     try:
         print(f"🔍 Processing: {iid.value}")
         parts = iid.value.split(".")
-        symbol = parts[0]               # e.g. BANKNIFTY
-        type = parts[1] 
-        expiry_raw = parts[2]           # e.g. 26Jun2025
+        symbol = parts[0]  # e.g. BANKNIFTY
+        type = parts[1]
+        expiry_raw = parts[2]  # e.g. 26Jun2025
         strike = float(parts[3])
-        right = parts[4].upper()        # CALL or PUT
-        venue = parts[5]               # e.g. NSE
+        right = parts[4].upper()  # CALL or PUT
+        venue = parts[5]  # e.g. NSE
         symbolplus = f"{symbol}.{type}.{expiry_raw}.{int(strike)}.{right}"
 
         expiry_dt = datetime.strptime(expiry_raw, "%d%b%Y")
@@ -122,9 +127,9 @@ for iid in instrument_ids:
         now_utc = datetime.now(timezone.utc)
 
         option = OptionContract(
-            instrument_id=InstrumentId(symbol=Symbol(symbolplus ), venue=Venue(venue)),
+            instrument_id=InstrumentId(symbol=Symbol(symbolplus), venue=Venue(venue)),
             raw_symbol=Symbol(symbol),
-            asset_class=AssetClass.INDEX,     # Same as example
+            asset_class=AssetClass.INDEX,  # Same as example
             exchange=venue,
             currency=Currency.from_str("INR"),
             price_precision=2,
@@ -156,17 +161,22 @@ print(f"✅ Written {len(meta_df)} metadata records to {catalog_meta_dir}/")
 print(f"✅ Written {len(dummy_instruments)} dummy instruments")
 
 # Create a DataFrame of instrument metadata
-instrument_meta = [{
-    "instrument_id": str(inst.id),
-    "symbol": str(inst.raw_symbol),
-    "strike": float(inst.strike_price.as_double()),
-    "expiry": inst.expiration_ns,
-    "option_kind": inst.option_kind.name,
-    "venue": inst.exchange,
-    "activation_ns": inst.activation_ns,
-} for inst in dummy_instruments]
+instrument_meta = [
+    {
+        "instrument_id": str(inst.id),
+        "symbol": str(inst.raw_symbol),
+        "strike": float(inst.strike_price.as_double()),
+        "expiry": inst.expiration_ns,
+        "option_kind": inst.option_kind.name,
+        "venue": inst.exchange,
+        "activation_ns": inst.activation_ns,
+    }
+    for inst in dummy_instruments
+]
 
 df_instruments = pd.DataFrame(instrument_meta)
-df_instruments.to_parquet(os.path.join(catalog_meta_dir, "instruments.parquet"), index=False)
+df_instruments.to_parquet(
+    os.path.join(catalog_meta_dir, "instruments.parquet"), index=False
+)
 
-print(f"✅ Written {len(dummy_instruments)} dummy instruments to instrument metadata") 
+print(f"✅ Written {len(dummy_instruments)} dummy instruments to instrument metadata")

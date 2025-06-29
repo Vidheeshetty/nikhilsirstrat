@@ -3,7 +3,9 @@ from __future__ import annotations
 """Position sizing logic for Trend-Riding – placeholder implementation."""
 
 
-def calculate_size(capital: float, risk_per_trade_pct: float, price: float, sl_pct: float) -> int:  # noqa: D401,E501
+def calculate_size(
+    capital: float, risk_per_trade_pct: float, price: float, sl_pct: float
+) -> int:  # noqa: D401,E501
     """Basic fixed-fractional sizing.
 
     Args:

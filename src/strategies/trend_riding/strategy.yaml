@@ -1,0 +1,8 @@
+# Default configuration for Trend Riding Strategy
+# Override any field as needed in custom copies.
+
+lookback_intervals: 20
+sl_pct: 0.02  # 2% stop-loss for indices
+tp_pct: 0.04  # 4% take-profit
+entry_buffer_pct: 0.2  # 0.2% buffer per spec
+sar_enabled: false 

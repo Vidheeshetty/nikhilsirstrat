@@ -12,9 +12,9 @@ from .results_aggregator import ResultsAggregator
 from .batch_runner import BatchBacktestRunner
 
 __all__ = [
-    'BacktestConfigLoader',
-    'DataLoader', 
-    'BacktestEngineLauncher',
-    'ResultsAggregator',
-    'BatchBacktestRunner',
-] 
+    "BacktestConfigLoader",
+    "DataLoader",
+    "BacktestEngineLauncher",
+    "ResultsAggregator",
+    "BatchBacktestRunner",
+]

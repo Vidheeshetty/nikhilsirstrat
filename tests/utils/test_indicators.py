@@ -11,4 +11,4 @@ def test_ema():
     val = ema(series, 3)
     assert val > 0  # just ensure it returns numeric
     # For sequence 1..6 and period 3, EMA should be 5.0
-    assert abs(val - 5.0) < 0.01 
+    assert abs(val - 5.0) < 0.01

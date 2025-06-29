@@ -17,4 +17,4 @@ def test_batch_runner_parallel(tmp_path):
     agg = BatchRunner.aggregate(results)
     assert agg["num_instruments"] == 3
     # PnL should be 3 + 2 + 1 = 6.0 because of len() trick
-    assert agg["total_pnl"] == 6.0 
+    assert agg["total_pnl"] == 6.0

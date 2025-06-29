@@ -6,6 +6,7 @@ import shutil
 
 # Ensure src is in sys.path for local imports
 import sys
+
 current_dir = Path(__file__).resolve()
 project_root = current_dir.parents[2]
 if str(project_root / "src") not in sys.path:
@@ -55,23 +56,56 @@ def dummy_detailed_data():
     """
     return {
         "orders": [
-            {"client_order_id": "ORD1", "instrument_id": "INST1", "side": "BUY", "quantity": "10", "price": "100.0", "status": "FILLED"},
-            {"client_order_id": "ORD2", "instrument_id": "INST1", "side": "SELL", "quantity": "5", "price": "105.0", "status": "FILLED"},
+            {
+                "client_order_id": "ORD1",
+                "instrument_id": "INST1",
+                "side": "BUY",
+                "quantity": "10",
+                "price": "100.0",
+                "status": "FILLED",
+            },
+            {
+                "client_order_id": "ORD2",
+                "instrument_id": "INST1",
+                "side": "SELL",
+                "quantity": "5",
+                "price": "105.0",
+                "status": "FILLED",
+            },
         ],
         "positions": [
-            {"id": "POS1", "instrument_id": "INST1", "side": "LONG", "quantity": "5", "avg_px_open": "100.0", "realized_pnl": "500.0"},
+            {
+                "id": "POS1",
+                "instrument_id": "INST1",
+                "side": "LONG",
+                "quantity": "5",
+                "avg_px_open": "100.0",
+                "realized_pnl": "500.0",
+            },
         ],
         "trades": [
-            {"trade_id": "TRD1", "order_id": "ORD1", "instrument_id": "INST1", "quantity": "10", "price": "100.0"},
-            {"trade_id": "TRD2", "order_id": "ORD2", "instrument_id": "INST1", "quantity": "5", "price": "105.0"},
+            {
+                "trade_id": "TRD1",
+                "order_id": "ORD1",
+                "instrument_id": "INST1",
+                "quantity": "10",
+                "price": "100.0",
+            },
+            {
+                "trade_id": "TRD2",
+                "order_id": "ORD2",
+                "instrument_id": "INST1",
+                "quantity": "5",
+                "price": "105.0",
+            },
         ],
         "account": {
             "starting_balance": 1000000.00,
             "ending_balance": 1012345.67,
             "balance_free": 900000.00,
             "balance_locked": 10000.00,
-            "base_currency": "INR"
-        }
+            "base_currency": "INR",
+        },
     }
 
 
@@ -121,7 +155,6 @@ def dummy_all_results():
 
 
 class TestReportGenerator:
-
     def test_write_summary_only(self, report_output_dir, dummy_summary_data):
         reporter = ReportGenerator(base_dir=report_output_dir)
         log_file = os.path.join(report_output_dir, "test_summary_only.log")
@@ -172,7 +205,7 @@ class TestReportGenerator:
         content = Path(log_file).read_text()
         assert "BACKTEST RESULTS SUMMARY" in content
         assert "Total PnL: 1000.00 INR" in content  # 1500 - 500
-        assert "Sharpe Ratio (avg): 0.3672" in content # (1.2345 + (-0.5000)) / 2
+        assert "Sharpe Ratio (avg): 0.3672" in content  # (1.2345 + (-0.5000)) / 2
 
     def test_create_consolidated_summary(self, report_output_dir, dummy_all_results):
         reporter = ReportGenerator(base_dir=report_output_dir)
@@ -200,4 +233,4 @@ class TestReportGenerator:
         assert "OVERALL SUMMARY" in content
         assert "DETAILED RESULTS BY INSTRUMENT" in content
         assert "NIFTY.OPT.A" in content
-        assert "BANKNIFTY.OPT.B" in content 
+        assert "BANKNIFTY.OPT.B" in content

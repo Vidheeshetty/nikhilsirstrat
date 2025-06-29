@@ -1,10 +1,11 @@
 import pytest
 import yaml
 from pathlib import Path
-from datetime import datetime # Import datetime
+from datetime import datetime  # Import datetime
 
 # Ensure src is in sys.path for local imports
 import sys
+
 current_dir = Path(__file__).resolve()
 project_root = current_dir.parents[2]
 if str(project_root / "src") not in sys.path:
@@ -74,14 +75,17 @@ fixed_qty: 10
 
 
 class TestBacktestConfigLoader:
-
     def test_load_config_success(self, setup_config_file):
         config_loader = BacktestConfigLoader(setup_config_file)
         config = config_loader.load_config()
         assert isinstance(config, dict)
-        assert config['instrument_id'] == "TEST.INST.ID"
-        assert config['start_time'] == datetime(2025, 1, 1, 0, 0) # Changed to datetime object
-        assert config['end_time'] == datetime(2025, 1, 2, 0, 0) # Changed to datetime object
+        assert config["instrument_id"] == "TEST.INST.ID"
+        assert config["start_time"] == datetime(
+            2025, 1, 1, 0, 0
+        )  # Changed to datetime object
+        assert config["end_time"] == datetime(
+            2025, 1, 2, 0, 0
+        )  # Changed to datetime object
 
     def test_load_config_file_not_found(self):
         with pytest.raises(FileNotFoundError, match="Configuration file not found"):
@@ -105,7 +109,10 @@ class TestBacktestConfigLoader:
 
     def test_validate_config_missing_field(self, setup_missing_field_config_file):
         config_loader = BacktestConfigLoader(setup_missing_field_config_file)
-        with pytest.raises(ValueError, match="Missing required configuration field: (meta_catalog_path|min_qty|max_qty|leverage|fixed_qty)"):
+        with pytest.raises(
+            ValueError,
+            match="Missing required configuration field: (meta_catalog_path|min_qty|max_qty|leverage|fixed_qty)",
+        ):
             config_loader.validate_config()
 
     def test_get_strategy_config(self, setup_config_file):
@@ -113,11 +120,11 @@ class TestBacktestConfigLoader:
         strategy_config = config_loader.get_strategy_config("OVERRIDE.INST.ID")
         assert str(strategy_config.instrument_id) == "OVERRIDE.INST.ID"
         assert strategy_config.sl_pct == 0.01
-        assert not hasattr(strategy_config, 'start_time') # Should be removed
+        assert not hasattr(strategy_config, "start_time")  # Should be removed
 
     def test_get_strategy_config_from_yaml_if_no_cli_override(self, setup_config_file):
         config_loader = BacktestConfigLoader(setup_config_file)
-        strategy_config = config_loader.get_strategy_config(None) # No CLI override
+        strategy_config = config_loader.get_strategy_config(None)  # No CLI override
         assert str(strategy_config.instrument_id) == "TEST.INST.ID"
 
     def test_get_strategy_config_no_instrument_id(self, tmp_path):
@@ -142,10 +149,17 @@ fixed_qty: 10
     def test_get_backtest_params(self, setup_config_file):
         config_loader = BacktestConfigLoader(setup_config_file)
         # Test with overrides
-        params = config_loader.get_backtest_params("2025-02-01T00:00:00", "2025-02-02T00:00:00")
-        assert params["start_time"] == datetime(2025, 2, 1, 0, 0) # Changed to datetime object
-        assert params["end_time"] == datetime(2025, 2, 2, 0, 0) # Changed to datetime object
+        params = config_loader.get_backtest_params(
+            "2025-02-01T00:00:00", "2025-02-02T00:00:00"
+        )
+        assert params["start_time"] == datetime(
+            2025, 2, 1, 0, 0
+        )  # Changed to datetime object
+        assert params["end_time"] == datetime(
+            2025, 2, 2, 0, 0
+        )  # Changed to datetime object
         from nautilus_trader.model.currencies import INR
+
         assert params["base_currency"] == INR
 
     def test_get_backtest_params_from_config(self, setup_config_file):
@@ -153,5 +167,9 @@ fixed_qty: 10
         # Ensure initial config is loaded, then test with no overrides
         config_loader.load_config()
         params = config_loader.get_backtest_params(None, None)
-        assert params["start_time"] == datetime(2025, 1, 1, 0, 0) # Changed to datetime object
-        assert params["end_time"] == datetime(2025, 1, 2, 0, 0) # Changed to datetime object 
+        assert params["start_time"] == datetime(
+            2025, 1, 1, 0, 0
+        )  # Changed to datetime object
+        assert params["end_time"] == datetime(
+            2025, 1, 2, 0, 0
+        )  # Changed to datetime object

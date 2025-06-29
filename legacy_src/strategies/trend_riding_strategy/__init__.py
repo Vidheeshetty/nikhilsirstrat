@@ -10,4 +10,4 @@ from importlib.metadata import PackageNotFoundError, version as _v
 try:
     __version__ = _v("trend_riding_strategy")
 except PackageNotFoundError:  # pragma: no cover
-    __version__ = "0.0.0"  # placeholder 
+    __version__ = "0.0.0"  # placeholder

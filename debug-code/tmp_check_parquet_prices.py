@@ -8,8 +8,8 @@ df = table.to_pandas()
 
 print("First 10 rows of bid/ask prices:")
 for i, row in df.head(10).iterrows():
-    bid = row['bid_price']
-    ask = row['ask_price']
+    bid = row["bid_price"]
+    ask = row["ask_price"]
     # If these are Price objects, print as float; else print raw
     if isinstance(bid, Price):
         bid_val = float(bid)
@@ -19,4 +19,4 @@ for i, row in df.head(10).iterrows():
         ask_val = float(ask)
     else:
         ask_val = ask
-    print(f"Row {i}: bid={bid_val}, ask={ask_val}") 
+    print(f"Row {i}: bid={bid_val}, ask={ask_val}")

@@ -1,1 +1,1 @@
-"""Backtest subpackage for trend_riding_strategy.""" 
+"""Backtest subpackage for trend_riding_strategy."""

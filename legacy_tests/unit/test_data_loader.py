@@ -13,12 +13,15 @@ from nautilus_trader.persistence.catalog.parquet import ParquetDataCatalog
 
 # Ensure src is in sys.path for local imports
 import sys
+
 current_dir = Path(__file__).resolve()
 project_root = current_dir.parents[2]
 if str(project_root / "src") not in sys.path:
     sys.path.insert(0, str(project_root / "src"))
 
-from backtest_utils.data_loader import DataManager # Note: It was DataLoader in my previous internal model, but it's DataManager in your code
+from backtest_utils.data_loader import (
+    DataManager,
+)  # Note: It was DataLoader in my previous internal model, but it's DataManager in your code
 
 
 @pytest.fixture(scope="module")
@@ -46,7 +49,12 @@ def setup_catalog_for_data_loader(tmp_path_factory):
     now_utc = datetime.now(timezone.utc)
 
     test_instrument = OptionContract(
-        instrument_id=InstrumentId(symbol=Symbol(f"{symbol_val}.OPT.{expiry_raw}.{int(strike_val)}.{right_val}"), venue=Venue(venue_val)),
+        instrument_id=InstrumentId(
+            symbol=Symbol(
+                f"{symbol_val}.OPT.{expiry_raw}.{int(strike_val)}.{right_val}"
+            ),
+            venue=Venue(venue_val),
+        ),
         raw_symbol=Symbol(symbol_val),
         asset_class=AssetClass.INDEX,
         exchange=venue_val,
@@ -67,11 +75,16 @@ def setup_catalog_for_data_loader(tmp_path_factory):
 
     # Create dummy quote ticks
     from nautilus_trader.model.data import QuoteTick
+
     ticks = [
         QuoteTick(
             instrument_id=test_instrument.id,
-            ts_event=dt_to_unix_nanos(datetime(2025, 6, 18, 9, 15, 0, tzinfo=timezone.utc)),
-            ts_init=dt_to_unix_nanos(datetime(2025, 6, 18, 9, 15, 0, tzinfo=timezone.utc)),
+            ts_event=dt_to_unix_nanos(
+                datetime(2025, 6, 18, 9, 15, 0, tzinfo=timezone.utc)
+            ),
+            ts_init=dt_to_unix_nanos(
+                datetime(2025, 6, 18, 9, 15, 0, tzinfo=timezone.utc)
+            ),
             bid_price=Price(100.50, 2),
             ask_price=Price(101.50, 2),
             bid_size=Quantity(100, 0),
@@ -79,8 +92,12 @@ def setup_catalog_for_data_loader(tmp_path_factory):
         ),
         QuoteTick(
             instrument_id=test_instrument.id,
-            ts_event=dt_to_unix_nanos(datetime(2025, 6, 18, 9, 16, 0, tzinfo=timezone.utc)),
-            ts_init=dt_to_unix_nanos(datetime(2025, 6, 18, 9, 16, 0, tzinfo=timezone.utc)),
+            ts_event=dt_to_unix_nanos(
+                datetime(2025, 6, 18, 9, 16, 0, tzinfo=timezone.utc)
+            ),
+            ts_init=dt_to_unix_nanos(
+                datetime(2025, 6, 18, 9, 16, 0, tzinfo=timezone.utc)
+            ),
             bid_price=Price(100.60, 2),
             ask_price=Price(101.60, 2),
             bid_size=Quantity(120, 0),
@@ -93,7 +110,6 @@ def setup_catalog_for_data_loader(tmp_path_factory):
 
 
 class TestDataManager:
-
     def test_get_all_instrument_ids(self, setup_catalog_for_data_loader):
         catalog_path, _, expected_instrument_id, _ = setup_catalog_for_data_loader
         data_manager = DataManager(catalog_path=catalog_path)
@@ -115,11 +131,15 @@ class TestDataManager:
             data_manager.get_instrument("NON_EXISTENT.INSTRUMENT.ID")
 
     def test_get_quote_ticks(self, setup_catalog_for_data_loader):
-        catalog_path, _, expected_instrument_id, expected_ticks = setup_catalog_for_data_loader
+        catalog_path, _, expected_instrument_id, expected_ticks = (
+            setup_catalog_for_data_loader
+        )
         data_manager = DataManager(catalog_path=catalog_path)
         start_time = "2025-06-18T09:15:00"
         end_time = "2025-06-18T09:16:00"
-        ticks = data_manager.get_quote_ticks(expected_instrument_id, start_time, end_time)
+        ticks = data_manager.get_quote_ticks(
+            expected_instrument_id, start_time, end_time
+        )
         assert len(ticks) == len(expected_ticks)
         assert ticks[0].instrument_id == expected_ticks[0].instrument_id
 
@@ -128,12 +148,27 @@ class TestDataManager:
         data_manager = DataManager(catalog_path=catalog_path)
         start_time = "2025-06-18T09:15:00"
         end_time = "2025-06-18T09:16:00"
-        assert data_manager.validate_instrument_data(expected_instrument_id, start_time, end_time) is True
+        assert (
+            data_manager.validate_instrument_data(
+                expected_instrument_id, start_time, end_time
+            )
+            is True
+        )
 
     def test_validate_instrument_data_not_exists(self, setup_catalog_for_data_loader):
         catalog_path, _, _, _ = setup_catalog_for_data_loader
         data_manager = DataManager(catalog_path=catalog_path)
         # Test non-existent instrument
-        assert data_manager.validate_instrument_data("NON_EXISTENT.ID", "2025-01-01", "2025-01-02") is False
+        assert (
+            data_manager.validate_instrument_data(
+                "NON_EXISTENT.ID", "2025-01-01", "2025-01-02"
+            )
+            is False
+        )
         # Test existing instrument but no data in range
-        assert data_manager.validate_instrument_data(setup_catalog_for_data_loader[2], "2026-01-01", "2026-01-02") is False 
+        assert (
+            data_manager.validate_instrument_data(
+                setup_catalog_for_data_loader[2], "2026-01-01", "2026-01-02"
+            )
+            is False
+        )

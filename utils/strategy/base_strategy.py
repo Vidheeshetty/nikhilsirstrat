@@ -1,18 +1,13 @@
 from __future__ import annotations
 
-"""A minimal, test-friendly base class for strategy implementations.
+"""Base strategy framework for backtesting.
 
-This class is **NOT** tied to Nautilus-Trader directly; instead it abstracts
-just enough behaviour to:
-1. Capture configuration via a generic dataclass or mapping.
-2. Provide predictable hook names (on_quote, on_bar, on_stop) that concrete
-   strategies can override.
-3. Attach a simple logger so unit tests can assert on side-effects without
-   spinning up the full Nautilus logging subsystem.
+Provides abstract base classes for strategies and their configurations,
+establishing common interfaces that can be used across different strategy
+implementations without tight coupling to specific trading frameworks.
 
-The intent is to keep dependencies light for fast unit tests while still
-allowing an adapter layer to bridge into Nautilus-Trader when running
-integration or live sessions.
+The design supports both simple backtesting scenarios and more complex
+live trading integrations.
 """
 
 import logging

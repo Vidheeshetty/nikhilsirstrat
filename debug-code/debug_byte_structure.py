@@ -17,6 +17,7 @@ print("\n2. CHECKING RAW BYTES:")
 try:
     # Try to get the raw bytes representation
     import pickle
+
     pickled1 = pickle.dumps(test_price1)
     print(f"   Pickled Price(9500, 2) length: {len(pickled1)}")
     print(f"   Pickled bytes: {pickled1[:50]}...")
@@ -25,11 +26,11 @@ except Exception as e:
 
 # Test 3: Analyze the actual Parquet bytes
 print("\n3. ANALYZING PARQUET BYTES:")
-parquet_file = 'catalog-data/my_nse_strategy/catalog/data/quote_tick/NIFTY.OPT.31Jul2025.26000.CALL.NSE/part-0.parquet'
+parquet_file = "catalog-data/my_nse_strategy/catalog/data/quote_tick/NIFTY.OPT.31Jul2025.26000.CALL.NSE/part-0.parquet"
 df = pd.read_parquet(parquet_file)
 
-first_bid_bytes = df.iloc[0]['bid_price']
-first_ask_bytes = df.iloc[0]['ask_price']
+first_bid_bytes = df.iloc[0]["bid_price"]
+first_ask_bytes = df.iloc[0]["ask_price"]
 
 print(f"   Bid bytes: {first_bid_bytes}")
 print(f"   Bid bytes hex: {first_bid_bytes.hex()}")
@@ -67,4 +68,4 @@ except Exception as e:
 print("\n7. CONCLUSION:")
 print("   The Price objects seem to have a complex internal structure.")
 print("   We need to understand how Nautilus serializes Price objects to Parquet.")
-print("   The issue might be that we need to use Nautilus's own serialization methods.") 
+print("   The issue might be that we need to use Nautilus's own serialization methods.")

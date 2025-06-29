@@ -1,4 +1,6 @@
-from strategies.trend_riding.runner.backtest_runner.batch_runner import TrendRidingBatchRunner
+from strategies.trend_riding.runner.backtest_runner.batch_runner import (
+    TrendRidingBatchRunner,
+)
 
 
 def test_trend_riding_batch_runner():
@@ -9,4 +11,4 @@ def test_trend_riding_batch_runner():
     assert summary["num_instruments"] == 3
     assert len(summary["results"]) == 3
     # Total pnl should be positive given monotonically rising stub prices
-    assert summary["total_pnl"] > 0 
+    assert summary["total_pnl"] > 0

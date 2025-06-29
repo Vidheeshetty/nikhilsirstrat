@@ -8,11 +8,11 @@ print("=== Price Encoding Analysis ===\n")
 csv_file = "data/options/nse/nifty/NIFTY_2025-06-19.csv"
 csv_df = pd.read_csv(csv_file)
 target_symbol = "NIFTY.NSE.OPT.31Jul2025.26000.CALL"
-csv_filtered = csv_df[csv_df['symbol'] == target_symbol]
+csv_filtered = csv_df[csv_df["symbol"] == target_symbol]
 
 print("1. ORIGINAL CSV PRICES:")
 print("Sample bid/ask prices from CSV:")
-sample_data = csv_filtered[['timestamp', 'bid', 'ask']].head()
+sample_data = csv_filtered[["timestamp", "bid", "ask"]].head()
 print(sample_data)
 
 print("\n2. PRICE ENCODING ANALYSIS:")
@@ -25,20 +25,20 @@ print("       # ...")
 
 print("\nLet's trace through the encoding:")
 for i, row in sample_data.iterrows():
-    bid_val = float(row['bid'])
-    ask_val = float(row['ask'])
+    bid_val = float(row["bid"])
+    ask_val = float(row["ask"])
     bid_precision = 2
     ask_precision = 2
-    
+
     # This is what the conversion code does:
     encoded_bid = int(bid_val * 10**bid_precision)
     encoded_ask = int(ask_val * 10**ask_precision)
-    
+
     print(f"\nRow {i}:")
     print(f"  Original: bid={bid_val}, ask={ask_val}")
     print(f"  Encoded: bid={encoded_bid}, ask={encoded_ask}")
     print(f"  Precision: {bid_precision}")
-    
+
     # Decode back to verify
     decoded_bid = encoded_bid / (10**bid_precision)
     decoded_ask = encoded_ask / (10**ask_precision)
@@ -55,20 +55,20 @@ parquet_df = pd.read_parquet(parquet_file)
 print("\n4. PROPER PARQUET DECODING:")
 print("First 5 rows with proper decoding:")
 for i in range(min(5, len(parquet_df))):
-    bid_bytes = parquet_df.iloc[i]['bid_price']
-    ask_bytes = parquet_df.iloc[i]['ask_price']
-    
+    bid_bytes = parquet_df.iloc[i]["bid_price"]
+    ask_bytes = parquet_df.iloc[i]["ask_price"]
+
     if isinstance(bid_bytes, bytes):
         # This is the correct way to decode Price objects
-        bid_val = struct.unpack('d', bid_bytes[:8])[0]
+        bid_val = struct.unpack("d", bid_bytes[:8])[0]
     else:
         bid_val = bid_bytes
-        
+
     if isinstance(ask_bytes, bytes):
-        ask_val = struct.unpack('d', ask_bytes[:8])[0]
+        ask_val = struct.unpack("d", ask_bytes[:8])[0]
     else:
         ask_val = ask_bytes
-    
+
     print(f"Row {i}: bid={bid_val}, ask={ask_val}")
 
 print("\n5. ISSUE SUMMARY:")
@@ -82,4 +82,4 @@ print("The conversion code needs to be fixed to:")
 print("1. Use correct symbol parsing (already identified)")
 print("2. Use correct Price encoding method")
 print("3. Verify the Price objects are created correctly")
-print("4. Test with a small sample before processing all data") 
+print("4. Test with a small sample before processing all data")

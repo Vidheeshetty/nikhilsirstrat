@@ -1,1 +1,1 @@
-"""Runtime helper modules for trend_riding_strategy.""" 
+"""Runtime helper modules for trend_riding_strategy."""

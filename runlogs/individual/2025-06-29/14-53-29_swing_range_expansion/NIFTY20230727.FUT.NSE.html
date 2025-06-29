@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Batch Back-test Summary</title>
+  <link rel="stylesheet" href="assets/report.css"/>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+<h1>Batch Back-test Summary</h1>
+<p>Generated at 2025-06-29 14:53:29</p>
+
+<h2>Run Info</h2>
+<table class="table">
+  <tbody>
+    <tr><td>Strategy</td><td>swing_range_expansion</td></tr>
+    <tr><td>Period</td><td>Day 17 → Day 39</td></tr>
+    <tr><td>Data Source</td><td>Daily bars (Parquet catalog: 1-DAY-LAST)</td></tr>
+  </tbody>
+</table>
+
+<h2>Portfolio KPIs</h2>
+<table class="table">
+  <tbody>
+    <tr><td>Realised PnL</td><td>₹67.14</td></tr>
+    <tr><td>Realised PnL %</td><td>0.17%</td></tr>
+    <tr><td>Total Investment</td><td>₹38,584.47</td></tr>
+    <tr><td>Total Orders</td><td>4</td></tr>
+    <tr><td>Total Positions</td><td>2</td></tr>
+    <tr><td>Total Trades</td><td>2</td></tr>
+    <tr><td>Profitable Trades</td><td>1</td></tr>
+    <tr><td>Losing Trades</td><td>1</td></tr>
+    <tr><td>Max Drawdown %</td><td>1.62%</td></tr>
+    <tr><td>Unrealised PnL</td><td>₹0.00</td></tr>
+    <tr><td>Starting Balance</td><td>₹38,584.47</td></tr>
+    <tr><td>Ending Balance</td><td>₹38,651.61</td></tr>
+    <tr><td>Free Balance</td><td>₹38,651.61</td></tr>
+    <tr><td>Locked Balance</td><td>₹0.00</td></tr>
+    <tr><td>Avg Sharpe</td><td>4.54</td></tr>
+    <tr><td>Win Rate</td><td>50.00%</td></tr>
+  </tbody>
+</table>
+
+<h2>Instrument Leaderboard</h2>
+<table class="table">
+  <thead><tr><th>Instrument</th><th>PnL</th><th>Sharpe</th></tr></thead>
+  <tbody>
+  <tr><td>NIFTY20230727.FUT.NSE</td><td>₹67.14</td><td>4.54</td></tr>
+  </tbody>
+</table>
+
+<h2>PnL Bar Chart</h2>
+<div id="pnl_bar"></div>
+<script>
+const data = [{'type': 'bar', 'x': ['NIFTY20230727.FUT.NSE'], 'y': [67.14], 'marker': {'color': '#4a90e2'}}];
+Plotly.newPlot('pnl_bar', data, {margin:{t:20}});
+</script>
+
+<h2>Trade Details</h2>
+<table class="table">
+  <thead>
+    <tr><th>Instrument</th><th>Entry_Date</th><th>Trade_Type</th><th>Exit_Reason</th><th>Entry_Price</th><th>Exit_Date</th><th>Exit_Price</th><th>Threshold</th><th>SL_Price</th><th>Realised_PnL</th><th>PnL%</th><th>Cum_PnL</th><th>Win/Loss</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>NIFTY20230727.FUT.NSE</td><td>17.0</td><td>Long</td><td>TP</td><td>18844.09</td><td>19.0</td><td>18985.07</td><td>18844.09</td><td>18773.60</td><td>140.98</td><td>0.75</td><td>140.98</td><td>Win</td></tr>
+<tr><td>NIFTY20230727.FUT.NSE</td><td>38.0</td><td>Long</td><td>SL</td><td>19740.38</td><td>39.0</td><td>19666.54</td><td>19740.38</td><td>19666.54</td><td>-73.84</td><td>-0.37</td><td>67.14</td><td>Loss</td></tr>
+  </tbody>
+</table>
+</body></html>

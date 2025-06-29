@@ -32,20 +32,22 @@ csv_files = [
 ]
 
 # The CSV symbol format is different from the instrument_id
-csv_symbol = 'NIFTY.NSE.OPT.03Jul2025.22800.CALL'
+csv_symbol = "NIFTY.NSE.OPT.03Jul2025.22800.CALL"
 
 print(f"Looking for CSV symbol: {csv_symbol}")
 
 for date, csv_file in csv_files:
     if os.path.exists(csv_file):
         df = pd.read_csv(csv_file)
-        df_instrument = df[df['symbol'] == csv_symbol]
-        
+        df_instrument = df[df["symbol"] == csv_symbol]
+
         if len(df_instrument) > 0:
             print(f"\n{date}: Found {len(df_instrument)} rows")
             print("Sample data:")
-            print(df_instrument[['timestamp', 'bid', 'ask', 'last', 'volume']].head(3))
-            print(f"Price range: bid={df_instrument['bid'].min():.2f}-{df_instrument['bid'].max():.2f}, ask={df_instrument['ask'].min():.2f}-{df_instrument['ask'].max():.2f}")
+            print(df_instrument[["timestamp", "bid", "ask", "last", "volume"]].head(3))
+            print(
+                f"Price range: bid={df_instrument['bid'].min():.2f}-{df_instrument['bid'].max():.2f}, ask={df_instrument['ask'].min():.2f}-{df_instrument['ask'].max():.2f}"
+            )
         else:
             print(f"\n{date}: No data found")
     else:
@@ -59,55 +61,62 @@ print("-" * 40)
 catalog_dir = "catalog-data/my_nse_strategy/catalog"
 if os.path.exists(catalog_dir):
     catalog = ParquetDataCatalog(catalog_dir)
-    
+
     try:
-        ticks = catalog.query(
-            data_cls=QuoteTick,
-            identifiers=[instrument_id]
-        )
-        
+        ticks = catalog.query(data_cls=QuoteTick, identifiers=[instrument_id])
+
         if len(ticks) > 0:
             print(f"Found {len(ticks)} quote ticks in Parquet")
-            
+
             # Convert to DataFrame for easier analysis
             tick_data = []
             for tick in ticks:
-                tick_data.append({
-                    'timestamp': tick.ts_init,
-                    'bid': float(tick.bid_price),
-                    'ask': float(tick.ask_price),
-                    'bid_size': float(tick.bid_size),
-                    'ask_size': float(tick.ask_size)
-                })
-            
+                tick_data.append(
+                    {
+                        "timestamp": tick.ts_init,
+                        "bid": float(tick.bid_price),
+                        "ask": float(tick.ask_price),
+                        "bid_size": float(tick.bid_size),
+                        "ask_size": float(tick.ask_size),
+                    }
+                )
+
             df_ticks = pd.DataFrame(tick_data)
-            df_ticks['timestamp'] = pd.to_datetime(df_ticks['timestamp'], unit='ns')
-            
-            print(f"Data range: {df_ticks['timestamp'].min()} to {df_ticks['timestamp'].max()}")
+            df_ticks["timestamp"] = pd.to_datetime(df_ticks["timestamp"], unit="ns")
+
+            print(
+                f"Data range: {df_ticks['timestamp'].min()} to {df_ticks['timestamp'].max()}"
+            )
             print(f"Total ticks: {len(df_ticks)}")
-            
+
             # Check for zero prices
-            zero_bids = (df_ticks['bid'] == 0).sum()
-            zero_asks = (df_ticks['ask'] == 0).sum()
-            print(f"Zero bids: {zero_bids} ({zero_bids/len(df_ticks)*100:.1f}%)")
-            print(f"Zero asks: {zero_asks} ({zero_asks/len(df_ticks)*100:.1f}%)")
-            
+            zero_bids = (df_ticks["bid"] == 0).sum()
+            zero_asks = (df_ticks["ask"] == 0).sum()
+            print(f"Zero bids: {zero_bids} ({zero_bids / len(df_ticks) * 100:.1f}%)")
+            print(f"Zero asks: {zero_asks} ({zero_asks / len(df_ticks) * 100:.1f}%)")
+
             # Show first and last few valid prices
-            valid_ticks = df_ticks[(df_ticks['bid'] > 0) & (df_ticks['ask'] > 0)]
+            valid_ticks = df_ticks[(df_ticks["bid"] > 0) & (df_ticks["ask"] > 0)]
             if len(valid_ticks) > 0:
                 print(f"\nFirst 5 valid prices:")
-                print(valid_ticks[['timestamp', 'bid', 'ask']].head())
-                
+                print(valid_ticks[["timestamp", "bid", "ask"]].head())
+
                 print(f"\nLast 5 valid prices:")
-                print(valid_ticks[['timestamp', 'bid', 'ask']].tail())
-                
+                print(valid_ticks[["timestamp", "bid", "ask"]].tail())
+
                 # Calculate mid prices
-                valid_ticks['mid'] = (valid_ticks['bid'] + valid_ticks['ask']) / 2
+                valid_ticks["mid"] = (valid_ticks["bid"] + valid_ticks["ask"]) / 2
                 print(f"\nPrice statistics (valid prices only):")
-                print(f"Bid range: {valid_ticks['bid'].min():.2f} - {valid_ticks['bid'].max():.2f}")
-                print(f"Ask range: {valid_ticks['ask'].min():.2f} - {valid_ticks['ask'].max():.2f}")
-                print(f"Mid range: {valid_ticks['mid'].min():.2f} - {valid_ticks['mid'].max():.2f}")
-                
+                print(
+                    f"Bid range: {valid_ticks['bid'].min():.2f} - {valid_ticks['bid'].max():.2f}"
+                )
+                print(
+                    f"Ask range: {valid_ticks['ask'].min():.2f} - {valid_ticks['ask'].max():.2f}"
+                )
+                print(
+                    f"Mid range: {valid_ticks['mid'].min():.2f} - {valid_ticks['mid'].max():.2f}"
+                )
+
                 # Last valid price (this is what the backtest uses for unrealized PnL)
                 last_valid = valid_ticks.iloc[-1]
                 print(f"\nLast valid price (used for unrealized PnL):")
@@ -117,10 +126,10 @@ if os.path.exists(catalog_dir):
                 print(f"Mid: {last_valid['mid']:.2f}")
             else:
                 print("No valid prices found in Parquet data!")
-                
+
         else:
             print("No quote ticks found in Parquet data")
-            
+
     except Exception as e:
         print(f"Error querying Parquet data: {e}")
 else:
@@ -134,7 +143,7 @@ print("-" * 40)
 log_file = "_summary.txts/2025-06-22/21-32-21-backtest-NIFTY.OPT.03Jul2025.22800.CALL.NSE_summary.txt"
 if os.path.exists(log_file):
     print(f"Found backtest summary: {log_file}")
-    with open(log_file, 'r') as f:
+    with open(log_file, "r") as f:
         content = f.read()
         print(content)
 else:
@@ -142,4 +151,4 @@ else:
 
 print("\n" + "=" * 80)
 print("INVESTIGATION COMPLETE")
-print("=" * 80) 
+print("=" * 80)

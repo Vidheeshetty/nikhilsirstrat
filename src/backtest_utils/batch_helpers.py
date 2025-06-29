@@ -1,7 +1,8 @@
 # Placeholder for generic batch helper functions.
-# Move and refactor code from batch_helpers.py here, removing strategy-specific logic. 
+# Move and refactor code from batch_helpers.py here, removing strategy-specific logic.
 
 from typing import Optional, Dict, Any, Type
+
 
 def run_single_backtest_wrapper_for_pool(
     batch_runner_class: Type,
@@ -15,7 +16,7 @@ def run_single_backtest_wrapper_for_pool(
     start_time: Optional[str],
     end_time: Optional[str],
     verbose: bool,
-    batch_mode: bool = True
+    batch_mode: bool = True,
 ) -> Dict[str, Any]:
     """Standalone wrapper for running a single backtest in a process pool (generic version)."""
     try:
@@ -24,7 +25,7 @@ def run_single_backtest_wrapper_for_pool(
             data_manager=data_manager,
             engine_manager=engine_manager,
             results_processor=results_processor,
-            report_generator=report_generator
+            report_generator=report_generator,
         )
         return runner.run_single_backtest(
             instrument_id=instrument_id,
@@ -33,7 +34,7 @@ def run_single_backtest_wrapper_for_pool(
             end_time=end_time,
             log_file=None,
             verbose=verbose,
-            batch_mode=batch_mode
+            batch_mode=batch_mode,
         )
     except Exception as e:
-        return {"instrument_id": instrument_id, "error": str(e)} 
+        return {"instrument_id": instrument_id, "error": str(e)}

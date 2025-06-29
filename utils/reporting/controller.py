@@ -22,15 +22,32 @@ class ReportController:  # pylint: disable=too-few-public-methods
         self.html_renderer = HtmlBatchRenderer()
 
     # ------------------------------------------------------------------
-    def generate(self, results: List[Dict[str, Any]]) -> Path:  # noqa: D401
+    def generate(
+        self,
+        results: List[Dict[str, Any]],
+        *,
+        strategy_name: str | None = None,
+    ) -> Path:  # noqa: D401
+        """Create run-logs directory and write CSV / JSON / HTML reports.
+
+        The folder layout from v1.2 onwards is::
+
+            runlogs/<mode>/<YYYY-MM-DD>/<HH-MM-SS>_<strategy_name>/
+
+        For backward compatibility, *strategy_name* is optional.  When not
+        supplied we fall back to the old layout (without suffix).
+        """
+
         now = datetime.now()
         date_part = now.strftime("%Y-%m-%d")
         time_part = now.strftime("%H-%M-%S")
 
+        time_dir_name = f"{time_part}_{strategy_name}" if strategy_name else time_part
+
         if len(results) == 1:
             # ----------------------------- INDIVIDUAL RUN --------------------
             inst_id = results[0].get("instrument_id", "UNKNOWN").replace("/", "_")
-            out_dir = self.root / "individual" / date_part / time_part
+            out_dir = self.root / "individual" / date_part / time_dir_name
             out_dir.mkdir(parents=True, exist_ok=True)
 
             assets_dst = out_dir / "assets"
@@ -41,11 +58,13 @@ class ReportController:  # pylint: disable=too-few-public-methods
             self.json_renderer.render(results, out_dir / f"{inst_id}.json")
 
             # Reuse batch HTML summary renderer (single instrument)
-            self.html_renderer.render(results, out_dir / f"{inst_id}.html")
+            self.html_renderer.render(
+                results, out_dir / f"{inst_id}.html", strategy_name=strategy_name
+            )
             return out_dir
 
         # ------------------------------- BATCH RUN ---------------------------
-        batch_dir = self.root / "batch" / date_part / time_part
+        batch_dir = self.root / "batch" / date_part / time_dir_name
         batch_dir.mkdir(parents=True, exist_ok=True)
 
         assets_dst = batch_dir / "assets"
@@ -53,8 +72,56 @@ class ReportController:  # pylint: disable=too-few-public-methods
 
         self.csv_renderer.render(results, batch_dir / "trade_details.csv")
         self.json_renderer.render(results, batch_dir / "trade_details.json")
-        self.html_renderer.render(results, batch_dir / "summary.html")
+        self.html_renderer.render(
+            results, batch_dir / "summary.html", strategy_name=strategy_name
+        )
         return batch_dir
 
+    # ------------------------------------------------------------------
+    @classmethod
+    def latest_report_dir(
+        cls,
+        root: Path | str = "runlogs",
+        mode: str = "batch",
+    ) -> Path | None:  # noqa: D401
+        """Return the most recent report directory for *mode* (batch/individual).
 
-__all__ = ["ReportController"] 
+        The folder layout is `root/<mode>/YYYY-MM-DD/HH-MM-SS/` as of v1.1.
+        Returns `None` if no matching directory is found.
+        """
+        root_path = Path(root) / mode
+        if not root_path.exists():
+            return None
+
+        latest_dt = datetime.min
+        latest_path: Path | None = None
+
+        for date_dir in root_path.iterdir():
+            if not date_dir.is_dir():
+                continue
+            try:
+                # Validate date part
+                datetime.strptime(date_dir.name, "%Y-%m-%d")
+            except ValueError:
+                continue
+
+            for time_dir in date_dir.iterdir():
+                if not time_dir.is_dir():
+                    continue
+                time_prefix = time_dir.name.split("_", 1)[
+                    0
+                ]  # drop optional _strategy suffix
+                try:
+                    ts = datetime.strptime(
+                        f"{date_dir.name}_{time_prefix}", "%Y-%m-%d_%H-%M-%S"
+                    )
+                except ValueError:
+                    continue
+                if ts > latest_dt:
+                    latest_dt = ts
+                    latest_path = time_dir
+
+        return latest_path
+
+
+__all__ = ["ReportController"]

@@ -17,9 +17,9 @@ from .engine_manager import EngineManager
 from .results_processor import ResultsProcessor
 
 __all__ = [
-    'BacktestOrchestrator',
-    'ConfigManager', 
-    'DataManager',
-    'EngineManager',
-    'ResultsProcessor'
-] 
+    "BacktestOrchestrator",
+    "ConfigManager",
+    "DataManager",
+    "EngineManager",
+    "ResultsProcessor",
+]

@@ -15,6 +15,7 @@ python scripts/run_backtest.py --instrument_id ALL
 # YAML batch file (flags override values inside YAML)
 python scripts/run_backtest.py --config config/my_batch.yaml --start_time 2024-01-01
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,20 +31,28 @@ for p in (ROOT_DIR, SRC_DIR):
 
 from utils.data.data_manager import DataManager  # noqa: E402
 from utils.runners.batch_config import BatchConfig  # noqa: E402
-from strategies.trend_riding.runner.backtest_runner.single_runner import TrendRidingBacktestRunner  # noqa: E402
-from strategies.trend_riding.runner.backtest_runner.batch_runner import TrendRidingBatchRunner  # noqa: E402
-from utils.reporting.controller import ReportController
+from utils.reporting.controller import ReportController  # noqa: E402
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run Trend-Riding back-test(s)")
-    parser.add_argument("--strategy", type=str, default="trend_riding", help="Strategy folder name under src/strategies/")
-    parser.add_argument("--instrument_id", action="append", help="Instrument ID (repeatable or ALL)")
+    parser.add_argument(
+        "--strategy",
+        type=str,
+        default="trend_riding",
+        help="Strategy folder name under src/strategies/",
+    )
+    parser.add_argument(
+        "--instrument_id", action="append", help="Instrument ID (repeatable or ALL)"
+    )
     parser.add_argument("--start_time", type=str, default=None)
     parser.add_argument("--end_time", type=str, default=None)
     parser.add_argument("--near_expiry_only", action="store_true")
     parser.add_argument("--config", type=str, help="Optional YAML batch config")
     parser.add_argument("--outfile", type=str, help="Write JSON summary to this path")
+    parser.add_argument(
+        "--catalog_path", type=str, help="Override Parquet catalog root(s)"
+    )
     return parser.parse_args()
 
 
@@ -56,17 +65,28 @@ def main() -> None:
     if args.config:
         cfg = BatchConfig.from_yaml(args.config)
         instruments = args.instrument_id or cfg.instruments or ["ALL"]
-        start_time = args.start_time or cfg.start_time
-        end_time = args.end_time or cfg.end_time
-        near_expiry_only = args.near_expiry_only or cfg.near_expiry_only
+        # Note: start_time, end_time, near_expiry_only are parsed but not yet used by runners
+        # They are reserved for future filtering/date-range functionality
+        _ = args.start_time or cfg.start_time
+        _ = args.end_time or cfg.end_time
+        _ = args.near_expiry_only or cfg.near_expiry_only
     else:
         instruments = args.instrument_id or ["ALL"]
-        start_time = args.start_time
-        end_time = args.end_time
-        near_expiry_only = args.near_expiry_only
+        # Note: These parameters are parsed but not yet implemented in the runner
+        _ = args.start_time
+        _ = args.end_time
+        _ = args.near_expiry_only
 
-    dm = DataManager()
-    if instruments == ["ALL"]:
+    # Propagate catalog path to any deeper DataManager instances created by
+    # strategy runners.  The shared environment variable means we don't have
+    # to plumb the argument through every call-stack layer.
+    if args.catalog_path:
+        import os
+
+        os.environ["DATA_CATALOG_ROOTS"] = args.catalog_path
+
+    dm = DataManager(catalog_path=args.catalog_path)
+    if len(instruments) == 1 and instruments[0].upper() == "ALL":
         instruments = dm.get_all_instrument_ids()
 
     # ------------------------------------------------------------------
@@ -77,9 +97,31 @@ def main() -> None:
     pkg_root = f"strategies.{strategy_name}.runner.backtest_runner"
     try:
         single_mod = importlib.import_module(f"{pkg_root}.single_runner")
+    except ModuleNotFoundError:
+        # Fallback to single file `backtest_runner.py`
+        single_mod = importlib.import_module(f"{pkg_root}")
+
+    try:
         batch_mod = importlib.import_module(f"{pkg_root}.batch_runner")
-    except ModuleNotFoundError as exc:
-        sys.exit(f"❌ Could not locate strategy runners for '{strategy_name}': {exc}")
+    except ModuleNotFoundError:
+        # Some strategies only ship a single-runner; we create a simple batch
+        # wrapper on the fly.
+        class _DefaultBatchRunner:  # type: ignore
+            def __init__(self, runner_cls):
+                self._runner = runner_cls()
+
+            def run(self, instruments):
+                results = [self._runner.run(instr) for instr in instruments]
+                from utils.runners.base_batch_runner import BatchRunner as _Agg
+
+                agg = _Agg.aggregate(results)
+                agg["results"] = results
+                from utils.reporting.controller import ReportController
+
+                ReportController().generate(results, strategy_name=strategy_name)
+                return agg
+
+        batch_mod = None  # placeholder; we'll supply class later
 
     def _find_cls(mod, suffix: str):
         for attr in getattr(mod, "__all__", []):
@@ -92,7 +134,13 @@ def main() -> None:
         raise AttributeError(f"No class ending with {suffix} found in {mod.__name__}")
 
     SingleRunnerCls = _find_cls(single_mod, "BacktestRunner")
-    BatchRunnerCls = _find_cls(batch_mod, "BatchRunner")
+    if batch_mod:
+        BatchRunnerCls = _find_cls(batch_mod, "BatchRunner")
+    else:
+        # Dynamically create batch runner wrapper class
+        class BatchRunnerCls(_DefaultBatchRunner):  # type: ignore
+            def __init__(self):
+                super().__init__(SingleRunnerCls)
 
     # Single vs batch route
     if len(instruments) == 1:
@@ -101,7 +149,7 @@ def main() -> None:
         summary = {**result}
 
         # Generate runlogs even for single-instrument case
-        ReportController().generate([result])
+        ReportController().generate([result], strategy_name=strategy_name)
     else:
         runner = BatchRunnerCls()
         summary = runner.run(instruments)
@@ -112,4 +160,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main() 
+    main()

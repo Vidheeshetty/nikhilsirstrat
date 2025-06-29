@@ -15,7 +15,12 @@ for root, dirs, files in os.walk(base_path):
 
     try:
         print(f"Cleaning: {root}")
-        subprocess.run(["dot_clean", "-m", "-f", root], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(
+            ["dot_clean", "-m", "-f", root],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
     except subprocess.CalledProcessError as e:
         print(f"Error cleaning {root}:\n{e.stderr}")
 

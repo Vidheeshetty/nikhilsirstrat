@@ -27,4 +27,4 @@ class TrendRidingStrategy(Strategy):
             self.log.info(f"Received {self._count} quotes so far.")
 
     def on_stop(self):  # noqa: D401
-        self.log.info("TrendRidingStrategy stopped. Processed %s quotes.", self._count) 
+        self.log.info("TrendRidingStrategy stopped. Processed %s quotes.", self._count)

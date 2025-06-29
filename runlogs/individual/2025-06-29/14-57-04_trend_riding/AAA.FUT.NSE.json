@@ -1,0 +1,32 @@
+[
+  {
+    "pnl": 39.0,
+    "return_pct": 36.79245283018868,
+    "mdd_pct": 0.0,
+    "max_drawdown_pct": 0.0,
+    "sharpe": 174.58768169525945,
+    "num_quotes": 40,
+    "trades": [
+      {
+        "Instrument": "AAA.FUT.NSE",
+        "Entry_Date": "2025-06-29",
+        "Trade_Type": "Long",
+        "Exit_Reason": "TP",
+        "Entry_Price": 106.0,
+        "IV": 26.5,
+        "OI": 1060,
+        "Exit_Date": "2025-06-29",
+        "Exit_Price": 145.0,
+        "Threshold": 144.29,
+        "SL_Price": 103.88,
+        "Realised_PnL": 39.0,
+        "PnL%": 36.79,
+        "MDD_pct": 0.0,
+        "Sharpe": 174.59,
+        "Cum_PnL": null
+      }
+    ],
+    "instrument_id": "AAA.FUT.NSE",
+    "data_source": "Daily bars (Parquet catalog: 1-DAY-LAST)"
+  }
+]

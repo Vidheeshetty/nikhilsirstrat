@@ -7,22 +7,16 @@ Example:
 python scripts/csv_to_parquet_converter.py --config config/conversion_sample.yaml
 ```
 """
+
 from __future__ import annotations
-
-import sys
-from pathlib import Path
-
-# Ensure repository root is importable *before* any project imports.
-ROOT_DIR = Path(__file__).resolve().parents[1]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
 
 import argparse
 import logging
 import shutil
+import sys
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import List
-import textwrap  # add at imports
 
 import pandas as pd
 
@@ -34,7 +28,12 @@ from nautilus_trader.model.instruments.futures_contract import FuturesContract  
 from nautilus_trader.model.objects import Price, Quantity, Currency  # type: ignore
 from nautilus_trader.persistence.catalog.parquet import ParquetDataCatalog  # type: ignore
 
-from utils.data_adapters.conversion_config import ConverterConfig
+# Ensure repository root is importable *before* any project imports.
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from utils.data_adapters.conversion_config import ConverterConfig  # noqa: E402
 
 logger = logging.getLogger("csv_to_parquet_converter")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -44,9 +43,11 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 # Helpers (BAR conversion only – extend for quotes/derivatives later)
 # --------------------------------------------------------------------------------------
 
+
 def clear_catalog_dirs(cfg: ConverterConfig) -> None:
+    """Create destination folders.  If *cfg.clean* is True remove first."""
     for p in (Path(cfg.destination_catalog), Path(cfg.destination_meta)):
-        if p.exists():
+        if cfg.clean and p.exists():
             shutil.rmtree(p)
             logger.info("🧹 Removed %s", p)
         p.mkdir(parents=True, exist_ok=True)
@@ -54,7 +55,14 @@ def clear_catalog_dirs(cfg: ConverterConfig) -> None:
 
 
 def load_csv(cfg: ConverterConfig) -> pd.DataFrame:
-    csv_paths = list(Path().glob(cfg.source_csv))  # glob relative to cwd
+    pattern = cfg.source_csv
+    if Path(pattern).is_absolute():
+        import glob as _glob
+
+        csv_paths = [Path(p) for p in _glob.glob(str(pattern))]
+    else:
+        csv_paths = list(Path().glob(pattern))  # relative pattern
+
     if not csv_paths:
         raise FileNotFoundError(f"No CSV matched pattern {cfg.source_csv}")
 
@@ -82,10 +90,9 @@ def build_instrument(cfg: ConverterConfig, expiry_str: str) -> FuturesContract:
 
     # Convert value to plain 'YYYY-MM-DD' string first
     expiry_clean = str(expiry_str).split(" ")[0]
-    expiry_dt = (
-        datetime.strptime(expiry_clean, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        + timedelta(hours=23, minutes=59)
-    )
+    expiry_dt = datetime.strptime(expiry_clean, "%Y-%m-%d").replace(
+        tzinfo=timezone.utc
+    ) + timedelta(hours=23, minutes=59)
 
     symbol_with_expiry = f"{cfg.symbol}{expiry_dt.strftime('%Y%m%d')}.FUT"
 
@@ -113,7 +120,9 @@ def build_instrument(cfg: ConverterConfig, expiry_str: str) -> FuturesContract:
     return instrument
 
 
-def build_bars(df: pd.DataFrame, iid: InstrumentId, interval: str, precision: int) -> List[Bar]:
+def build_bars(
+    df: pd.DataFrame, iid: InstrumentId, interval: str, precision: int
+) -> List[Bar]:
     bar_type = BarType.from_str(f"{iid}-{interval}-LAST-EXTERNAL")
     bars: list[Bar] = []
     for _, row in df.iterrows():
@@ -133,7 +142,9 @@ def build_bars(df: pd.DataFrame, iid: InstrumentId, interval: str, precision: in
     return bars
 
 
-def write_catalog(cfg: ConverterConfig, instruments: List[FuturesContract], bars: List[Bar]):
+def write_catalog(
+    cfg: ConverterConfig, instruments: List[FuturesContract], bars: List[Bar]
+):
     """Persist *all* instruments and bars into a single Parquet catalog."""
     catalog = ParquetDataCatalog(cfg.destination_catalog)
     catalog.write_data(instruments)
@@ -151,6 +162,7 @@ def write_catalog(cfg: ConverterConfig, instruments: List[FuturesContract], bars
 # Metadata helpers
 # --------------------------------------------------------------------------------------
 
+
 def build_bar_metadata(df: pd.DataFrame, iid_str: str, extra_fields: List[str]):
     """Return DataFrame of bar-level metadata limited to *extra_fields*."""
     records = []
@@ -161,20 +173,30 @@ def build_bar_metadata(df: pd.DataFrame, iid_str: str, extra_fields: List[str]):
             "last": row.get("CLOSE"),
         }
         for field in extra_fields:
-            rec[field] = row.get(field) or row.get(field.upper()) or row.get(field.lower())
+            rec[field] = (
+                row.get(field) or row.get(field.upper()) or row.get(field.lower())
+            )
         records.append(rec)
     return pd.DataFrame(records)
 
 
-def write_meta(cfg: ConverterConfig, instruments: List[FuturesContract], bar_meta_df: pd.DataFrame):
+def write_meta(
+    cfg: ConverterConfig, instruments: List[FuturesContract], bar_meta_df: pd.DataFrame
+):
     """Write bar-level and instrument-level metadata side tables."""
     meta_dir = Path(cfg.destination_meta)
     meta_dir.mkdir(parents=True, exist_ok=True)
 
-    # Bar-level metadata
-    bar_meta_df.to_parquet(meta_dir / "bar_metadata.parquet", index=False)
+    # ------------------ BAR-LEVEL METADATA ------------------------------
+    bar_meta_path = meta_dir / "bar_metadata.parquet"
+    if bar_meta_path.exists() and not cfg.clean:
+        existing = pd.read_parquet(bar_meta_path)
+        bar_meta_df = pd.concat(
+            [existing, bar_meta_df], ignore_index=True
+        ).drop_duplicates(subset=["instrument_id", "timestamp"], keep="last")
+    bar_meta_df.to_parquet(bar_meta_path, index=False)
 
-    # Instrument summary table
+    # ------------------ INSTRUMENT SUMMARY ------------------------------
     inst_records = [
         {
             "instrument_id": str(inst.id),
@@ -187,7 +209,17 @@ def write_meta(cfg: ConverterConfig, instruments: List[FuturesContract], bar_met
         }
         for inst in instruments
     ]
-    pd.DataFrame(inst_records).to_parquet(meta_dir / "instruments.parquet", index=False)
+    inst_path = meta_dir / "instruments.parquet"
+    df_inst_new = pd.DataFrame(inst_records)
+    if inst_path.exists() and not cfg.clean:
+        df_inst_old = pd.read_parquet(inst_path)
+        df_inst = pd.concat(
+            [df_inst_old, df_inst_new], ignore_index=True
+        ).drop_duplicates(subset=["instrument_id"], keep="last")
+    else:
+        df_inst = df_inst_new
+    df_inst.to_parquet(inst_path, index=False)
+
     logger.info("📑 Wrote meta files to %s", meta_dir)
 
 
@@ -195,15 +227,29 @@ def write_meta(cfg: ConverterConfig, instruments: List[FuturesContract], bar_met
 # Main
 # --------------------------------------------------------------------------------------
 
+
+def _validate_interval(interval: str):
+    import re
+
+    if not re.match(r"^\d+-(MIN|DAY|HOUR)$", interval):
+        raise ValueError(
+            f"Unsupported bar_interval '{interval}' – must match <num>-(MIN|DAY|HOUR)"
+        )
+
+
 def run_conversion(cfg: ConverterConfig):
     if cfg.data_kind != "bar":
         raise NotImplementedError("Currently only bar data conversion is implemented")
+
+    _validate_interval(cfg.bar_interval)
 
     clear_catalog_dirs(cfg)
     df = load_csv(cfg)
 
     if "EXPIRY_DT" not in df.columns or df["EXPIRY_DT"].isna().all():
-        raise ValueError("Futures CSV must contain EXPIRY_DT column with at least one value")
+        raise ValueError(
+            "Futures CSV must contain EXPIRY_DT column with at least one value"
+        )
 
     instruments: list[FuturesContract] = []
     all_bars: list[Bar] = []
@@ -215,10 +261,14 @@ def run_conversion(cfg: ConverterConfig):
         instrument = build_instrument(cfg, expiry_str)
         instruments.append(instrument)
 
-        bars = build_bars(df_slice, instrument.id, cfg.bar_interval, cfg.price_precision)
+        bars = build_bars(
+            df_slice, instrument.id, cfg.bar_interval, cfg.price_precision
+        )
         all_bars.extend(bars)
 
-        meta_df = build_bar_metadata(df_slice, str(instrument.id), cfg.extra_meta_fields)
+        meta_df = build_bar_metadata(
+            df_slice, str(instrument.id), cfg.extra_meta_fields
+        )
         all_meta_frames.append(meta_df)
 
     write_catalog(cfg, instruments, all_bars)
@@ -235,40 +285,38 @@ def run_conversion(cfg: ConverterConfig):
 
     # ------------------------------------------------------------------
     # After successful conversion – refresh DATA_CATALOG.md --------------
+    def _scan_catalog(root: Path):
+        parts = []
+        for p in root.rglob("*.parquet"):
+            parts.append([str(p), p.name])
+        return parts
+
+    rows = _scan_catalog(Path(cfg.destination_catalog))
+
     try:
-        def _scan_catalog(root: Path):
-            rows: list[dict[str, str]] = []
-            for pq in root.rglob("*.parquet"):
-                parts = {kv.split("=")[0]: kv.split("=")[1] for kv in pq.parts if "=" in kv}
-                if not parts:
-                    continue  # skip non-partition files (meta, etc.)
-                parts.setdefault("example_file", pq.name)
-                rows.append(parts)
-            return rows
+        from tabulate import tabulate  # optional dependency
 
-        catalog_root = Path("catalog-data")
-        if catalog_root.exists():
-            rows = _scan_catalog(catalog_root)
-            if rows:
-                df = pd.DataFrame(rows)
-                md_table = df.to_markdown(index=False)
-                header = textwrap.dedent(
-                    """\
-                    # Data Catalog Inventory
+        table_md = tabulate(rows, headers=["Path", "File"], tablefmt="github")
+    except Exception:
+        # Fallback to crude table
+        header = "| Path | File |\n|---|---|\n"
+        body = "\n".join(f"| {r[0]} | {r[1]} |" for r in rows)
+        table_md = header + body
 
-                    _Auto-generated by `csv_to_parquet_converter.py` on successful conversions._
-                    """
-                )
-                Path("DATA_CATALOG.md").write_text(f"{header}\n\n{md_table}\n")
-                logger.info("📚 DATA_CATALOG.md updated (%d entries)", len(df))
-    except Exception as exc:  # pylint: disable=broad-except
-        logger.warning("Could not refresh DATA_CATALOG.md: %s", exc)
+    with open("DATA_CATALOG.md", "w", encoding="utf-8") as fh:
+        fh.write("# Data Catalog\n\n" + table_md)
+    logger.info("🗒️  Refreshed DATA_CATALOG.md")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CSV → Parquet converter")
     parser.add_argument("--config", required=True, help="Path to YAML config file")
+    parser.add_argument(
+        "--clean", action="store_true", help="Remove existing catalog before writing"
+    )
     args = parser.parse_args()
 
     config = ConverterConfig.from_yaml(args.config)
-    run_conversion(config) 
+    if args.clean:
+        config.clean = True
+    run_conversion(config)

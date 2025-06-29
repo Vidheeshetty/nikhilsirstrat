@@ -1,0 +1,45 @@
+[
+  {
+    "pnl": 67.13999999999999,
+    "return_pct": 5.343331358392733,
+    "mdd_pct": 1.6189121791469252,
+    "max_drawdown_pct": 1.6189121791469252,
+    "sharpe": 4.54193919078383,
+    "instrument_id": "NIFTY20230727.FUT.NSE",
+    "trades": [
+      {
+        "Instrument": "NIFTY20230727.FUT.NSE",
+        "Entry_Date": "17.0",
+        "Trade_Type": "Long",
+        "Exit_Reason": "TP",
+        "Entry_Price": 18844.09,
+        "Exit_Date": "19.0",
+        "Exit_Price": 18985.07,
+        "Threshold": 18844.092749999996,
+        "SL_Price": 18773.6,
+        "Realised_PnL": 140.98,
+        "PnL%": 0.75,
+        "Cum_PnL": 140.98,
+        "Win/Loss": "Win",
+        "is_win": true
+      },
+      {
+        "Instrument": "NIFTY20230727.FUT.NSE",
+        "Entry_Date": "38.0",
+        "Trade_Type": "Long",
+        "Exit_Reason": "SL",
+        "Entry_Price": 19740.38,
+        "Exit_Date": "39.0",
+        "Exit_Price": 19666.54,
+        "Threshold": 19740.377875000002,
+        "SL_Price": 19666.54,
+        "Realised_PnL": -73.84,
+        "PnL%": -0.37,
+        "Cum_PnL": 67.14,
+        "Win/Loss": "Loss",
+        "is_win": false
+      }
+    ],
+    "data_source": "Daily bars (Parquet catalog: 1-DAY-LAST)"
+  }
+]

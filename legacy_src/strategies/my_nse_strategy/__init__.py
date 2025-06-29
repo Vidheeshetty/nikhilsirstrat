@@ -26,7 +26,7 @@ Key Features:
 
 Usage:
     from strategies.my_nse_strategy import MyNSEStrategy, MyNSEStrategyConfig
-    
+
     # Configure strategy
     config = MyNSEStrategyConfig(
         instrument_id=InstrumentId.from_str("BANKNIFTY.OPT.26Jun2025.40500.CALL.NSE"),
@@ -34,16 +34,20 @@ Usage:
         sl_pct=0.02,
         tp_pct=0.03
     )
-    
+
     # Create strategy instance
     strategy = MyNSEStrategy(config=config)
 """
 
 from .strategy import MyNSEStrategy  # Import the main strategy class
-from .config import MyNSEStrategyConfig  # Import the configuration class from config module
+from .config import (
+    MyNSEStrategyConfig,
+)  # Import the configuration class from config module
 
 __all__ = ["MyNSEStrategy", "MyNSEStrategyConfig"]  # Define public API
 
 __version__ = "1.0.0"  # Package version
 __author__ = "Trading Strategy Developer"  # Author information
-__description__ = "NSE Options Trading Strategy with Breakout Logic"  # Package description
+__description__ = (
+    "NSE Options Trading Strategy with Breakout Logic"  # Package description
+)

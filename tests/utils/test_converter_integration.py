@@ -1,26 +1,30 @@
 import pandas as pd
 from pathlib import Path
-import types
 
 from utils.data_adapters.conversion_config import ConverterConfig
 from scripts import csv_to_parquet_converter as conv
 
 
 def _create_sample_csv(tmp_path: Path) -> Path:
-    raw_dir = tmp_path / "raw-data/source=TEST/instrument=FUT/venue=SIM/symbol=FOO/timeframe=DAILY/year=2024"
+    raw_dir = (
+        tmp_path
+        / "raw-data/source=TEST/instrument=FUT/venue=SIM/symbol=FOO/timeframe=DAILY/year=2024"
+    )
     raw_dir.mkdir(parents=True, exist_ok=True)
     csv_path = raw_dir / "FOO_2024.csv"
-    df = pd.DataFrame({
-        "SYMBOL": ["FOO"],
-        "DATE": ["2024-01-02"],
-        "EXPIRY_DT": ["2024-01-25"],
-        "OPEN": [100],
-        "HIGH": [110],
-        "LOW": [95],
-        "CLOSE": [105],
-        "OI": [1000],
-        "IV": [0.2],
-    })
+    df = pd.DataFrame(
+        {
+            "SYMBOL": ["FOO"],
+            "DATE": ["2024-01-02"],
+            "EXPIRY_DT": ["2024-01-25"],
+            "OPEN": [100],
+            "HIGH": [110],
+            "LOW": [95],
+            "CLOSE": [105],
+            "OI": [1000],
+            "IV": [0.2],
+        }
+    )
     df.to_csv(csv_path, index=False)
     return csv_path
 
@@ -78,4 +82,5 @@ def test_end_to_end_conversion(tmp_path, monkeypatch):
     # 5. verify inventory doc created
     md_path = Path("DATA_CATALOG.md")
     assert md_path.exists(), "DATA_CATALOG.md not generated"
-    assert "source=TEST" in md_path.read_text() 
+    content = md_path.read_text()
+    assert "FOO" in content, "Expected instrument symbol not present in DATA_CATALOG.md"

@@ -1,5 +1,4 @@
 from utils.data_adapters.conversion_config import ConverterConfig
-from pathlib import Path
 
 
 def test_load_yaml(tmp_path):
@@ -13,6 +12,6 @@ def test_load_yaml(tmp_path):
 
     cfg = ConverterConfig.from_yaml(cfg_file)
 
-    assert cfg.source_csv == 'data/*.csv'
-    assert cfg.destination_catalog.endswith('catalog')
-    assert cfg.data_kind == 'bar'  # default 
+    assert cfg.source_csv == "data/*.csv"
+    assert cfg.destination_catalog.endswith("catalog")
+    assert cfg.data_kind == "bar"  # default

@@ -24,7 +24,12 @@ from .data_manager import DataManager
 class BacktestOrchestrator:
     """Coordinate all components for a single strategy back-test."""
 
-    def __init__(self, config_file: str, catalog_path: str | None = None, base_dir: str = "_summary.txts") -> None:
+    def __init__(
+        self,
+        config_file: str,
+        catalog_path: str | None = None,
+        base_dir: str = "_summary.txts",
+    ) -> None:
         self.config_manager = ConfigManager(config_file)
         self.data_manager = DataManager(catalog_path)
         self.engine_manager = EngineManager()
@@ -57,7 +62,10 @@ class BacktestOrchestrator:
         # Add dummy instrument and empty data
         instrument = self.data_manager.get_instrument(instrument_id)
         self.engine_manager.add_instrument(engine, instrument)
-        self.engine_manager.add_data(engine, self.data_manager.get_quote_ticks(instrument_id, start_time, end_time))
+        self.engine_manager.add_data(
+            engine,
+            self.data_manager.get_quote_ticks(instrument_id, start_time, end_time),
+        )
 
         # Add strategy
         self.engine_manager.add_strategy(engine, strategy)
@@ -66,12 +74,16 @@ class BacktestOrchestrator:
         self.engine_manager.run_backtest(engine)
         result = self.engine_manager.get_results(engine)
 
-        detailed = self.results_processor.extract_detailed_data(engine, result, log_file or "stub.log")
-        summary = self.results_processor.create_summary_data(result, detailed, instrument_id)
+        detailed = self.results_processor.extract_detailed_data(
+            engine, result, log_file or "stub.log"
+        )
+        summary = self.results_processor.create_summary_data(
+            result, detailed, instrument_id
+        )
 
         # Optionally write summary
         if log_file is not None:
             self.report_generator.write_summary_only(summary, filename=log_file)
 
         self.engine_manager.cleanup()
-        return summary 
+        return summary

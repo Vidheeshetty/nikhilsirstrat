@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 class BatchRunner:  # pylint: disable=too-few-public-methods
     """Run tasks in parallel threads and collate results."""
 
-    def __init__(self, worker_fn: Callable[[Any], Dict[str, Any]], max_workers: int | None = None):
+    def __init__(
+        self, worker_fn: Callable[[Any], Dict[str, Any]], max_workers: int | None = None
+    ):
         """Args
         -----
         worker_fn: Callable that processes a single task object and returns a
@@ -54,10 +56,17 @@ class BatchRunner:  # pylint: disable=too-few-public-methods
         agg: dict[str, Any] = {
             "num_instruments": len(results),
             "total_pnl": sum(r.get("pnl", 0.0) for r in results),
-            "avg_sharpe": (sum(r.get("sharpe", 0.0) for r in results) / len(results)) if results else 0.0,
-            "avg_drawdown_pct": (sum(r.get("max_drawdown_pct", 0.0) for r in results) / len(results)) if results else 0.0,
+            "avg_sharpe": (sum(r.get("sharpe", 0.0) for r in results) / len(results))
+            if results
+            else 0.0,
+            "avg_mdd_pct": (
+                sum(r.get("mdd_pct", r.get("max_drawdown_pct", 0.0)) for r in results)
+                / len(results)
+            )
+            if results
+            else 0.0,
         }
         return agg
 
 
-__all__ = ["BatchRunner"] 
+__all__ = ["BatchRunner"]

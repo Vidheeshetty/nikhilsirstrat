@@ -14,6 +14,7 @@ We write:
     • daily Bars (LAST price) under catalog-data/my_nse_strategy/catalog
     • bar_metadata.parquet side-table with OI & IV under catalog-meta
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -43,7 +44,9 @@ SYMBOL = "NIFTY"
 VENUE = "NSE"
 
 CATALOG_DIR = PROJECT_ROOT / "catalog-data" / "trend_follow_futures" / "catalog"
-CATALOG_META_DIR = PROJECT_ROOT / "catalog-data" / "trend_follow_futures" / "catalog-meta"
+CATALOG_META_DIR = (
+    PROJECT_ROOT / "catalog-data" / "trend_follow_futures" / "catalog-meta"
+)
 
 PRICE_PRECISION = 2
 PRICE_INCREMENT = 0.05
@@ -92,11 +95,9 @@ def build_instrument(expiry_str: str) -> FuturesContract:
 
     # Treat contract as active until very end of the expiry date so the last
     # trading session is tradable. Add 23:59 (hh:mm) to 00:00 timestamp.
-    expiry_dt = (
-        datetime.strptime(expiry_str, "%Y-%m-%d")
-        .replace(tzinfo=timezone.utc)
-        + timedelta(hours=23, minutes=59)
-    )
+    expiry_dt = datetime.strptime(expiry_str, "%Y-%m-%d").replace(
+        tzinfo=timezone.utc
+    ) + timedelta(hours=23, minutes=59)
 
     # Encode expiry into symbol to ensure unique instrument per contract month
     symbol_with_expiry = f"{SYMBOL}{expiry_dt.strftime('%Y%m%d')}.FUT"
@@ -189,7 +190,9 @@ def write_meta(meta_df: pd.DataFrame, instruments: List[FuturesContract]):
         }
         for inst in instruments
     ]
-    pd.DataFrame(inst_records).to_parquet(CATALOG_META_DIR / "instruments.parquet", index=False)
+    pd.DataFrame(inst_records).to_parquet(
+        CATALOG_META_DIR / "instruments.parquet", index=False
+    )
 
 
 def main() -> None:
@@ -237,4 +240,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main() 
+    main()

@@ -1,5 +1,6 @@
 import json
-import subprocess, sys
+import subprocess
+import sys
 from pathlib import Path
 
 SCRIPT = Path("scripts/run_backtest.py").resolve()
@@ -23,4 +24,4 @@ def test_cli_all_default():
         assert data["num_instruments"] >= 1
     else:
         # Single instrument fallback
-        assert "instrument_id" in data 
+        assert "instrument_id" in data

@@ -4,6 +4,7 @@ from pathlib import Path
 
 # Ensure src is in sys.path for local imports
 import sys
+
 current_dir = Path(__file__).resolve()
 project_root = current_dir.parents[2]
 if str(project_root / "src") not in sys.path:
@@ -30,7 +31,7 @@ def mock_engine():
     mock.add_strategy = MagicMock()
     mock.run = MagicMock()
     mock.get_result = MagicMock()
-    
+
     # Mock trader and cache for get_results
     mock.trader = Mock()
     mock.trader.generate_positions_report = MagicMock(return_value=pd.DataFrame())
@@ -52,8 +53,8 @@ def mock_instrument():
 def mock_quote_ticks():
     """Provides mock quote tick data."""
     mock = Mock()
-    mock.__len__ = Mock(return_value=100) # For len(ticks) > 0 check
-    return [Mock() for _ in range(5)] # Simulate a list of ticks
+    mock.__len__ = Mock(return_value=100)  # For len(ticks) > 0 check
+    return [Mock() for _ in range(5)]  # Simulate a list of ticks
 
 
 @pytest.fixture
@@ -64,7 +65,6 @@ def mock_strategy():
 
 
 class TestEngineManager:
-
     def test_create_engine(self):
         manager = BacktestEngineLauncher()
         engine = manager.create_engine()
@@ -82,10 +82,10 @@ class TestEngineManager:
 
         mock_engine.add_venue.assert_called_once()
         args, kwargs = mock_engine.add_venue.call_args
-        assert kwargs['venue'] == Venue("NSE")
-        assert kwargs['account_type'] == AccountType.MARGIN
-        assert kwargs['starting_balances'][0].value == 1_000_000
-        assert kwargs['base_currency'] == INR
+        assert kwargs["venue"] == Venue("NSE")
+        assert kwargs["account_type"] == AccountType.MARGIN
+        assert kwargs["starting_balances"][0].value == 1_000_000
+        assert kwargs["base_currency"] == INR
 
     def test_add_instrument(self, mock_engine, mock_instrument):
         manager = BacktestEngineLauncher()
@@ -110,16 +110,16 @@ class TestEngineManager:
     def test_get_results_basic(self, mock_engine):
         manager = BacktestEngineLauncher()
         mock_result = Mock()
-        mock_result.account_balances = None # Simulate initial state
+        mock_result.account_balances = None  # Simulate initial state
         mock_engine.get_result.return_value = mock_result
 
         result = manager.get_results(mock_engine)
         assert result is mock_result
-        assert hasattr(result, 'account_balances') # Should be added/modified
-        assert result.account_balances is not None # Even if empty DataFrame
-        assert hasattr(result, 'realized_pnl')
-        assert hasattr(result, 'unrealized_pnl')
-        assert hasattr(result, 'total_pnl')
+        assert hasattr(result, "account_balances")  # Should be added/modified
+        assert result.account_balances is not None  # Even if empty DataFrame
+        assert hasattr(result, "realized_pnl")
+        assert hasattr(result, "unrealized_pnl")
+        assert hasattr(result, "total_pnl")
 
     def test_get_results_with_account_cache(self, mock_engine):
         manager = BacktestEngineLauncher()
@@ -138,12 +138,12 @@ class TestEngineManager:
         result = manager.get_results(mock_engine)
 
         assert result.account_balances is not None
-        assert result.account_balances.iloc[0]['total'] == 12345.67
-        assert result.account_balances.iloc[0]['currency'] == "INR"
+        assert result.account_balances.iloc[0]["total"] == 12345.67
+        assert result.account_balances.iloc[0]["currency"] == "INR"
 
     def test_cleanup(self):
         manager = BacktestEngineLauncher()
-        manager.engine = Mock() # Set a mock engine to be cleaned up
+        manager.engine = Mock()  # Set a mock engine to be cleaned up
         manager.cleanup()
         assert manager.engine is None
 
@@ -152,11 +152,11 @@ class TestEngineManager:
         config = manager.create_engine_config(
             log_level="DEBUG",
             log_file_path="/tmp/test_log.log",
-            bypass_risk_engine=False
+            bypass_risk_engine=False,
         )
 
         assert isinstance(config, BacktestEngineConfig)
         assert config.logging.log_level == "DEBUG"
         assert config.logging.log_file_path == "/tmp/test_log.log"
         assert config.risk_engine.bypass == False
-        assert config.risk_engine.max_order_submit_rate == "100/00:00:01" 
+        assert config.risk_engine.max_order_submit_rate == "100/00:00:01"

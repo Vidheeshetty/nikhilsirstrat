@@ -22,9 +22,10 @@ class TrendRidingBatchRunner:  # pylint: disable=too-few-public-methods
 
         # Generate reports
         from utils.reporting.controller import ReportController
-        ReportController().generate(results)
+
+        ReportController().generate(results, strategy_name="trend_riding")
 
         return agg
 
 
-__all__ = ["TrendRidingBatchRunner"] 
+__all__ = ["TrendRidingBatchRunner"]

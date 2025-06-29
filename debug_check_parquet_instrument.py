@@ -32,4 +32,4 @@ try:
         print("No ticks found for this instrument and date range.")
 except Exception as e:
     print(f"Error loading ticks: {e}")
-    sys.exit(1) 
+    sys.exit(1)

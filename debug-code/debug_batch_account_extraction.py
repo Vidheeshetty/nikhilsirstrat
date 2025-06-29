@@ -1,9 +1,14 @@
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from strategies.my_nse_strategy.runners.backtest.backtest_orchestrator import BacktestOrchestrator
-from strategies.my_nse_strategy.runners.backtest.results_processor import ResultsProcessor
+from strategies.my_nse_strategy.runners.backtest.backtest_orchestrator import (
+    BacktestOrchestrator,
+)
+from strategies.my_nse_strategy.runners.backtest.results_processor import (
+    ResultsProcessor,
+)
 
 # Use only 10 instruments for debug
 INSTRUMENTS = [
@@ -25,17 +30,13 @@ BASE_DIR = "_summary.txts"
 
 if __name__ == "__main__":
     orchestrator = BacktestOrchestrator(
-        config_file=CONFIG_FILE,
-        catalog_path=CATALOG_PATH,
-        base_dir=BASE_DIR
+        config_file=CONFIG_FILE, catalog_path=CATALOG_PATH, base_dir=BASE_DIR
     )
     results = []
     for instrument_id in INSTRUMENTS:
         print(f"\n=== Running backtest for {instrument_id} ===")
         result = orchestrator.run_single_backtest(
-            instrument_id=instrument_id,
-            verbose=False,
-            batch_mode=True
+            instrument_id=instrument_id, verbose=False, batch_mode=True
         )
         # Print the full result object
         print(f"result object type: {type(result)}")
@@ -47,7 +48,7 @@ if __name__ == "__main__":
                 print(f"  {k}: {v}")
         else:
             for attr in dir(result):
-                if not attr.startswith('__'):
+                if not attr.startswith("__"):
                     print(f"  {attr}: {getattr(result, attr)}")
         # Print stats_pnls if present
         print(f"result.stats_pnls: {getattr(result, 'stats_pnls', 'N/A')}")
@@ -59,8 +60,10 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"[DEBUG] Could not print account object: {e}")
         print(f"summary: {result}")
-        account = result.get('account', None) if isinstance(result, dict) else None
+        account = result.get("account", None) if isinstance(result, dict) else None
         if account:
             print(f"account: {account}")
         else:
-            print(f"account (from summary): {result.get('account_id', 'N/A') if isinstance(result, dict) else 'N/A'}, starting_balance: {result.get('starting_balance', 'N/A') if isinstance(result, dict) else 'N/A'}, ending_balance: {result.get('ending_balance', 'N/A') if isinstance(result, dict) else 'N/A'}") 
+            print(
+                f"account (from summary): {result.get('account_id', 'N/A') if isinstance(result, dict) else 'N/A'}, starting_balance: {result.get('starting_balance', 'N/A') if isinstance(result, dict) else 'N/A'}, ending_balance: {result.get('ending_balance', 'N/A') if isinstance(result, dict) else 'N/A'}"
+            )

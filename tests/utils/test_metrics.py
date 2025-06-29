@@ -7,4 +7,4 @@ def test_calculate_metrics():
     assert m["pnl"] == 10
     assert m["return_pct"] > 0
     assert m["max_drawdown_pct"] >= 0
-    assert "sharpe" in m 
+    assert "sharpe" in m

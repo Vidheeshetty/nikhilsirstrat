@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Batch Back-test Summary</title>
+  <link rel="stylesheet" href="assets/report.css"/>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+<h1>Batch Back-test Summary</h1>
+<p>Generated at 2025-06-29 13:34:32</p>
+
+<h2>Portfolio KPIs</h2>
+<table class="table">
+  <tbody>
+    <tr><td>Realised PnL</td><td>₹1,307.76</td></tr>
+    <tr><td>Realised PnL %</td><td>0.04%</td></tr>
+    <tr><td>Total Investment</td><td>₹3,366,316.47</td></tr>
+    <tr><td>Total Orders</td><td>298</td></tr>
+    <tr><td>Total Positions</td><td>149</td></tr>
+    <tr><td>Total Trades</td><td>149</td></tr>
+    <tr><td>Profitable Trades</td><td>76</td></tr>
+    <tr><td>Losing Trades</td><td>73</td></tr>
+    <tr><td>Max Drawdown %</td><td>11.76%</td></tr>
+    <tr><td>Unrealised PnL</td><td>₹0.00</td></tr>
+    <tr><td>Starting Balance</td><td>₹3,366,316.47</td></tr>
+    <tr><td>Ending Balance</td><td>₹3,367,624.23</td></tr>
+    <tr><td>Free Balance</td><td>₹3,367,624.23</td></tr>
+    <tr><td>Locked Balance</td><td>₹0.00</td></tr>
+    <tr><td>Avg Sharpe</td><td>7.26</td></tr>
+    <tr><td>Win Rate</td><td>51.01%</td></tr>
+  </tbody>
+</table>
+
+<h2>Instrument Leaderboard</h2>
+<table class="table">
+  <thead><tr><th>Instrument</th><th>PnL</th><th>Sharpe</th></tr></thead>
+  <tbody>
+  <tr><td>NIFTY20240725.FUT.NSE</td><td>₹1,563.55</td><td>2.21</td></tr>
+<tr><td>NIFTY20240229.FUT.NSE</td><td>₹730.33</td><td>2.17</td></tr>
+<tr><td>NIFTY20240328.FUT.NSE</td><td>₹569.82</td><td>0.35</td></tr>
+<tr><td>NIFTY20240125.FUT.NSE</td><td>₹404.81</td><td>3.52</td></tr>
+<tr><td>NIFTY20250626.FUT.NSE</td><td>₹384.03</td><td>1.35</td></tr>
+<tr><td>NIFTY20240926.FUT.NSE</td><td>₹370.36</td><td>2.80</td></tr>
+<tr><td>NIFTY20250731.FUT.NSE</td><td>₹368.83</td><td>1.49</td></tr>
+<tr><td>NIFTY20240425.FUT.NSE</td><td>₹326.54</td><td>0.94</td></tr>
+<tr><td>NIFTY20230629.FUT.NSE</td><td>₹241.20</td><td>2.75</td></tr>
+<tr><td>NIFTY20230831.FUT.NSE</td><td>₹216.98</td><td>1.55</td></tr>
+<tr><td>NIFTY20250529.FUT.NSE</td><td>₹185.13</td><td>2.51</td></tr>
+<tr><td>NIFTY20240829.FUT.NSE</td><td>₹182.57</td><td>2.10</td></tr>
+<tr><td>NIFTY20240627.FUT.NSE</td><td>₹162.03</td><td>1.68</td></tr>
+<tr><td>NIFTY20240530.FUT.NSE</td><td>₹76.75</td><td>-0.40</td></tr>
+<tr><td>NIFTY20230928.FUT.NSE</td><td>₹73.37</td><td>0.28</td></tr>
+<tr><td>NIFTY20230727.FUT.NSE</td><td>₹67.14</td><td>4.54</td></tr>
+<tr><td>NIFTY20230628.FUT.NSE</td><td>₹39.00</td><td>183.13</td></tr>
+<tr><td>NIFTY20250828.FUT.NSE</td><td>₹-14.52</td><td>1.11</td></tr>
+<tr><td>NIFTY20231228.FUT.NSE</td><td>₹-225.12</td><td>3.61</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>₹-255.14</td><td>-0.92</td></tr>
+<tr><td>NIFTY20231130.FUT.NSE</td><td>₹-300.89</td><td>1.03</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>₹-476.83</td><td>-2.22</td></tr>
+<tr><td>NIFTY20231026.FUT.NSE</td><td>₹-479.74</td><td>-2.75</td></tr>
+<tr><td>NIFTY20250424.FUT.NSE</td><td>₹-512.20</td><td>0.52</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>₹-557.86</td><td>-1.83</td></tr>
+<tr><td>NIFTY20241031.FUT.NSE</td><td>₹-566.34</td><td>-1.18</td></tr>
+<tr><td>NIFTY20250227.FUT.NSE</td><td>₹-617.54</td><td>-3.19</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>₹-648.50</td><td>-3.73</td></tr>
+  </tbody>
+</table>
+
+<h2>PnL Bar Chart</h2>
+<div id="pnl_bar"></div>
+<script>
+const data = [{'type': 'bar', 'x': ['NIFTY20230628.FUT.NSE', 'NIFTY20230629.FUT.NSE', 'NIFTY20230727.FUT.NSE', 'NIFTY20230831.FUT.NSE', 'NIFTY20230928.FUT.NSE', 'NIFTY20231026.FUT.NSE', 'NIFTY20231130.FUT.NSE', 'NIFTY20231228.FUT.NSE', 'NIFTY20240125.FUT.NSE', 'NIFTY20240229.FUT.NSE', 'NIFTY20240328.FUT.NSE', 'NIFTY20240425.FUT.NSE', 'NIFTY20240530.FUT.NSE', 'NIFTY20240627.FUT.NSE', 'NIFTY20240725.FUT.NSE', 'NIFTY20240829.FUT.NSE', 'NIFTY20240926.FUT.NSE', 'NIFTY20241031.FUT.NSE', 'NIFTY20241128.FUT.NSE', 'NIFTY20241226.FUT.NSE', 'NIFTY20250130.FUT.NSE', 'NIFTY20250227.FUT.NSE', 'NIFTY20250327.FUT.NSE', 'NIFTY20250424.FUT.NSE', 'NIFTY20250529.FUT.NSE', 'NIFTY20250626.FUT.NSE', 'NIFTY20250731.FUT.NSE', 'NIFTY20250828.FUT.NSE'], 'y': [39.0, 241.2, 67.14, 216.98, 73.37, -479.74, -300.89, -225.12, 404.81, 730.33, 569.82, 326.54, 76.75, 162.03, 1563.55, 182.57, 370.36, -566.34, -476.83, -648.5, -557.86, -617.54, -255.14, -512.2, 185.13, 384.03, 368.83, -14.52], 'marker': {'color': '#4a90e2'}}];
+Plotly.newPlot('pnl_bar', data, {margin:{t:20}});
+</script>
+
+<h2>Trade Details</h2>
+<table class="table">
+  <thead>
+    <tr><th>Instrument</th><th>Entry_Date</th><th>Trade_Type</th><th>Exit_Reason</th><th>Entry_Price</th><th>Exit_Date</th><th>Exit_Price</th><th>Threshold</th><th>SL_Price</th><th>Realised_PnL</th><th>PnL%</th><th>Cum_PnL</th><th>Win/Loss</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>NIFTY20230727.FUT.NSE</td><td>17.0</td><td>Long</td><td>TP</td><td>18844.09</td><td>19.0</td><td>18985.07</td><td>18844.09</td><td>18773.60</td><td>140.98</td><td>0.75</td><td>-600.17</td><td>Win</td></tr>
+<tr><td>NIFTY20230727.FUT.NSE</td><td>38.0</td><td>Long</td><td>SL</td><td>19740.38</td><td>39.0</td><td>19666.54</td><td>19740.38</td><td>19666.54</td><td>-73.84</td><td>-0.37</td><td>-80.16</td><td>Loss</td></tr>
+<tr><td>NIFTY20230831.FUT.NSE</td><td>17.0</td><td>Long</td><td>TP</td><td>18940.78</td><td>19.0</td><td>19082.49</td><td>18940.78</td><td>18869.93</td><td>141.70</td><td>0.75</td><td>-458.47</td><td>Win</td></tr>
+<tr><td>NIFTY20230831.FUT.NSE</td><td>40.0</td><td>Short</td><td>SL</td><td>19761.87</td><td>41.0</td><td>19836.16</td><td>19761.87</td><td>19836.16</td><td>74.29</td><td>0.38</td><td>-29.56</td><td>Win</td></tr>
+<tr><td>NIFTY20230831.FUT.NSE</td><td>44.0</td><td>Short</td><td>SL</td><td>19547.56</td><td>45.0</td><td>19621.05</td><td>19547.56</td><td>19621.05</td><td>73.49</td><td>0.38</td><td>-15.69</td><td>Win</td></tr>
+<tr><td>NIFTY20230831.FUT.NSE</td><td>52.0</td><td>Long</td><td>SL</td><td>19527.05</td><td>53.0</td><td>19454.00</td><td>19527.05</td><td>19454.00</td><td>-73.04</td><td>-0.37</td><td>732.77</td><td>Loss</td></tr>
+<tr><td>NIFTY20230831.FUT.NSE</td><td>54.0</td><td>Short</td><td>SL</td><td>19345.42</td><td>55.0</td><td>19418.14</td><td>19345.42</td><td>19418.14</td><td>72.73</td><td>0.38</td><td>472.00</td><td>Win</td></tr>
+<tr><td>NIFTY20230831.FUT.NSE</td><td>60.0</td><td>Long</td><td>SL</td><td>19298.43</td><td>63.0</td><td>19226.24</td><td>19298.43</td><td>19226.24</td><td>-72.19</td><td>-0.37</td><td>-353.04</td><td>Loss</td></tr>
+<tr><td>NIFTY20230928.FUT.NSE</td><td>20.0</td><td>Short</td><td>SL</td><td>19879.88</td><td>21.0</td><td>19954.61</td><td>19879.88</td><td>19954.61</td><td>74.74</td><td>0.38</td><td>-389.92</td><td>Win</td></tr>
+<tr><td>NIFTY20230928.FUT.NSE</td><td>24.0</td><td>Short</td><td>SL</td><td>19666.76</td><td>26.0</td><td>19740.70</td><td>19666.76</td><td>19740.70</td><td>73.94</td><td>0.38</td><td>247.63</td><td>Win</td></tr>
+<tr><td>NIFTY20230928.FUT.NSE</td><td>32.0</td><td>Long</td><td>SL</td><td>19644.94</td><td>33.0</td><td>19571.46</td><td>19644.94</td><td>19571.46</td><td>-73.48</td><td>-0.37</td><td>502.54</td><td>Loss</td></tr>
+<tr><td>NIFTY20230928.FUT.NSE</td><td>34.0</td><td>Short</td><td>SL</td><td>19461.23</td><td>35.0</td><td>19534.39</td><td>19461.23</td><td>19534.39</td><td>73.16</td><td>0.38</td><td>146.25</td><td>Win</td></tr>
+<tr><td>NIFTY20230928.FUT.NSE</td><td>40.0</td><td>Long</td><td>TIME</td><td>19413.36</td><td>43.0</td><td>19414.25</td><td>19413.36</td><td>19340.74</td><td>0.89</td><td>0.00</td><td>65.50</td><td>Win</td></tr>
+<tr><td>NIFTY20230928.FUT.NSE</td><td>57.0</td><td>Short</td><td>TP</td><td>19922.12</td><td>58.0</td><td>19772.33</td><td>19922.12</td><td>19997.02</td><td>-149.79</td><td>-0.75</td><td>-73.66</td><td>Loss</td></tr>
+<tr><td>NIFTY20230928.FUT.NSE</td><td>59.0</td><td>Short</td><td>SL</td><td>19658.98</td><td>61.0</td><td>19732.89</td><td>19658.98</td><td>19732.89</td><td>73.91</td><td>0.38</td><td>-94.93</td><td>Win</td></tr>
+<tr><td>NIFTY20231026.FUT.NSE</td><td>12.0</td><td>Short</td><td>TP</td><td>19639.08</td><td>14.0</td><td>19491.42</td><td>19639.08</td><td>19712.91</td><td>-147.66</td><td>-0.75</td><td>-94.37</td><td>Loss</td></tr>
+<tr><td>NIFTY20231026.FUT.NSE</td><td>15.0</td><td>Long</td><td>TIME</td><td>19578.72</td><td>18.0</td><td>19605.95</td><td>19578.72</td><td>19505.49</td><td>27.23</td><td>0.14</td><td>-741.15</td><td>Win</td></tr>
+<tr><td>NIFTY20231026.FUT.NSE</td><td>20.0</td><td>Long</td><td>TIME</td><td>19505.34</td><td>23.0</td><td>19516.70</td><td>19505.34</td><td>19432.38</td><td>11.36</td><td>0.06</td><td>-44.61</td><td>Win</td></tr>
+<tr><td>NIFTY20231026.FUT.NSE</td><td>37.0</td><td>Short</td><td>TP</td><td>20037.53</td><td>38.0</td><td>19886.87</td><td>20037.53</td><td>20112.86</td><td>-150.66</td><td>-0.75</td><td>-421.01</td><td>Loss</td></tr>
+<tr><td>NIFTY20231026.FUT.NSE</td><td>39.0</td><td>Short</td><td>SL</td><td>19773.09</td><td>41.0</td><td>19847.43</td><td>19773.09</td><td>19847.43</td><td>74.33</td><td>0.38</td><td>-103.85</td><td>Win</td></tr>
+<tr><td>NIFTY20231026.FUT.NSE</td><td>43.0</td><td>Long</td><td>SL</td><td>19686.19</td><td>44.0</td><td>19612.55</td><td>19686.19</td><td>19612.55</td><td>-73.64</td><td>-0.37</td><td>-84.17</td><td>Loss</td></tr>
+<tr><td>NIFTY20231026.FUT.NSE</td><td>45.0</td><td>Short</td><td>SL</td><td>19522.57</td><td>46.0</td><td>19595.96</td><td>19522.57</td><td>19595.96</td><td>73.39</td><td>0.38</td><td>-112.42</td><td>Win</td></tr>
+<tr><td>NIFTY20231026.FUT.NSE</td><td>56.0</td><td>Short</td><td>TP</td><td>19634.14</td><td>57.0</td><td>19486.52</td><td>19634.14</td><td>19707.95</td><td>-147.63</td><td>-0.75</td><td>76.13</td><td>Loss</td></tr>
+<tr><td>NIFTY20231026.FUT.NSE</td><td>58.0</td><td>Short</td><td>TP</td><td>19479.03</td><td>59.0</td><td>19332.57</td><td>19479.03</td><td>19552.26</td><td>-146.46</td><td>-0.75</td><td>-167.90</td><td>Loss</td></tr>
+<tr><td>NIFTY20231130.FUT.NSE</td><td>13.0</td><td>Short</td><td>TP</td><td>20155.09</td><td>14.0</td><td>20003.54</td><td>20155.09</td><td>20230.86</td><td>-151.54</td><td>-0.75</td><td>-70.01</td><td>Loss</td></tr>
+<tr><td>NIFTY20231130.FUT.NSE</td><td>15.0</td><td>Short</td><td>SL</td><td>19898.78</td><td>17.0</td><td>19973.59</td><td>19898.78</td><td>19973.59</td><td>74.81</td><td>0.38</td><td>-324.18</td><td>Win</td></tr>
+<tr><td>NIFTY20231130.FUT.NSE</td><td>19.0</td><td>Long</td><td>SL</td><td>19810.85</td><td>20.0</td><td>19736.75</td><td>19810.85</td><td>19736.75</td><td>-74.11</td><td>-0.37</td><td>-651.39</td><td>Loss</td></tr>
+<tr><td>NIFTY20231130.FUT.NSE</td><td>21.0</td><td>Short</td><td>SL</td><td>19645.81</td><td>22.0</td><td>19719.67</td><td>19645.81</td><td>19719.67</td><td>73.86</td><td>0.38</td><td>31.92</td><td>Win</td></tr>
+<tr><td>NIFTY20231130.FUT.NSE</td><td>32.0</td><td>Short</td><td>TP</td><td>19762.77</td><td>33.0</td><td>19614.18</td><td>19762.77</td><td>19837.07</td><td>-148.59</td><td>-0.75</td><td>353.95</td><td>Loss</td></tr>
+<tr><td>NIFTY20231130.FUT.NSE</td><td>34.0</td><td>Short</td><td>TP</td><td>19605.01</td><td>35.0</td><td>19457.61</td><td>19605.01</td><td>19678.72</td><td>-147.41</td><td>-0.75</td><td>-1.16</td><td>Loss</td></tr>
+<tr><td>NIFTY20231130.FUT.NSE</td><td>36.0</td><td>Short</td><td>SL</td><td>19176.89</td><td>38.0</td><td>19248.98</td><td>19176.89</td><td>19248.98</td><td>72.09</td><td>0.38</td><td>-362.53</td><td>Win</td></tr>
+<tr><td>NIFTY20231228.FUT.NSE</td><td>13.0</td><td>Short</td><td>TP</td><td>19871.30</td><td>14.0</td><td>19721.89</td><td>19871.30</td><td>19946.00</td><td>-149.41</td><td>-0.75</td><td>-219.42</td><td>Loss</td></tr>
+<tr><td>NIFTY20231228.FUT.NSE</td><td>15.0</td><td>Short</td><td>TP</td><td>19709.75</td><td>16.0</td><td>19561.56</td><td>19709.75</td><td>19783.85</td><td>-148.19</td><td>-0.75</td><td>-216.32</td><td>Loss</td></tr>
+<tr><td>NIFTY20231228.FUT.NSE</td><td>17.0</td><td>Short</td><td>SL</td><td>19278.98</td><td>19.0</td><td>19351.46</td><td>19278.98</td><td>19351.46</td><td>72.48</td><td>0.38</td><td>-385.99</td><td>Win</td></tr>
+<tr><td>NIFTY20240125.FUT.NSE</td><td>47.0</td><td>Long</td><td>TP</td><td>21654.00</td><td>48.0</td><td>21816.00</td><td>21654.00</td><td>21573.00</td><td>162.00</td><td>0.75</td><td>569.95</td><td>Win</td></tr>
+<tr><td>NIFTY20240125.FUT.NSE</td><td>50.0</td><td>Long</td><td>TP</td><td>21633.50</td><td>53.0</td><td>21795.35</td><td>21633.50</td><td>21552.58</td><td>161.85</td><td>0.75</td><td>805.81</td><td>Win</td></tr>
+<tr><td>NIFTY20240125.FUT.NSE</td><td>57.0</td><td>Short</td><td>SL</td><td>21535.58</td><td>58.0</td><td>21616.54</td><td>21535.58</td><td>21616.54</td><td>80.96</td><td>0.38</td><td>7.30</td><td>Win</td></tr>
+<tr><td>NIFTY20240229.FUT.NSE</td><td>23.0</td><td>Long</td><td>TP</td><td>21792.45</td><td>24.0</td><td>21955.48</td><td>21792.45</td><td>21710.93</td><td>163.04</td><td>0.75</td><td>375.95</td><td>Win</td></tr>
+<tr><td>NIFTY20240229.FUT.NSE</td><td>26.0</td><td>Long</td><td>TP</td><td>21772.60</td><td>29.0</td><td>21935.48</td><td>21772.60</td><td>21691.15</td><td>162.89</td><td>0.75</td><td>781.30</td><td>Win</td></tr>
+<tr><td>NIFTY20240229.FUT.NSE</td><td>33.0</td><td>Short</td><td>SL</td><td>21687.50</td><td>34.0</td><td>21769.03</td><td>21687.50</td><td>21769.03</td><td>81.53</td><td>0.38</td><td>254.62</td><td>Win</td></tr>
+<tr><td>NIFTY20240229.FUT.NSE</td><td>37.0</td><td>Long</td><td>TP</td><td>21405.68</td><td>39.0</td><td>21565.82</td><td>21405.68</td><td>21325.61</td><td>160.14</td><td>0.75</td><td>80.81</td><td>Win</td></tr>
+<tr><td>NIFTY20240229.FUT.NSE</td><td>50.0</td><td>Long</td><td>TP</td><td>21752.09</td><td>51.0</td><td>21914.83</td><td>21752.09</td><td>21670.73</td><td>162.73</td><td>0.75</td><td>534.27</td><td>Win</td></tr>
+<tr><td>NIFTY20240328.FUT.NSE</td><td>7.0</td><td>Long</td><td>TP</td><td>21906.98</td><td>10.0</td><td>22070.87</td><td>21906.98</td><td>21825.03</td><td>163.89</td><td>0.75</td><td>163.89</td><td>Win</td></tr>
+<tr><td>NIFTY20240328.FUT.NSE</td><td>15.0</td><td>Long</td><td>SL</td><td>21886.33</td><td>17.0</td><td>21804.46</td><td>21886.33</td><td>21804.46</td><td>-81.87</td><td>-0.37</td><td>-406.05</td><td>Loss</td></tr>
+<tr><td>NIFTY20240328.FUT.NSE</td><td>18.0</td><td>Long</td><td>TP</td><td>21552.40</td><td>20.0</td><td>21713.64</td><td>21552.40</td><td>21471.78</td><td>161.24</td><td>0.75</td><td>-317.85</td><td>Win</td></tr>
+<tr><td>NIFTY20240328.FUT.NSE</td><td>31.0</td><td>Long</td><td>TP</td><td>21896.60</td><td>32.0</td><td>22060.42</td><td>21896.60</td><td>21814.70</td><td>163.81</td><td>0.75</td><td>503.95</td><td>Win</td></tr>
+<tr><td>NIFTY20240328.FUT.NSE</td><td>43.0</td><td>Long</td><td>TP</td><td>22130.89</td><td>44.0</td><td>22296.46</td><td>22130.89</td><td>22048.11</td><td>165.57</td><td>0.75</td><td>81.40</td><td>Win</td></tr>
+<tr><td>NIFTY20240328.FUT.NSE</td><td>51.0</td><td>Long</td><td>SL</td><td>22477.40</td><td>52.0</td><td>22393.32</td><td>22477.40</td><td>22393.32</td><td>-84.08</td><td>-0.37</td><td>643.96</td><td>Loss</td></tr>
+<tr><td>NIFTY20240328.FUT.NSE</td><td>53.0</td><td>Long</td><td>SL</td><td>22158.51</td><td>56.0</td><td>22075.62</td><td>22158.51</td><td>22075.62</td><td>-82.89</td><td>-0.37</td><td>574.00</td><td>Loss</td></tr>
+<tr><td>NIFTY20240328.FUT.NSE</td><td>57.0</td><td>Long</td><td>TP</td><td>21941.22</td><td>58.0</td><td>22105.36</td><td>21941.22</td><td>21859.14</td><td>164.15</td><td>0.75</td><td>171.45</td><td>Win</td></tr>
+<tr><td>NIFTY20240425.FUT.NSE</td><td>11.0</td><td>Long</td><td>TP</td><td>22047.18</td><td>12.0</td><td>22212.12</td><td>22047.18</td><td>21964.71</td><td>164.94</td><td>0.75</td><td>62.17</td><td>Win</td></tr>
+<tr><td>NIFTY20240425.FUT.NSE</td><td>23.0</td><td>Long</td><td>TP</td><td>22266.73</td><td>24.0</td><td>22433.31</td><td>22266.73</td><td>22183.44</td><td>166.58</td><td>0.75</td><td>542.53</td><td>Win</td></tr>
+<tr><td>NIFTY20240425.FUT.NSE</td><td>31.0</td><td>Long</td><td>SL</td><td>22631.29</td><td>32.0</td><td>22546.63</td><td>22631.29</td><td>22546.63</td><td>-84.66</td><td>-0.37</td><td>419.29</td><td>Loss</td></tr>
+<tr><td>NIFTY20240425.FUT.NSE</td><td>33.0</td><td>Long</td><td>SL</td><td>22315.40</td><td>36.0</td><td>22231.93</td><td>22315.40</td><td>22231.93</td><td>-83.47</td><td>-0.37</td><td>-178.32</td><td>Loss</td></tr>
+<tr><td>NIFTY20240425.FUT.NSE</td><td>37.0</td><td>Long</td><td>TP</td><td>22111.09</td><td>38.0</td><td>22276.51</td><td>22111.09</td><td>22028.38</td><td>165.42</td><td>0.75</td><td>-255.59</td><td>Win</td></tr>
+<tr><td>NIFTY20240425.FUT.NSE</td><td>53.0</td><td>Short</td><td>TP</td><td>22301.41</td><td>54.0</td><td>22133.73</td><td>22301.41</td><td>22385.25</td><td>-167.68</td><td>-0.75</td><td>399.27</td><td>Loss</td></tr>
+<tr><td>NIFTY20240425.FUT.NSE</td><td>55.0</td><td>Long</td><td>TP</td><td>22110.34</td><td>56.0</td><td>22275.75</td><td>22110.34</td><td>22027.63</td><td>165.41</td><td>0.75</td><td>493.53</td><td>Win</td></tr>
+<tr><td>NIFTY20240530.FUT.NSE</td><td>9.0</td><td>Long</td><td>SL</td><td>22452.99</td><td>12.0</td><td>22369.00</td><td>22452.99</td><td>22369.00</td><td>-83.99</td><td>-0.37</td><td>-21.82</td><td>Loss</td></tr>
+<tr><td>NIFTY20240530.FUT.NSE</td><td>13.0</td><td>Long</td><td>TP</td><td>22266.13</td><td>14.0</td><td>22432.71</td><td>22266.13</td><td>22182.84</td><td>166.58</td><td>0.75</td><td>-52.84</td><td>Win</td></tr>
+<tr><td>NIFTY20240530.FUT.NSE</td><td>29.0</td><td>Short</td><td>TP</td><td>22454.62</td><td>30.0</td><td>22285.79</td><td>22454.62</td><td>22539.04</td><td>-168.83</td><td>-0.75</td><td>612.47</td><td>Loss</td></tr>
+<tr><td>NIFTY20240530.FUT.NSE</td><td>31.0</td><td>Long</td><td>TP</td><td>22261.62</td><td>32.0</td><td>22428.16</td><td>22261.62</td><td>22178.34</td><td>166.55</td><td>0.75</td><td>585.84</td><td>Win</td></tr>
+<tr><td>NIFTY20240530.FUT.NSE</td><td>42.0</td><td>Short</td><td>TP</td><td>22493.77</td><td>44.0</td><td>22324.65</td><td>22493.77</td><td>22578.34</td><td>-169.13</td><td>-0.75</td><td>-103.63</td><td>Loss</td></tr>
+<tr><td>NIFTY20240530.FUT.NSE</td><td>45.0</td><td>Long</td><td>TP</td><td>22130.99</td><td>47.0</td><td>22296.56</td><td>22130.99</td><td>22048.21</td><td>165.57</td><td>0.75</td><td>143.54</td><td>Win</td></tr>
+<tr><td>NIFTY20240627.FUT.NSE</td><td>10.0</td><td>Short</td><td>TP</td><td>22592.03</td><td>11.0</td><td>22422.16</td><td>22592.03</td><td>22676.96</td><td>-169.86</td><td>-0.75</td><td>85.95</td><td>Loss</td></tr>
+<tr><td>NIFTY20240627.FUT.NSE</td><td>12.0</td><td>Long</td><td>TP</td><td>22400.26</td><td>13.0</td><td>22567.84</td><td>22400.26</td><td>22316.47</td><td>167.58</td><td>0.75</td><td>67.81</td><td>Win</td></tr>
+<tr><td>NIFTY20240627.FUT.NSE</td><td>20.0</td><td>Long</td><td>TP</td><td>21962.92</td><td>21.0</td><td>22127.23</td><td>21962.92</td><td>21880.76</td><td>164.31</td><td>0.75</td><td>-225.61</td><td>Win</td></tr>
+<tr><td>NIFTY20240829.FUT.NSE</td><td>36.0</td><td>Short</td><td>SL</td><td>24520.99</td><td>38.0</td><td>24613.18</td><td>24520.99</td><td>24613.18</td><td>92.18</td><td>0.38</td><td>-270.35</td><td>Win</td></tr>
+<tr><td>NIFTY20240829.FUT.NSE</td><td>45.0</td><td>Short</td><td>SL</td><td>24042.69</td><td>46.0</td><td>24133.08</td><td>24042.69</td><td>24133.08</td><td>90.39</td><td>0.38</td><td>-22.03</td><td>Win</td></tr>
+<tr><td>NIFTY20240926.FUT.NSE</td><td>17.0</td><td>Short</td><td>SL</td><td>24657.85</td><td>19.0</td><td>24750.55</td><td>24657.85</td><td>24750.55</td><td>92.70</td><td>0.38</td><td>-293.29</td><td>Win</td></tr>
+<tr><td>NIFTY20240926.FUT.NSE</td><td>26.0</td><td>Short</td><td>SL</td><td>24170.57</td><td>27.0</td><td>24261.44</td><td>24170.57</td><td>24261.44</td><td>90.87</td><td>0.38</td><td>429.86</td><td>Win</td></tr>
+<tr><td>NIFTY20240926.FUT.NSE</td><td>49.0</td><td>Long</td><td>TP</td><td>24968.26</td><td>52.0</td><td>25155.06</td><td>24968.26</td><td>24874.87</td><td>186.79</td><td>0.75</td><td>721.06</td><td>Win</td></tr>
+<tr><td>NIFTY20241031.FUT.NSE</td><td>7.0</td><td>Short</td><td>SL</td><td>24291.32</td><td>8.0</td><td>24382.64</td><td>24291.32</td><td>24382.64</td><td>91.32</td><td>0.38</td><td>-263.89</td><td>Win</td></tr>
+<tr><td>NIFTY20241031.FUT.NSE</td><td>30.0</td><td>Long</td><td>SL</td><td>25106.11</td><td>32.0</td><td>25012.20</td><td>25106.11</td><td>25012.20</td><td>-93.91</td><td>-0.37</td><td>340.14</td><td>Loss</td></tr>
+<tr><td>NIFTY20241031.FUT.NSE</td><td>47.0</td><td>Short</td><td>TP</td><td>25904.33</td><td>48.0</td><td>25709.56</td><td>25904.33</td><td>26001.71</td><td>-194.77</td><td>-0.75</td><td>375.18</td><td>Loss</td></tr>
+<tr><td>NIFTY20241031.FUT.NSE</td><td>49.0</td><td>Short</td><td>TIME</td><td>25110.92</td><td>52.0</td><td>25117.90</td><td>25110.92</td><td>25205.32</td><td>6.98</td><td>0.03</td><td>728.04</td><td>Win</td></tr>
+<tr><td>NIFTY20241031.FUT.NSE</td><td>57.0</td><td>Short</td><td>TP</td><td>24986.18</td><td>59.0</td><td>24798.31</td><td>24986.18</td><td>25080.11</td><td>-187.87</td><td>-0.75</td><td>-21.44</td><td>Loss</td></tr>
+<tr><td>NIFTY20241031.FUT.NSE</td><td>60.0</td><td>Short</td><td>TP</td><td>24726.83</td><td>61.0</td><td>24540.91</td><td>24726.83</td><td>24819.79</td><td>-185.92</td><td>-0.75</td><td>-280.85</td><td>Loss</td></tr>
+<tr><td>NIFTY20241031.FUT.NSE</td><td>62.0</td><td>Short</td><td>TP</td><td>24421.44</td><td>63.0</td><td>24237.82</td><td>24421.44</td><td>24513.25</td><td>-183.62</td><td>-0.75</td><td>-536.66</td><td>Loss</td></tr>
+<tr><td>NIFTY20241031.FUT.NSE</td><td>64.0</td><td>Long</td><td>TP</td><td>24253.23</td><td>65.0</td><td>24434.68</td><td>24253.23</td><td>24162.51</td><td>181.45</td><td>0.75</td><td>-355.21</td><td>Win</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>23.0</td><td>Short</td><td>TP</td><td>26033.25</td><td>24.0</td><td>25837.52</td><td>26033.25</td><td>26131.12</td><td>-195.74</td><td>-0.75</td><td>346.79</td><td>Loss</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>25.0</td><td>Short</td><td>TIME</td><td>25263.88</td><td>28.0</td><td>25266.30</td><td>25263.88</td><td>25358.86</td><td>2.42</td><td>0.01</td><td>614.26</td><td>Win</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>34.0</td><td>Long</td><td>SL</td><td>25047.51</td><td>35.0</td><td>24953.82</td><td>25047.51</td><td>24953.82</td><td>-93.69</td><td>-0.37</td><td>-94.85</td><td>Loss</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>36.0</td><td>Short</td><td>TP</td><td>24862.39</td><td>37.0</td><td>24675.45</td><td>24862.39</td><td>24955.86</td><td>-186.94</td><td>-0.75</td><td>-431.18</td><td>Loss</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>38.0</td><td>Short</td><td>TP</td><td>24558.00</td><td>39.0</td><td>24373.35</td><td>24558.00</td><td>24650.32</td><td>-184.65</td><td>-0.75</td><td>-264.81</td><td>Loss</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>40.0</td><td>Long</td><td>TP</td><td>24394.13</td><td>41.0</td><td>24576.63</td><td>24394.13</td><td>24302.88</td><td>182.50</td><td>0.75</td><td>152.94</td><td>Win</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>46.0</td><td>Long</td><td>TP</td><td>24174.94</td><td>47.0</td><td>24355.80</td><td>24174.94</td><td>24084.51</td><td>180.86</td><td>0.75</td><td>324.40</td><td>Win</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>52.0</td><td>Short</td><td>TP</td><td>23899.70</td><td>53.0</td><td>23720.00</td><td>23899.70</td><td>23989.55</td><td>-179.70</td><td>-0.75</td><td>553.07</td><td>Loss</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>54.0</td><td>Short</td><td>TP</td><td>23542.70</td><td>56.0</td><td>23365.68</td><td>23542.70</td><td>23631.20</td><td>-177.01</td><td>-0.75</td><td>328.12</td><td>Loss</td></tr>
+<tr><td>NIFTY20241128.FUT.NSE</td><td>57.0</td><td>Long</td><td>TP</td><td>23407.07</td><td>58.0</td><td>23582.19</td><td>23407.07</td><td>23319.51</td><td>175.12</td><td>0.75</td><td>346.57</td><td>Win</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>14.0</td><td>Long</td><td>SL</td><td>25200.14</td><td>15.0</td><td>25105.88</td><td>25200.14</td><td>25105.88</td><td>-94.26</td><td>-0.37</td><td>-155.32</td><td>Loss</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>16.0</td><td>Short</td><td>TP</td><td>25021.89</td><td>17.0</td><td>24833.75</td><td>25021.89</td><td>25115.96</td><td>-188.13</td><td>-0.75</td><td>-594.18</td><td>Loss</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>18.0</td><td>Short</td><td>TP</td><td>24711.62</td><td>19.0</td><td>24525.81</td><td>24711.62</td><td>24804.52</td><td>-185.80</td><td>-0.75</td><td>-479.09</td><td>Loss</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>20.0</td><td>Long</td><td>TP</td><td>24551.02</td><td>21.0</td><td>24734.70</td><td>24551.02</td><td>24459.19</td><td>183.67</td><td>0.75</td><td>-41.94</td><td>Win</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>26.0</td><td>Long</td><td>TP</td><td>24324.06</td><td>27.0</td><td>24506.03</td><td>24324.06</td><td>24233.07</td><td>181.98</td><td>0.75</td><td>611.84</td><td>Win</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>32.0</td><td>Short</td><td>TP</td><td>24054.06</td><td>33.0</td><td>23873.21</td><td>24054.06</td><td>24144.49</td><td>-180.86</td><td>-0.75</td><td>173.09</td><td>Loss</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>34.0</td><td>Short</td><td>TP</td><td>23685.84</td><td>36.0</td><td>23507.75</td><td>23685.84</td><td>23774.88</td><td>-178.09</td><td>-0.75</td><td>-356.41</td><td>Loss</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>37.0</td><td>Long</td><td>TP</td><td>23560.70</td><td>38.0</td><td>23736.97</td><td>23560.70</td><td>23472.57</td><td>176.26</td><td>0.75</td><td>-79.33</td><td>Win</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>55.0</td><td>Short</td><td>TP</td><td>24356.61</td><td>56.0</td><td>24173.47</td><td>24356.61</td><td>24448.17</td><td>-183.13</td><td>-0.75</td><td>310.40</td><td>Loss</td></tr>
+<tr><td>NIFTY20241226.FUT.NSE</td><td>57.0</td><td>Short</td><td>TP</td><td>23958.75</td><td>58.0</td><td>23778.61</td><td>23958.75</td><td>24048.82</td><td>-180.14</td><td>-0.75</td><td>166.43</td><td>Loss</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>8.0</td><td>Short</td><td>TP</td><td>24212.07</td><td>9.0</td><td>24030.02</td><td>24212.07</td><td>24303.09</td><td>-182.05</td><td>-0.75</td><td>-535.99</td><td>Loss</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>10.0</td><td>Short</td><td>TP</td><td>23847.93</td><td>12.0</td><td>23668.62</td><td>23847.93</td><td>23937.58</td><td>-179.31</td><td>-0.75</td><td>-102.77</td><td>Loss</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>13.0</td><td>Long</td><td>TP</td><td>23721.21</td><td>14.0</td><td>23898.67</td><td>23721.21</td><td>23632.47</td><td>177.47</td><td>0.75</td><td>124.63</td><td>Win</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>31.0</td><td>Short</td><td>TP</td><td>24546.68</td><td>32.0</td><td>24362.12</td><td>24546.68</td><td>24638.96</td><td>-184.56</td><td>-0.75</td><td>401.28</td><td>Loss</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>33.0</td><td>Short</td><td>TP</td><td>24143.94</td><td>34.0</td><td>23962.41</td><td>24143.94</td><td>24234.71</td><td>-181.53</td><td>-0.75</td><td>73.09</td><td>Loss</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>44.0</td><td>Long</td><td>SL</td><td>23780.35</td><td>46.0</td><td>23691.40</td><td>23780.35</td><td>23691.40</td><td>-88.95</td><td>-0.37</td><td>-185.81</td><td>Loss</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>47.0</td><td>Short</td><td>TP</td><td>23588.98</td><td>48.0</td><td>23411.62</td><td>23588.98</td><td>23677.66</td><td>-177.36</td><td>-0.75</td><td>197.82</td><td>Loss</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>49.0</td><td>Long</td><td>TP</td><td>23220.01</td><td>51.0</td><td>23393.72</td><td>23220.01</td><td>23133.15</td><td>173.72</td><td>0.75</td><td>371.54</td><td>Win</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>55.0</td><td>Long</td><td>SL</td><td>23160.96</td><td>57.0</td><td>23074.32</td><td>23160.96</td><td>23074.32</td><td>-86.64</td><td>-0.37</td><td>223.76</td><td>Loss</td></tr>
+<tr><td>NIFTY20250130.FUT.NSE</td><td>59.0</td><td>Long</td><td>TP</td><td>22903.57</td><td>60.0</td><td>23074.91</td><td>22903.57</td><td>22817.89</td><td>171.35</td><td>0.75</td><td>3.45</td><td>Win</td></tr>
+<tr><td>NIFTY20250227.FUT.NSE</td><td>13.0</td><td>Short</td><td>TP</td><td>24697.20</td><td>14.0</td><td>24511.51</td><td>24697.20</td><td>24790.05</td><td>-185.69</td><td>-0.75</td><td>-61.06</td><td>Loss</td></tr>
+<tr><td>NIFTY20250227.FUT.NSE</td><td>15.0</td><td>Short</td><td>TP</td><td>24295.11</td><td>16.0</td><td>24112.44</td><td>24295.11</td><td>24386.44</td><td>-182.67</td><td>-0.75</td><td>-398.99</td><td>Loss</td></tr>
+<tr><td>NIFTY20250227.FUT.NSE</td><td>26.0</td><td>Long</td><td>SL</td><td>23916.99</td><td>28.0</td><td>23827.53</td><td>23916.99</td><td>23827.53</td><td>-89.47</td><td>-0.37</td><td>524.79</td><td>Loss</td></tr>
+<tr><td>NIFTY20250227.FUT.NSE</td><td>29.0</td><td>Short</td><td>TP</td><td>23729.83</td><td>30.0</td><td>23551.41</td><td>23729.83</td><td>23819.04</td><td>-178.42</td><td>-0.75</td><td>434.05</td><td>Loss</td></tr>
+<tr><td>NIFTY20250227.FUT.NSE</td><td>31.0</td><td>Long</td><td>TP</td><td>23356.30</td><td>33.0</td><td>23531.03</td><td>23356.30</td><td>23268.93</td><td>174.74</td><td>0.75</td><td>576.02</td><td>Win</td></tr>
+<tr><td>NIFTY20250227.FUT.NSE</td><td>37.0</td><td>Long</td><td>SL</td><td>23293.99</td><td>39.0</td><td>23206.86</td><td>23293.99</td><td>23206.86</td><td>-87.13</td><td>-0.37</td><td>-6.32</td><td>Loss</td></tr>
+<tr><td>NIFTY20250227.FUT.NSE</td><td>41.0</td><td>Long</td><td>TP</td><td>23025.82</td><td>42.0</td><td>23198.08</td><td>23025.82</td><td>22939.69</td><td>172.26</td><td>0.75</td><td>325.20</td><td>Win</td></tr>
+<tr><td>NIFTY20250227.FUT.NSE</td><td>53.0</td><td>Short</td><td>TIME</td><td>23095.27</td><td>56.0</td><td>23026.40</td><td>23095.27</td><td>23182.09</td><td>-68.87</td><td>-0.30</td><td>505.13</td><td>Loss</td></tr>
+<tr><td>NIFTY20250227.FUT.NSE</td><td>58.0</td><td>Short</td><td>TP</td><td>22915.17</td><td>61.0</td><td>22742.87</td><td>22915.17</td><td>23001.32</td><td>-172.29</td><td>-0.75</td><td>-168.84</td><td>Loss</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>7.0</td><td>Long</td><td>SL</td><td>24074.64</td><td>9.0</td><td>23984.58</td><td>24074.64</td><td>23984.58</td><td>-90.05</td><td>-0.37</td><td>-353.94</td><td>Loss</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>10.0</td><td>Short</td><td>TP</td><td>23889.18</td><td>11.0</td><td>23709.56</td><td>23889.18</td><td>23978.99</td><td>-179.62</td><td>-0.75</td><td>-93.67</td><td>Loss</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>12.0</td><td>Long</td><td>TP</td><td>23511.43</td><td>14.0</td><td>23687.33</td><td>23511.43</td><td>23423.48</td><td>175.90</td><td>0.75</td><td>81.53</td><td>Win</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>18.0</td><td>Long</td><td>SL</td><td>23449.68</td><td>20.0</td><td>23361.96</td><td>23449.68</td><td>23361.96</td><td>-87.72</td><td>-0.37</td><td>-405.57</td><td>Loss</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>22.0</td><td>Long</td><td>TP</td><td>23178.30</td><td>23.0</td><td>23351.70</td><td>23178.30</td><td>23091.60</td><td>173.40</td><td>0.75</td><td>212.91</td><td>Win</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>34.0</td><td>Short</td><td>TIME</td><td>23235.57</td><td>37.0</td><td>23162.05</td><td>23235.57</td><td>23322.92</td><td>-73.52</td><td>-0.32</td><td>-244.24</td><td>Loss</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>39.0</td><td>Short</td><td>SL</td><td>23043.60</td><td>40.0</td><td>23130.23</td><td>23043.60</td><td>23130.23</td><td>86.63</td><td>0.38</td><td>-178.18</td><td>Win</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>41.0</td><td>Short</td><td>TP</td><td>23025.64</td><td>42.0</td><td>22852.52</td><td>23025.64</td><td>23112.20</td><td>-173.13</td><td>-0.75</td><td>152.07</td><td>Loss</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>43.0</td><td>Short</td><td>TP</td><td>22687.69</td><td>45.0</td><td>22517.10</td><td>22687.69</td><td>22772.98</td><td>-170.58</td><td>-0.75</td><td>-89.18</td><td>Loss</td></tr>
+<tr><td>NIFTY20250327.FUT.NSE</td><td>46.0</td><td>Short</td><td>SL</td><td>22224.35</td><td>48.0</td><td>22307.90</td><td>22224.35</td><td>22307.90</td><td>83.55</td><td>0.38</td><td>407.95</td><td>Win</td></tr>
+<tr><td>NIFTY20250424.FUT.NSE</td><td>9.0</td><td>Short</td><td>TIME</td><td>23382.40</td><td>12.0</td><td>23304.45</td><td>23382.40</td><td>23470.30</td><td>-77.95</td><td>-0.33</td><td>-99.77</td><td>Loss</td></tr>
+<tr><td>NIFTY20250424.FUT.NSE</td><td>14.0</td><td>Short</td><td>SL</td><td>23193.02</td><td>15.0</td><td>23280.21</td><td>23193.02</td><td>23280.21</td><td>87.19</td><td>0.38</td><td>-68.13</td><td>Win</td></tr>
+<tr><td>NIFTY20250424.FUT.NSE</td><td>16.0</td><td>Short</td><td>TP</td><td>23168.38</td><td>17.0</td><td>22994.19</td><td>23168.38</td><td>23255.48</td><td>-174.20</td><td>-0.75</td><td>-768.38</td><td>Loss</td></tr>
+<tr><td>NIFTY20250424.FUT.NSE</td><td>18.0</td><td>Short</td><td>TP</td><td>22837.86</td><td>20.0</td><td>22666.15</td><td>22837.86</td><td>22923.72</td><td>-171.71</td><td>-0.75</td><td>-577.28</td><td>Loss</td></tr>
+<tr><td>NIFTY20250424.FUT.NSE</td><td>21.0</td><td>Short</td><td>SL</td><td>22375.37</td><td>23.0</td><td>22459.49</td><td>22375.37</td><td>22459.49</td><td>84.12</td><td>0.38</td><td>39.51</td><td>Win</td></tr>
+<tr><td>NIFTY20250424.FUT.NSE</td><td>41.0</td><td>Long</td><td>SL</td><td>23379.70</td><td>42.0</td><td>23292.25</td><td>23379.70</td><td>23292.25</td><td>-87.46</td><td>-0.37</td><td>64.61</td><td>Loss</td></tr>
+<tr><td>NIFTY20250424.FUT.NSE</td><td>44.0</td><td>Short</td><td>TP</td><td>22900.75</td><td>45.0</td><td>22728.57</td><td>22900.75</td><td>22986.85</td><td>-172.19</td><td>-0.75</td><td>-187.88</td><td>Loss</td></tr>
+<tr><td>NIFTY20250529.FUT.NSE</td><td>10.0</td><td>Long</td><td>TP</td><td>22750.89</td><td>11.0</td><td>22921.09</td><td>22750.89</td><td>22665.78</td><td>170.21</td><td>0.75</td><td>76.54</td><td>Win</td></tr>
+<tr><td>NIFTY20250529.FUT.NSE</td><td>21.0</td><td>Long</td><td>SL</td><td>23496.09</td><td>22.0</td><td>23408.20</td><td>23496.09</td><td>23408.20</td><td>-87.89</td><td>-0.37</td><td>-55.97</td><td>Loss</td></tr>
+<tr><td>NIFTY20250529.FUT.NSE</td><td>24.0</td><td>Short</td><td>TP</td><td>23022.10</td><td>25.0</td><td>22849.00</td><td>23022.10</td><td>23108.65</td><td>-173.10</td><td>-0.75</td><td>173.69</td><td>Loss</td></tr>
+<tr><td>NIFTY20250529.FUT.NSE</td><td>44.0</td><td>Short</td><td>SL</td><td>24211.22</td><td>45.0</td><td>24302.24</td><td>24211.22</td><td>24302.24</td><td>91.02</td><td>0.38</td><td>-96.86</td><td>Win</td></tr>
+<tr><td>NIFTY20250529.FUT.NSE</td><td>54.0</td><td>Long</td><td>TP</td><td>24713.83</td><td>55.0</td><td>24898.72</td><td>24713.83</td><td>24621.38</td><td>184.89</td><td>0.75</td><td>656.89</td><td>Win</td></tr>
+<tr><td>NIFTY20250626.FUT.NSE</td><td>25.0</td><td>Short</td><td>SL</td><td>24301.69</td><td>26.0</td><td>24393.05</td><td>24301.69</td><td>24393.05</td><td>91.36</td><td>0.38</td><td>338.99</td><td>Win</td></tr>
+<tr><td>NIFTY20250626.FUT.NSE</td><td>35.0</td><td>Long</td><td>TP</td><td>24819.90</td><td>36.0</td><td>25005.58</td><td>24819.90</td><td>24727.05</td><td>185.69</td><td>0.75</td><td>-170.72</td><td>Win</td></tr>
+<tr><td>NIFTY20250626.FUT.NSE</td><td>42.0</td><td>Short</td><td>SL</td><td>24764.23</td><td>44.0</td><td>24857.33</td><td>24764.23</td><td>24857.33</td><td>93.10</td><td>0.38</td><td>-10.53</td><td>Win</td></tr>
+<tr><td>NIFTY20250626.FUT.NSE</td><td>51.0</td><td>Long</td><td>TIME</td><td>24789.22</td><td>54.0</td><td>24803.10</td><td>24789.22</td><td>24696.49</td><td>13.88</td><td>0.06</td><td>566.95</td><td>Win</td></tr>
+<tr><td>NIFTY20250731.FUT.NSE</td><td>9.0</td><td>Short</td><td>SL</td><td>24449.62</td><td>10.0</td><td>24541.54</td><td>24449.62</td><td>24541.54</td><td>91.92</td><td>0.38</td><td>255.81</td><td>Win</td></tr>
+<tr><td>NIFTY20250731.FUT.NSE</td><td>19.0</td><td>Long</td><td>TP</td><td>24958.94</td><td>20.0</td><td>25145.67</td><td>24958.94</td><td>24865.58</td><td>186.73</td><td>0.75</td><td>-464.66</td><td>Win</td></tr>
+<tr><td>NIFTY20250731.FUT.NSE</td><td>26.0</td><td>Short</td><td>SL</td><td>24903.19</td><td>28.0</td><td>24996.81</td><td>24903.19</td><td>24996.81</td><td>93.62</td><td>0.38</td><td>618.41</td><td>Win</td></tr>
+<tr><td>NIFTY20250731.FUT.NSE</td><td>35.0</td><td>Long</td><td>TIME</td><td>24918.94</td><td>38.0</td><td>24915.50</td><td>24918.94</td><td>24825.73</td><td>-3.44</td><td>-0.01</td><td>-434.62</td><td>Loss</td></tr>
+<tr><td>NIFTY20250828.FUT.NSE</td><td>11.0</td><td>Long</td><td>TIME</td><td>25032.42</td><td>14.0</td><td>25017.90</td><td>25032.42</td><td>24938.79</td><td>-14.52</td><td>-0.06</td><td>53.29</td><td>Loss</td></tr>
+  </tbody>
+</table>
+</body></html>

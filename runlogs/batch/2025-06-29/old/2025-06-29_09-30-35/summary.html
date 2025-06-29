@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Batch Back-test Summary</title>
+  <link rel="stylesheet" href="assets/report.css"/>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+<h1>Batch Back-test Summary</h1>
+<p>Generated at 2025-06-29 09:30:35</p>
+
+<h2>Overall KPIs</h2>
+<div class="kpi">Total PnL: 117.00</div>
+<div class="kpi">Total Trades: 3</div>
+<div class="kpi">Win Rate: 100.00%</div>
+<div class="kpi">Avg Sharpe: 178.86</div>
+
+<h2>Instrument Leaderboard</h2>
+<table class="table">
+  <thead><tr><th>Instrument</th><th>PnL</th><th>Sharpe</th></tr></thead>
+  <tbody>
+  <tr><td>AAA.FUT.NSE</td><td>39.00</td><td>174.59</td></tr>
+<tr><td>BBB.FUT.NSE</td><td>39.00</td><td>178.86</td></tr>
+<tr><td>CCC.FUT.NSE</td><td>39.00</td><td>183.13</td></tr>
+  </tbody>
+</table>
+
+<h2>PnL Bar Chart</h2>
+<div id="pnl_bar"></div>
+<script>
+const data = [{'type': 'bar', 'x': ['AAA.FUT.NSE', 'BBB.FUT.NSE', 'CCC.FUT.NSE'], 'y': [39.0, 39.0, 39.0], 'marker': {'color': '#4a90e2'}}];
+Plotly.newPlot('pnl_bar', data, {margin:{t:20}});
+</script>
+
+<h2>Trade Details</h2>
+<table class="table">
+  <thead>
+    <tr><th>Instrument</th><th>Entry_Date</th><th>Trade_Type</th><th>Exit_Reason</th><th>Entry_Price</th><th>IV</th><th>OI</th><th>Exit_Date</th><th>Exit_Price</th><th>Threshold</th><th>SL_Price</th><th>Realised_PnL</th><th>PnL%</th><th>Markdown_pct</th><th>Sharpe</th><th>Cum_PnL</th><th>is_win</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>UNKNOWN</td><td>N/A</td><td>Long</td><td>N/A</td><td>106.00</td><td>None</td><td>None</td><td>N/A</td><td>145.00</td><td>None</td><td>None</td><td>39.00</td><td>36.79</td><td>None</td><td>174.59</td><td>39.00</td><td>True</td></tr>
+<tr><td>UNKNOWN</td><td>N/A</td><td>Long</td><td>N/A</td><td>109.00</td><td>None</td><td>None</td><td>N/A</td><td>148.00</td><td>None</td><td>None</td><td>39.00</td><td>35.78</td><td>None</td><td>178.86</td><td>78.00</td><td>True</td></tr>
+<tr><td>UNKNOWN</td><td>N/A</td><td>Long</td><td>N/A</td><td>112.00</td><td>None</td><td>None</td><td>N/A</td><td>151.00</td><td>None</td><td>None</td><td>39.00</td><td>34.82</td><td>None</td><td>183.13</td><td>117.00</td><td>True</td></tr>
+  </tbody>
+</table>
+</body></html>

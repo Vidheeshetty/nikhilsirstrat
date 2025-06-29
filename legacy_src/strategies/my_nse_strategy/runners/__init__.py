@@ -18,14 +18,14 @@ from .backtest import (
     ConfigManager,
     DataManager,
     EngineManager,
-    ResultsProcessor
+    ResultsProcessor,
 )
 
 __all__ = [
-    'ReportGenerator',
-    'BacktestOrchestrator',
-    'ConfigManager',
-    'DataManager', 
-    'EngineManager',
-    'ResultsProcessor',
-] 
+    "ReportGenerator",
+    "BacktestOrchestrator",
+    "ConfigManager",
+    "DataManager",
+    "EngineManager",
+    "ResultsProcessor",
+]

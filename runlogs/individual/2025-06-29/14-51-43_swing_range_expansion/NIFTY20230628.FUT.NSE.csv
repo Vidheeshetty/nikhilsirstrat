@@ -1,0 +1,2 @@
+pnl,return_pct,mdd_pct,max_drawdown_pct,sharpe,instrument_id,trades,data_source
+39.0,34.82,0.0,0.0,183.13,NIFTY20230628.FUT.NSE,[],Daily bars (Parquet catalog: 1-DAY-LAST)

@@ -11,11 +11,11 @@ print(f"Current directory: {current_dir}")
 if os.path.basename(current_dir) == "Jupyter Code":
     # We're in Jupyter Code folder, go up one level
     project_root = os.path.dirname(current_dir)
-    src_path = os.path.join(project_root, 'src')
+    src_path = os.path.join(project_root, "src")
 else:
     # We're in project root or somewhere else
     project_root = current_dir
-    src_path = os.path.join(project_root, 'src')
+    src_path = os.path.join(project_root, "src")
 
 # Add paths to sys.path
 paths_added = []
@@ -39,4 +39,4 @@ print(f"   Source directory: {src_path}")
 print(f"   Current working directory: {os.getcwd()}")
 
 print(f"\n🔧 Ready to import modules!")
-print(f"   You can now use: from strategies.my_nse_strategy import MyNSEStrategy") 
+print(f"   You can now use: from strategies.my_nse_strategy import MyNSEStrategy")

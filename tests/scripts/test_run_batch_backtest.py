@@ -9,11 +9,18 @@ def test_run_batch_backtest_cli(tmp_path):
     instruments = ["AAA.FUT.NSE", "BBB.FUT.NSE"]
 
     result = subprocess.run(
-        [sys.executable, str(script), "--instruments", *instruments, "--outfile", str(tmp_path / "out.json")],
+        [
+            sys.executable,
+            str(script),
+            "--instruments",
+            *instruments,
+            "--outfile",
+            str(tmp_path / "out.json"),
+        ],
         capture_output=True,
         text=True,
         check=True,
     )
 
     data = json.loads(result.stdout)
-    assert data["num_instruments"] == 2 
+    assert data["num_instruments"] == 2

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-"""Common indicator helpers (zero external dependencies).
+"""Technical indicator utilities for strategy implementations.
 
-Contains lightweight SMA & EMA implementations so core strategy code can rely
-on centralised, tested utilities.
+Provides common technical analysis functions used by trading strategies,
+implemented as pure functions for easy testing and reusability.
 """
 
 from typing import Sequence

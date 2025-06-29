@@ -1,4 +1,3 @@
-from pathlib import Path
 from utils.reporting.controller import ReportController
 
 
@@ -22,4 +21,4 @@ def test_report_controller_single(tmp_path):
     out_dir = ctrl.generate(results)
     assert (out_dir / "AAA.html").exists()
     assert (out_dir / "AAA.csv").exists()
-    assert (out_dir / "assets" / "report.css").exists() 
+    assert (out_dir / "assets" / "report.css").exists()
