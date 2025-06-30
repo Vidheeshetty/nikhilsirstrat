@@ -62,3 +62,20 @@ assets/
 # Generated reports
 *.html
 *.csv
+
+# Tool caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.history/
+
+# Jupyter checkpoints
+**/.ipynb_checkpoints/
+
+# Plot artefacts
+runlogs/plots/
+guide/**/plots/
+
+# Ad-hoc logs
+backtest.log
+pytest.log
