@@ -26,43 +26,90 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
 
     # ------------------------------------------------------------------
     @staticmethod
-    def _default_prices(instrument_id: str) -> List[float]:  # noqa: D401
-        """Load minute-level prices using DataManager or direct parquet fallback.
+    def _default_prices(instrument_id: str) -> List[Any]:  # noqa: D401
+        """Prefer real OHLC bars from the local Parquet catalog; gracefully
+        degrade to LAST price series or ultimately synthetic data so unit tests
+        remain deterministic.
 
-        1. Try DataManager (which fetches daily bars by default – may work if
-           intraday minutes are registered).
-        2. Fallback to reading `catalog-meta/bar_metadata.parquet` directly and
-           extracting the "last" column for the requested *instrument_id*.
-        3. If both paths fail, return synthetic stub prices so tests remain
-           green.
+        The returned list items are *either*:
+        • objects exposing ``open``, ``high``, ``low``, ``close``, ``timestamp``
+          attributes (when bar data available), or
+        • plain ``float`` close prices (fallback modes).
         """
-        # First attempt via DataManager -----------------------------------
-        dm = DataManager(catalog_path="catalog-data/zerodha-gold-guinea")
-        try:
-            return dm.get_trade_ticks(instrument_id, allow_stub=False)
-        except Exception:  # pylint: disable=broad-except
-            pass
 
-        # Second attempt – direct parquet read ---------------------------
-        import pandas as pd
+        from types import SimpleNamespace
+        import pandas as pd  # local import to avoid heavyweight dep at module level
         from pathlib import Path
 
+        # ------------------------------------------------------------------
+        # 1) Minute-level bars ------------------------------------------------
+        # ------------------------------------------------------------------
+        bar_dir = Path(
+            f"catalog-data/zerodha-gold-guinea/catalog/data/bar/{instrument_id}-1-MINUTE-LAST-EXTERNAL"
+        )
+        if bar_dir.exists():
+            try:
+                parts = sorted(bar_dir.glob("*.parquet"))
+                if parts:
+                    df = pd.read_parquet(parts[0])
+                    # Chronological order ------------------------------------------------
+                    if "ts" in df.columns:
+                        df = df.sort_values("ts")
+                    elif "timestamp" in df.columns:
+                        df = df.sort_values("timestamp")
+
+                    opens = df["open"].tolist()
+                    highs = df["high"].tolist()
+                    lows = df["low"].tolist()
+                    closes = df["close"].tolist()
+
+                    if "ts" in df.columns:
+                        ts_series = df["ts"].tolist()
+                    elif "timestamp" in df.columns:
+                        ts_series = df["timestamp"].tolist()
+                    else:
+                        ts_series = []
+
+                    bars: list[Any] = []
+                    for idx in range(len(closes)):
+                        ts_val = ts_series[idx] if ts_series else idx
+                        bars.append(
+                            SimpleNamespace(
+                                open=float(opens[idx]),
+                                high=float(highs[idx]),
+                                low=float(lows[idx]),
+                                close=float(closes[idx]),
+                                timestamp=int(ts_val),
+                            )
+                        )
+                    if bars:
+                        return bars
+            except Exception:  # pragma: no cover
+                pass
+
+        # ------------------------------------------------------------------
+        # 2) LAST price series from bar metadata (no high/low information)
+        # ------------------------------------------------------------------
         meta_path = Path("catalog-data/zerodha-gold-guinea/catalog-meta/bar_metadata.parquet")
         if meta_path.exists():
             try:
                 df = pd.read_parquet(meta_path, columns=["instrument_id", "timestamp", "last"])
-                df = df[df["instrument_id"] == instrument_id]
+                df = df[df["instrument_id"] == instrument_id].sort_values("timestamp")
                 if not df.empty:
-                    df = df.sort_values("timestamp")
-                    return df["last"].astype(float).tolist()
+                    return [float(x) for x in df["last"].tolist()]
             except Exception:  # pragma: no cover
                 pass
 
-        # Final fallback – synthetic prices ------------------------------
+        # ------------------------------------------------------------------
+        # 3) Deterministic synthetic fallback --------------------------------
+        # ------------------------------------------------------------------
+        dm = DataManager(catalog_path="catalog-data/zerodha-gold-guinea")
         return dm._synthetic_prices(instrument_id)  # type: ignore[attr-defined]
 
     # ------------------------------------------------------------------
     def run(self, instrument_id: str) -> Dict[str, Any]:  # noqa: D401
+        from pathlib import Path
+        from datetime import datetime
         # Load YAML config if present next to strategy, else default dataclass
         default_yaml_path = (
             Path(__file__).resolve().parents[2] / "strategy.yaml"
@@ -79,6 +126,7 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
             cfg = SmaFractalScalperConfig()
 
         strat = SmaFractalScalper(cfg)
+        print('DEBUG config use_fractals', cfg.use_fractals)
 
         eng_mgr = EngineManager()
         data_mgr = DataManager(catalog_path="catalog-data/zerodha-gold-guinea")
@@ -91,15 +139,43 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
 
         # ------------------------------------------------------------------
         # Price series: delegate to configurable provider so we can inject
-        # intraday loaders, synthetic stubs, etc.
+        # *either* real OHLC bars *or* simple close-price floats depending on
+        # data availability.
         # ------------------------------------------------------------------
-        prices = self._prices_provider(instrument_id)
-        if not prices:
-            raise ValueError(f"No prices found for {instrument_id}")
-        eng_mgr.add_data(engine, prices)
+        prices_or_bars = self._prices_provider(instrument_id)
+        if not prices_or_bars:
+            raise ValueError(f"No price data found for {instrument_id}")
+
+        eng_mgr.add_data(engine, prices_or_bars)
+
+        # For period calculation we load timestamps from parquet meta again
+        from pathlib import Path as _P
+        import pandas as _pd
+        meta_path = _P("catalog-data/zerodha-gold-guinea/catalog-meta/bar_metadata.parquet")
+        if meta_path.exists():
+            _df = _pd.read_parquet(meta_path, columns=["instrument_id", "timestamp"])
+            _df = _df[_df["instrument_id"] == instrument_id].sort_values("timestamp")
+            if not _df.empty:
+                start_ns = int(_df["timestamp"].iloc[0])
+                end_ns = int(_df["timestamp"].iloc[-1])
+            else:
+                start_ns = end_ns = None
+        else:
+            start_ns = end_ns = None
 
         eng_mgr.add_strategy(engine, strat)
+        engine = eng_mgr._engine  # use possibly replaced stub engine
         eng_mgr.run_backtest(engine)
+
+        # Manually invoke on_stop so strategy can record and close any open
+        # positions – stub BacktestEngine does not call lifecycle hooks.
+        try:
+            strat.on_stop()
+        except Exception:  # pragma: no cover
+            pass
+
+        print('DEBUG trades len', len(strat.trades))
+
         result = eng_mgr.get_results(engine)
 
         eng_mgr.cleanup()
@@ -108,11 +184,14 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
         trades = strat.trades
         for tr in trades:
             tr["Instrument"] = instrument_id
+            tr["MDD_pct"] = result.get("mdd_pct")
 
         # Fallback to synthetic single trade if strategy produced none ----
         if not trades:
-            entry_price = prices[0]
-            exit_price = prices[-1]
+            # Handle both bar objects and price floats --------------------
+            has_close_attr = hasattr(prices_or_bars[0], "close")
+            entry_price = prices_or_bars[0].close if has_close_attr else prices_or_bars[0]
+            exit_price = prices_or_bars[-1].close if has_close_attr else prices_or_bars[-1]
             realised_pnl = exit_price - entry_price
             pnl_pct = (realised_pnl / entry_price * 100) if entry_price else 0.0
             trades = [
@@ -136,10 +215,17 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
                 }
             ]
 
+        # Peak exposure approximation: max entry price / leverage
+        LEVERAGE = 10
+        peak_expo = max(t["Entry_Price"] for t in trades) / LEVERAGE if trades else 0.0
+
         merged: Dict[str, Any] = {**result}
         merged["instrument_id"] = instrument_id
         merged["trades"] = trades
         merged["data_source"] = data_mgr.describe_source()
+        merged["start_time"] = start_ns
+        merged["end_time"] = end_ns
+        merged["peak_exposure"] = peak_expo
 
         # ------------------------------------------------------------------
         # Save indicator plot for visual inspection ------------------------
@@ -148,16 +234,73 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
             import pandas as pd
             from pathlib import Path
             import plotly.graph_objects as go
-            from datetime import datetime
-            # Build DataFrame
-            df = pd.DataFrame({"price": prices})
+
+            # Build DataFrame of close prices -----------------------------
+            if prices_or_bars and hasattr(prices_or_bars[0], "close"):
+                close_ser = [bar.close for bar in prices_or_bars]
+            else:
+                close_ser = [float(p) for p in prices_or_bars]
+
+            df = pd.DataFrame({"price": close_ser})
             df["sma_short"] = df["price"].rolling(5).mean()
             df["sma_long"] = df["price"].rolling(200).mean()
             df["idx"] = range(len(df))
+            # -------------------- FRACTAL CALCULATION ---------------------
+            # We replicate the 5-bar fractal logic using the synthetic high/low
+            # values generated inside the strategy (±0.25% of close). This gives
+            # an approximate visual reference of the breakout levels.
+            df["high"] = df["price"] * 1.0025
+            df["low"] = df["price"] * 0.9975
+
+            frac_high_x, frac_high_y, frac_low_x, frac_low_y = [], [], [], []
+            for i in range(4, len(df)):
+                center = i - 2  # the potential fractal pivot
+                window_slice = slice(i - 4, i + 1)
+
+                # High fractal -------------------------------------------------
+                highs_window = df["high"].iloc[window_slice]
+                if (
+                    df["high"].iloc[center] == highs_window.max() and
+                    df["high"].iloc[center] > highs_window.drop(index=highs_window.index[2]).max()
+                ):
+                    frac_high_x.append(df["idx"].iloc[center])
+                    frac_high_y.append(df["high"].iloc[center])
+
+                # Low fractal --------------------------------------------------
+                lows_window = df["low"].iloc[window_slice]
+                if (
+                    df["low"].iloc[center] == lows_window.min() and
+                    df["low"].iloc[center] < lows_window.drop(index=lows_window.index[2]).min()
+                ):
+                    frac_low_x.append(df["idx"].iloc[center])
+                    frac_low_y.append(df["low"].iloc[center])
+
+            # ----------------------- PLOTLY FIG ----------------------------
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=df["idx"], y=df["price"], name="Price"))
             fig.add_trace(go.Scatter(x=df["idx"], y=df["sma_short"], name="5-SMA"))
             fig.add_trace(go.Scatter(x=df["idx"], y=df["sma_long"], name="200-SMA"))
+            # Overlay fractal markers ---------------------------------------
+            if frac_high_x:
+                fig.add_trace(
+                    go.Scatter(
+                        x=frac_high_x,
+                        y=frac_high_y,
+                        mode="markers",
+                        name="High Fractal",
+                        marker=dict(color="orange", symbol="triangle-up", size=7),
+                    )
+                )
+            if frac_low_x:
+                fig.add_trace(
+                    go.Scatter(
+                        x=frac_low_x,
+                        y=frac_low_y,
+                        mode="markers",
+                        name="Low Fractal",
+                        marker=dict(color="purple", symbol="triangle-down", size=7),
+                    )
+                )
             ts = datetime.now().strftime("%H-%M-%S")
             plot_dir = Path("runlogs/plots")
             plot_dir.mkdir(parents=True, exist_ok=True)
