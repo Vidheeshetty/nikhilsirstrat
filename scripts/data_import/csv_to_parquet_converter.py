@@ -231,9 +231,9 @@ def write_meta(
 def _validate_interval(interval: str):
     import re
 
-    if not re.match(r"^\d+-(MIN|DAY|HOUR)$", interval):
+    if not re.match(r"^\d+-(MIN|MINUTE|DAY|HOUR)$", interval):
         raise ValueError(
-            f"Unsupported bar_interval '{interval}' – must match <num>-(MIN|DAY|HOUR)"
+            f"Unsupported bar_interval '{interval}' – must match <num>-(MIN|MINUTE|DAY|HOUR)"
         )
 
 

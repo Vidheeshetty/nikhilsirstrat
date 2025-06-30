@@ -62,6 +62,12 @@ def parse_args():
     parser.add_argument(
         "--catalog_path", type=str, help="Override Parquet catalog root(s)"
     )
+    parser.add_argument(
+        "--bar_interval",
+        type=str,
+        default="1-DAY",
+        help="Bar interval to load from catalog (e.g., 1-DAY, 1-MINUTE)",
+    )
     return parser.parse_args()
 
 
@@ -101,7 +107,7 @@ def main() -> None:
 
         os.environ["DATA_CATALOG_ROOTS"] = catalog_path
 
-    dm = DataManager(catalog_path=catalog_path)
+    dm = DataManager(catalog_path=catalog_path, bar_interval=args.bar_interval)
     if len(instruments) == 1 and instruments[0].upper() == "ALL":
         instruments = dm.get_all_instrument_ids()
 

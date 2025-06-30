@@ -13,7 +13,7 @@ supporting both real Nautilus Parquet catalogs and synthetic test data.
 class DataManager:  # pylint: disable=too-few-public-methods
     """Return price series; prefers real parquet catalog if available."""
 
-    def __init__(self, catalog_path: str | None = None):
+    def __init__(self, catalog_path: str | None = None, *, bar_interval: str = "1-DAY"):
         """Initialise, optionally with *catalog_path* or env DATA_CATALOG_ROOTS.
 
         *catalog_path* may be a colon-separated list of roots.  Each root must
@@ -59,7 +59,8 @@ class DataManager:  # pylint: disable=too-few-public-methods
                 normalised_roots.append(rp)
                 seen.add(rp)
 
-        self._catalogs = []
+        self._catalogs: list["ParquetDataCatalog"] = []
+        self._interval = bar_interval.upper()
         for root in normalised_roots:
             try:
                 from nautilus_trader.persistence.catalog.parquet import (
@@ -123,7 +124,7 @@ class DataManager:  # pylint: disable=too-few-public-methods
                     return None
 
                 bars = cat.bars(
-                    bar_types=[f"{instrument_id}-1-DAY-LAST-EXTERNAL"],
+                    bar_types=[f"{instrument_id}-{self._interval}-LAST-EXTERNAL"],
                     start=_to_ns(start),
                     end=_to_ns(end),
                     as_nautilus=False,
