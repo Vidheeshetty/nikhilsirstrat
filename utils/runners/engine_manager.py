@@ -92,15 +92,16 @@ class EngineManager:  # pylint: disable=too-few-public-methods
         if NAUTILUS_AVAILABLE and isinstance(engine, NTBacktestEngine):
             engine.add_strategy(strategy)
         else:
-            # Re-create stub engine with callback
-            self._engine = BacktestEngine(strategy.on_quote)
-        # Store stop-loss percentage if available so we can compute SL price
-        try:
-            self._sl_pct = getattr(strategy.config, "sl_pct", None)
-        except Exception:  # pragma: no cover
-            self._sl_pct = None
+            # Auto-detect whether strategy exposes `on_bar` (preferred when full
+            # OHLCV bars are available) or falls back to `on_quote` (single
+            # price ticks). The stub BacktestEngine simply forwards each item
+            # in the supplied data list to *callback*, so we select the method
+            # that matches the shape of the data the caller will provide.
+            callback = getattr(strategy, "on_bar", getattr(strategy, "on_quote", None))
+            if callback is None:
+                raise AttributeError("Strategy must implement on_bar or on_quote")
+            self._engine = BacktestEngine(callback)
 
-    # ------------------------------------------------------------------
     def run_backtest(self, engine: BacktestEngine) -> None:  # noqa: D401
         if NAUTILUS_AVAILABLE and isinstance(engine, NTBacktestEngine):
             engine.run()
@@ -110,7 +111,19 @@ class EngineManager:  # pylint: disable=too-few-public-methods
             engine.run(self._prices)
 
     def get_results(self, _engine: BacktestEngine) -> dict[str, Any]:  # noqa: D401
-        metrics = calculate_metrics(self._prices or [])
+        # ------------------------------------------------------------------
+        # Ensure *metrics* calculation works regardless of whether we stored
+        # raw price floats or full bar objects.  If the first element exposes
+        # a ``close`` attribute we derive the close series; otherwise assume
+        # the items *are* price floats already.
+        # ------------------------------------------------------------------
+        price_series = self._prices or []
+        if price_series and hasattr(price_series[0], "close"):
+            closes = [float(getattr(bar, "close", 0.0)) for bar in price_series]
+        else:
+            closes = [float(p) for p in price_series]
+
+        metrics = calculate_metrics(closes)
         metrics["num_quotes"] = len(self._prices or [])
 
         trade_details: list[dict[str, Any]] = []
@@ -171,9 +184,9 @@ class EngineManager:  # pylint: disable=too-few-public-methods
         # trade tables even when the stub engine (or an engine that does not
         # expose executed trades) is used.
         # ------------------------------------------------------------------
-        if not trade_details and self._prices:
-            entry_price = float(self._prices[0])
-            exit_price = float(self._prices[-1])
+        if not trade_details and price_series:
+            entry_price = float(closes[0]) if closes else 0.0
+            exit_price = float(closes[-1]) if closes else 0.0
             realised = exit_price - entry_price
             pct = (realised / entry_price * 100) if entry_price else 0.0
 
@@ -205,6 +218,7 @@ class EngineManager:  # pylint: disable=too-few-public-methods
         metrics["trades"] = trade_details
         self._prices = None
         self._instrument_id = None
+        logger.debug("EngineManager cleaned up")
         return metrics
 
     # ------------------------------------------------------------------
