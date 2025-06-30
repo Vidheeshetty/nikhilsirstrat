@@ -14,12 +14,20 @@ class DataManager:  # pylint: disable=too-few-public-methods
     """Return price series; prefers real parquet catalog if available."""
 
     def __init__(self, catalog_path: str | None = None, *, bar_interval: str = "1-DAY"):
-        """Initialise, optionally with *catalog_path* or env DATA_CATALOG_ROOTS.
+        """Initialise the data manager.
 
-        *catalog_path* may be a colon-separated list of roots.  Each root must
-        contain ``catalog/`` and ``catalog-meta/`` sub-folders.
+        Parameters
+        ----------
+        catalog_path
+            Optional colon-separated list of Parquet catalog roots.
+        bar_interval
+            Bar interval string (e.g. ``1-DAY``, ``1-MINUTE``) to use when
+            retrieving price series.  Defaults to daily bars so existing
+            callers remain unaffected.
         """
         import os
+
+        self._bar_interval = bar_interval.upper()
 
         roots_raw = (
             catalog_path
@@ -59,8 +67,7 @@ class DataManager:  # pylint: disable=too-few-public-methods
                 normalised_roots.append(rp)
                 seen.add(rp)
 
-        self._catalogs: list["ParquetDataCatalog"] = []
-        self._interval = bar_interval.upper()
+        self._catalogs = []
         for root in normalised_roots:
             try:
                 from nautilus_trader.persistence.catalog.parquet import (
@@ -124,7 +131,7 @@ class DataManager:  # pylint: disable=too-few-public-methods
                     return None
 
                 bars = cat.bars(
-                    bar_types=[f"{instrument_id}-{self._interval}-LAST-EXTERNAL"],
+                    bar_types=[f"{instrument_id}-{self._bar_interval}-LAST-EXTERNAL"],
                     start=_to_ns(start),
                     end=_to_ns(end),
                     as_nautilus=False,

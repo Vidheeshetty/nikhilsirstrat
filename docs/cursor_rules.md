@@ -9,6 +9,7 @@ The rules below keep the prompt tidy **and** make it easy to evolve.
 4. Do **not** leak secrets or tokens in examples.
 5. Prefer explicit over implicit – spell out file paths, branch names.
 6. Add new sections rather than editing history; deprecate with a strike-through comment.
+7. Back-testing CLI supports `--bar_interval` (default `1-DAY`).  Minute data users should pass `--bar_interval 1-MINUTE` so DataManager loads the right bars.
 
 ## Strategy Development Framework Rules
 

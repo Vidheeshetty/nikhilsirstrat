@@ -66,7 +66,7 @@ def parse_args():
         "--bar_interval",
         type=str,
         default="1-DAY",
-        help="Bar interval to load from catalog (e.g., 1-DAY, 1-MINUTE)",
+        help="Bar interval in catalog, e.g., 1-DAY or 1-MINUTE",
     )
     return parser.parse_args()
 
