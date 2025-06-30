@@ -27,6 +27,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <tr><td>Strategy</td><td>{{strategy_name}}</td></tr>
     <tr><td>Period</td><td>{{period}}</td></tr>
     <tr><td>Data Source</td><td>{{data_source}}</td></tr>
+    {{config_row}}
   </tbody>
 </table>
 
@@ -184,12 +185,17 @@ class HtmlBatchRenderer(Renderer):
             else "N/A"
         )
 
-        total_investment = trade_df["Entry_Price"].sum() if not trade_df.empty else 0.0
+        # Use peak exposure (max entry price / leverage) instead of naive sum
+        peak_exposure = max(r.get("peak_exposure", 0.0) for r in results) if results else 0.0
+        total_investment = peak_exposure
         total_pnl_pct = (
-            f"{(total_pnl / total_investment * 100):.2f}%"
-            if total_investment
-            else "N/A"
+            f"{(total_pnl / peak_exposure * 100):.2f}%" if peak_exposure else "N/A"
         )
+
+        # Drop unnecessary columns ------------------------------------------------
+        for col in ("Threshold", "SL_Price"):
+            if col in trade_df.columns:
+                trade_df = trade_df.drop(columns=[col])
 
         total_orders = total_trades * 2
         total_positions = total_trades
@@ -217,7 +223,13 @@ class HtmlBatchRenderer(Renderer):
         # ------------------------------------------------------------------
         # Instead of relying on trade date formats, get the actual data period
         # from the catalog or environment
-        period = self._get_data_period()
+        if results and results[0].get("start_time") and results[0].get("end_time"):
+            from datetime import datetime as _dt
+            s = _dt.utcfromtimestamp(results[0]["start_time"] / 1_000_000_000).strftime("%Y-%m-%d")
+            e = _dt.utcfromtimestamp(results[0]["end_time"]   / 1_000_000_000).strftime("%Y-%m-%d")
+            period = f"{s} → {e}"
+        else:
+            period = self._get_data_period()
 
         # ------------------------------------------------------------------
         # Determine data source – prefer explicit value from runner results.
@@ -268,6 +280,31 @@ class HtmlBatchRenderer(Renderer):
             trade_header_html = ""
             trade_rows_html = "<tr><td colspan='3'>No trade data available</td></tr>"
 
+        # --------------------- CONFIG PARAMS ROW ----------------------
+        config_row = ""
+        try:
+            import yaml  # type: ignore
+            if strategy_name:
+                yaml_path = Path(f"src/strategies/{strategy_name}/strategy.yaml")
+                if yaml_path.exists():
+                    cfg_dict = yaml.safe_load(yaml_path.read_text()) or {}
+                    # Select key params in desired order
+                    param_keys = [
+                        "use_sma",
+                        "use_fractals",
+                        "sma_short_period",
+                        "sma_long_period",
+                        "risk_per_trade",
+                    ]
+                    cells = "".join(
+                        f"<td><strong>{k}</strong></td><td>{cfg_dict.get(k, 'N/A')}</td>" for k in param_keys
+                    )
+                    if cells:
+                        config_row = f"<tr>{cells}</tr>"
+        except Exception:
+            # Silently ignore YAML parsing issues
+            config_row = ""
+
         # --------------------- FINAL RENDER -------------------------------
         plot_path = next((r.get("plot_path") for r in results if r.get("plot_path")), None)
         indicator_iframe = (
@@ -302,6 +339,7 @@ class HtmlBatchRenderer(Renderer):
             .replace("{{plot_data}}", str(plot_data))
             .replace("{{trade_header}}", trade_header_html)
             .replace("{{trade_rows}}", trade_rows_html)
+            .replace("{{config_row}}", config_row)
             .replace("{{indicator_iframe}}", indicator_iframe)
         )
         outfile.parent.mkdir(parents=True, exist_ok=True)
