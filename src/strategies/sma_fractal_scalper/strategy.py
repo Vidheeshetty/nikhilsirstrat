@@ -21,7 +21,9 @@ class SmaFractalScalper(BaseStrategy):
     def _setup(self) -> None:  # noqa: D401
         super()._setup()
         self.gen = SmaFractalSignalGenerator(
-            self.config.sma_short_period, self.config.sma_long_period
+            self.config.sma_short_period,
+            self.config.sma_long_period,
+            use_fractals=self.config.use_fractals,
         )
         self.position: str | None = None  # 'LONG' / 'SHORT'
         self._entry_price: float | None = None
@@ -125,4 +127,9 @@ class SmaFractalScalper(BaseStrategy):
         # reset position
         self.position = None
         self._entry_price = None
-        self._stop_price = None 
+        self._stop_price = None
+        # Allow new entries in same trend after exit
+        try:
+            self.gen._prev_trend = None  # type: ignore[attr-defined,protected-access]
+        except Exception:
+            pass 

@@ -13,11 +13,12 @@ class SmaFractalSignalGenerator:
     it can be unit-tested without NautilusTrader present.
     """
 
-    def __init__(self, sma_short: int = 5, sma_long: int = 200):
+    def __init__(self, sma_short: int = 5, sma_long: int = 200, *, use_fractals: bool = True):
         if sma_short >= sma_long:
             raise ValueError("Short SMA period must be < long SMA period")
         self.sma_short = sma_short
         self.sma_long = sma_long
+        self.use_fractals = use_fractals
         self._closes: Deque[float] = deque(maxlen=sma_long)
         # We keep last 5 highs/lows to detect fractals (bar[2] is center)
         self._highs: Deque[float] = deque(maxlen=5)
@@ -26,6 +27,7 @@ class SmaFractalSignalGenerator:
         # Cached SMA values
         self._sma_short_val: Optional[float] = None
         self._sma_long_val: Optional[float] = None
+        self._prev_trend: Optional[str] = None
 
     # ---------------------------------------------------------------------
     def update(self, bar) -> None:  # noqa: D401
@@ -71,6 +73,20 @@ class SmaFractalSignalGenerator:
             trend = "SHORT"
         else:
             return None
+
+        # trigger only on trend change between bars
+        if trend == self._prev_trend:
+            return None
+
+        self._prev_trend = trend
+
+        # If fractal filter disabled, enter immediately on crossover
+        if not self.use_fractals:
+            return {
+                "direction": trend,
+                "entry_price": bar.close,
+                "stop_price": bar.low if trend == "LONG" else bar.high,
+            }
 
         high_frac, low_frac = self._latest_fractals()
         if trend == "LONG" and high_frac is not None and bar.close > high_frac:

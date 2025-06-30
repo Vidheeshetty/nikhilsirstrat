@@ -14,3 +14,4 @@ class SmaFractalScalperConfig(StrategyConfigBase):
     risk_per_trade: float = 0.01  # fraction of account per trade (unused placeholder)
     timeframe: str = "1MIN"
     session_cutoff: str | None = None  # e.g. "15:25" – force flat before EOD 
+    use_fractals: bool = True  # toggle fractal breakout filter
