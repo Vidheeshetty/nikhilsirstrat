@@ -140,6 +140,33 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
         merged["instrument_id"] = instrument_id
         merged["trades"] = trades
         merged["data_source"] = data_mgr.describe_source()
+
+        # ------------------------------------------------------------------
+        # Save indicator plot for visual inspection ------------------------
+        # ------------------------------------------------------------------
+        try:
+            import pandas as pd
+            from pathlib import Path
+            import plotly.graph_objects as go
+            from datetime import datetime
+            # Build DataFrame
+            df = pd.DataFrame({"price": prices})
+            df["sma_short"] = df["price"].rolling(5).mean()
+            df["sma_long"] = df["price"].rolling(200).mean()
+            df["idx"] = range(len(df))
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=df["idx"], y=df["price"], name="Price"))
+            fig.add_trace(go.Scatter(x=df["idx"], y=df["sma_short"], name="5-SMA"))
+            fig.add_trace(go.Scatter(x=df["idx"], y=df["sma_long"], name="200-SMA"))
+            ts = datetime.now().strftime("%H-%M-%S")
+            plot_dir = Path("runlogs/plots")
+            plot_dir.mkdir(parents=True, exist_ok=True)
+            plot_file = plot_dir / f"{instrument_id}_{ts}.html"
+            fig.write_html(plot_file, include_plotlyjs="cdn")
+            merged["plot_path"] = str(plot_file.relative_to(Path.cwd()))
+        except Exception:
+            pass
+
         return merged
 
 

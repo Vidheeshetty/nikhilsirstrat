@@ -76,6 +76,9 @@ Plotly.newPlot('pnl_bar', data, {margin:{t:20}});
     {{trade_rows}}
   </tbody>
 </table>
+
+<h2>Indicator Chart</h2>
+{{indicator_iframe}}
 </body></html>"""
 
 
@@ -266,6 +269,12 @@ class HtmlBatchRenderer(Renderer):
             trade_rows_html = "<tr><td colspan='3'>No trade data available</td></tr>"
 
         # --------------------- FINAL RENDER -------------------------------
+        plot_path = next((r.get("plot_path") for r in results if r.get("plot_path")), None)
+        indicator_iframe = (
+            f'<iframe src="{plot_path}" width="100%" height="600" style="border:none;"></iframe>'
+            if plot_path
+            else "<p>Indicator chart not available</p>"
+        )
         html = (
             HTML_TEMPLATE.replace(
                 "{{timestamp}}", datetime.now().isoformat(sep=" ", timespec="seconds")
@@ -293,6 +302,7 @@ class HtmlBatchRenderer(Renderer):
             .replace("{{plot_data}}", str(plot_data))
             .replace("{{trade_header}}", trade_header_html)
             .replace("{{trade_rows}}", trade_rows_html)
+            .replace("{{indicator_iframe}}", indicator_iframe)
         )
         outfile.parent.mkdir(parents=True, exist_ok=True)
         outfile.write_text(html, encoding="utf-8")
