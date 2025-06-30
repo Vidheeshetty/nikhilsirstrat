@@ -96,3 +96,13 @@ The rules below keep the prompt tidy **and** make it easy to evolve.
 3. Error codes listed in `disable_error_code` inside `mypy.ini` provide a *temporary* shield while we add richer typing; contributors should aim to **remove** these codes over time.  
 4. New or heavily-modified files should include meaningful type hints and avoid introducing new mypy errors—do **not** rely on the global suppressions.  
 5. When adding new folders, update `mypy.ini` `exclude` pattern if they should be skipped, and ensure the path setup doesn't create duplicate module names.  
+
+## Continuous-Learning Addendum
+
+All post-mortem engineering lessons are tracked in `docs/cursor_learning_log.md`.
+
+• When you fix a bug that reveals a recurring anti-pattern, add a short, dated entry there instead of bloating this rules file.
+• Keep each entry concise (≤ 8 lines) and tag it with an *importance* level (Low/Med/High).
+• If a new lesson overlaps an old one, **enhance** the existing entry rather than creating a duplicate.
+
+CI will surface the log in PR templates so the team can spot recently learned pitfalls.  
