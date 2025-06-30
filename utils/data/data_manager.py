@@ -13,7 +13,7 @@ supporting both real Nautilus Parquet catalogs and synthetic test data.
 class DataManager:  # pylint: disable=too-few-public-methods
     """Return price series; prefers real parquet catalog if available."""
 
-    def __init__(self, catalog_path: str | None = None, *, bar_interval: str = "1-DAY"):
+    def __init__(self, catalog_path: str | None = None, *, bar_interval: str | None = None):
         """Initialise the data manager.
 
         Parameters
@@ -27,6 +27,8 @@ class DataManager:  # pylint: disable=too-few-public-methods
         """
         import os
 
+        if bar_interval is None:
+            bar_interval = os.getenv("BAR_INTERVAL", "1-DAY")
         self._bar_interval = bar_interval.upper()
 
         roots_raw = (
@@ -202,11 +204,9 @@ class DataManager:  # pylint: disable=too-few-public-methods
 
     def describe_source(self) -> str:  # noqa: D401
         """Return a short label describing where price bars are loaded from."""
-        return (
-            "Daily bars (Parquet catalog: 1-DAY-LAST)"
-            if self._catalogs
-            else "Daily bars (synthetic)"
-        )
+        if self._catalogs:
+            return f"Bars ({self._bar_interval}) – Parquet catalog"
+        return f"Bars ({self._bar_interval}) – synthetic"
 
 
 __all__ = ["DataManager"]

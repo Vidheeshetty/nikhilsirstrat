@@ -107,6 +107,9 @@ def main() -> None:
 
         os.environ["DATA_CATALOG_ROOTS"] = catalog_path
 
+    # Export bar_interval so downstream renderers can derive data period
+    os.environ["BAR_INTERVAL"] = args.bar_interval.upper()
+
     dm = DataManager(catalog_path=catalog_path, bar_interval=args.bar_interval)
     if len(instruments) == 1 and instruments[0].upper() == "ALL":
         instruments = dm.get_all_instrument_ids()

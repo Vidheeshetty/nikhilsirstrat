@@ -315,6 +315,7 @@ class HtmlBatchRenderer(Renderer):
             from nautilus_trader.core.datetime import unix_nanos_to_dt
 
             cat = ParquetDataCatalog(catalog_path)
+            interval = os.environ.get("BAR_INTERVAL", "1-DAY").upper()
             instruments = cat.instruments()
             if not instruments:
                 return "N/A"
@@ -322,7 +323,7 @@ class HtmlBatchRenderer(Renderer):
             all_dates = []
             for instrument in instruments:
                 bars = cat.bars(
-                    bar_types=[f"{instrument.id}-1-DAY-LAST-EXTERNAL"],
+                    bar_types=[f"{instrument.id}-{interval}-LAST-EXTERNAL"],
                     as_nautilus=False,
                 )
                 if bars:
