@@ -113,6 +113,10 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
     git stash push -m "Pre-deployment stash $(date)"
 fi
 
+# Remove any untracked files that might conflict
+echo "🧹 Cleaning untracked files..."
+git clean -fd
+
 git checkout $TAG
 
 echo "🐳 Checking Docker image for version $VERSION..."

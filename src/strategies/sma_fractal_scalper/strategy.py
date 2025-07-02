@@ -32,23 +32,7 @@ class SmaFractalScalper(BaseStrategy):
         """Setup the strategy after base initialization."""
         super()._setup()
 
-        # Debug logging to understand the config values
-        self.log.info(f"Config object: {self.config}")
-        self.log.info(
-            f"sma_short_period type: {type(self.config.sma_short_period)}, value: {self.config.sma_short_period}"
-        )
-        self.log.info(
-            f"sma_long_period type: {type(self.config.sma_long_period)}, value: {self.config.sma_long_period}"
-        )
-        self.log.info(
-            f"use_fractals type: {type(self.config.use_fractals)}, value: {self.config.use_fractals}"
-        )
-        self.log.info(
-            f"use_sma type: {type(self.config.use_sma)}, value: {self.config.use_sma}"
-        )
-        self.log.info(
-            f"fractal_window type: {type(self.config.fractal_window)}, value: {self.config.fractal_window}"
-        )
+
 
         self.gen = SmaFractalSignalGenerator(
             sma_short=self.config.sma_short_period,
