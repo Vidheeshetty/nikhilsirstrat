@@ -164,7 +164,7 @@ class PaperTradingServer:
         @app.get("/api/logs")
         async def get_logs(lines: int = 100):
             """Get recent log entries."""
-            log_file = Path("runlogs/papertrading/daemon.log")
+            log_file = Path("runlogs/papertrading/paper_trading.log")
             if not log_file.exists():
                 return {"logs": []}
 

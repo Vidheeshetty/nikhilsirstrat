@@ -6,7 +6,7 @@
 set -e
 
 CONFIG_FILE="config/paper_trading/my_zerodha.yaml"
-DAEMON_CMD="python3 scripts/paper_trading/run_paper_trading.py --config $CONFIG_FILE --verbose"
+DAEMON_CMD="python3 scripts/paper_trading/run_paper_trading_daemon.py --config $CONFIG_FILE"
 WEB_SERVER_CMD="python3 scripts/paper_trading/paper_trading_server.py --config $CONFIG_FILE --host 0.0.0.0 --port 8000"
 
 # Colors for output
@@ -47,7 +47,7 @@ start_daemon() {
     print_status "Starting Paper Trading Daemon..."
     
     # Check if daemon is already running
-    if pgrep -f "run_paper_trading.py" > /dev/null; then
+    if pgrep -f "run_paper_trading_daemon.py" > /dev/null; then
         print_warning "Paper Trading Daemon is already running"
         return 0
     fi
@@ -117,7 +117,7 @@ stop_services() {
     fi
     
     # Also kill any remaining processes
-    pkill -f "run_paper_trading.py" 2>/dev/null || true
+    pkill -f "run_paper_trading_daemon.py" 2>/dev/null || true
     pkill -f "paper_trading_server.py" 2>/dev/null || true
 }
 
@@ -127,7 +127,7 @@ show_status() {
     echo
     
     # Check daemon
-    if pgrep -f "run_paper_trading.py" > /dev/null; then
+    if pgrep -f "run_paper_trading_daemon.py" > /dev/null; then
         print_success "✅ Paper Trading Daemon: RUNNING"
     else
         print_error "❌ Paper Trading Daemon: STOPPED"
