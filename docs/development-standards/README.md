@@ -25,6 +25,9 @@ For new strategy development, follow this sequence:
 - **[Testing Requirements](./testing-requirements.md)** - Testing standards and patterns *(Coming Soon)*
 - **[Runner Development Guide](./runner-development-guide.md)** - Runner-specific implementation details *(Coming Soon)*
 
+### Development Workflow
+- **[Git Sync Troubleshooting](./git_sync_troubleshooting.md)** - Guide for resolving Git synchronization issues between developers
+
 ### Optimizations & Efficiency
 - **[Optimization Suggestions](./optimization_suggestions.md)** - Backtesting framework optimization ideas
 - **[Efficiency Improvements](./EFFICIENCY_IMPROVEMENTS.md)** - Data catalog efficiency improvements
