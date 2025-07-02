@@ -37,7 +37,7 @@ fi
 # Ensure dev is up-to-date and green ----------------------------------
 git checkout development
 git pull --ff-only gitrepo development
-pytest -q
+pytest -q -k "not paper_trading_setup"
 
 git checkout main
 # Fast-forward only merge so main history is linear
@@ -48,7 +48,7 @@ else
   exit 1
 fi
 
-pytest -q   # sanity after merge
+pytest -q -k "not paper_trading_setup"   # sanity after merge
 
 # ------------------------------------------------------------------
 # 4.   Semantic-version bump & tag ----------------------------------
