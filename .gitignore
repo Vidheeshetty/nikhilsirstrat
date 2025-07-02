@@ -56,6 +56,7 @@ raw-data/
 data/
 _summary.txts/
 assets/
+DATA_CATALOG.md
 
 # Legacy & debug code (excluded from core development workflow)
 legacy_src/
