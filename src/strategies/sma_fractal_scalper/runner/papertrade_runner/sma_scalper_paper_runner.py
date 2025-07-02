@@ -211,8 +211,8 @@ class SmaFractalScalperPaperRunner:  # pylint: disable=too-few-public-methods
     async def _submit_order_to_broker(self, order_id: str, order_data: Dict[str, Any]):
         """Submit a single order to the broker."""
         try:
-            # Import broker classes
-            from brokers.base import Order, OrderType, TransactionType, OrderStatus
+            # Import order types for paper trading
+            from src.brokers.base import Order, OrderType, TransactionType, OrderStatus
             from datetime import datetime
 
             # Determine transaction type

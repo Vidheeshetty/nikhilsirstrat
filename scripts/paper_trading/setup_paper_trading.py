@@ -102,7 +102,7 @@ def create_config_file(config_path: str):
 def test_imports():
     """Test that all required modules can be imported."""
     try:
-        from brokers.base import BaseBroker, BrokerConfig
+        from src.brokers.base import BaseBroker, BrokerConfig
 
         print("✓ Base broker modules imported successfully")
         return True

@@ -11,9 +11,18 @@ import tempfile
 import yaml
 from pathlib import Path
 from datetime import datetime
+import sys
 
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+# Test imports
+from src.brokers.base import Order, OrderType, TransactionType, OrderStatus
 from src.brokers.manager import BrokerManager
-from brokers.base import Order, OrderType, TransactionType, OrderStatus
+from src.brokers.zerodha.broker import ZerodhaBroker
+from utils.runners.paper_trading_runner import PaperTradingStrategyRunner
+from utils.reporting.paper_trading_reporter import PaperTradingReporter
 from src.brokers.zerodha.config import ZerodhaConfig
 from src.brokers.paper import PaperBroker
 

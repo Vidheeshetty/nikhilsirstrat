@@ -1,0 +1,146 @@
+name: Docker Deployment
+
+on:
+  workflow_dispatch:  # Manual trigger only
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., 1.2.3 - without v prefix)'
+        required: true
+        type: string
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ntplatform
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag_exists: ${{ steps.check.outputs.exists }}
+      full_tag: ${{ steps.check.outputs.full_tag }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all tags
+    
+    - name: Validate version tag exists
+      id: check
+      run: |
+        VERSION="v${{ github.event.inputs.version }}"
+        echo "full_tag=$VERSION" >> $GITHUB_OUTPUT
+        
+        if git rev-parse --verify "refs/tags/$VERSION" >/dev/null 2>&1; then
+          echo "✅ Tag $VERSION exists in repository"
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Tag $VERSION not found in repository"
+          echo "Available recent tags:"
+          git tag -l | tail -10
+          echo "exists=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: validate-version
+    if: needs.validate-version.outputs.tag_exists == 'true'
+    
+    steps:
+    - name: Checkout specific version
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.validate-version.outputs.full_tag }}
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile
+        target: production
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        labels: |
+          org.opencontainers.image.title=${{ env.IMAGE_NAME }}
+          org.opencontainers.image.version=${{ github.event.inputs.version }}
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Deploy to server
+      if: github.event.inputs.environment == 'production'
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_SSH_KEY }}
+        script: |
+          cd ~/NTbasedPlatform
+          
+          echo "📥 Pulling latest code and checking out v${{ github.event.inputs.version }}..."
+          git fetch --tags
+          git checkout v${{ github.event.inputs.version }}
+          
+          echo "🐳 Pulling Docker image for version ${{ github.event.inputs.version }}..."
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}
+          
+          echo "🔄 Updating production deployment..."
+          export DEPLOY_TAG=${{ github.event.inputs.version }}
+          
+          # Stop current services
+          docker compose -f docker/docker-compose.prod.yml down || true
+          
+          # Start with new version
+          docker compose -f docker/docker-compose.prod.yml up -d
+          
+          # Wait for services to be healthy
+          echo "⏳ Waiting for services to start..."
+          sleep 15
+          
+          # Check health
+          if curl -sf http://localhost:8080/api/status >/dev/null; then
+            echo "✅ Deployment successful! Dashboard is healthy."
+            echo "🎉 Version ${{ github.event.inputs.version }} deployed successfully!"
+          else
+            echo "⚠️  Dashboard not responding, checking logs..."
+            docker logs paper-trading-server --tail 10
+            exit 1
+          fi
+          
+          # Cleanup old images (keep last 3 versions)
+          docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} --format "table {{.Tag}}\t{{.ID}}" | tail -n +4 | awk '{print $2}' | xargs -r docker rmi || true
+          
+          echo "🎉 Deployment of version ${{ github.event.inputs.version }} completed!"
+    
+    - name: Deployment Summary
+      run: |
+        echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version**: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Docker Image**: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Git Tag**: ${{ needs.validate-version.outputs.full_tag }}" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+          echo "- **Dashboard**: http://${{ secrets.DEPLOY_HOST }}:8080" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY 

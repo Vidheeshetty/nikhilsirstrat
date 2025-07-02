@@ -26,7 +26,7 @@ import queue
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.brokers.manager import BrokerManager
-from brokers.base import OrderStatus
+from src.brokers.base import OrderStatus
 from utils.reporting.paper_trading_reporter import PaperTradingReporter
 from utils.runners.paper_trading_runner import PaperTradingStrategyRunner
 
