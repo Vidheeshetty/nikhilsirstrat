@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import List
 from .entry import Direction
 
 """Risk management for Swing Range Expansion strategy."""

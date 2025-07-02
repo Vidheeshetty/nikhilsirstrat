@@ -122,4 +122,4 @@ def test_crudeoil_live_stream_contains_oi() -> None:  # noqa: D401
     except Exception:  # pragma: no cover – defensive cleanup
         pass
 
-    assert "oi" in tick_data, "Did not receive a tick containing OI within 10 seconds" 
+    assert "oi" in tick_data, "Did not receive a tick containing OI within 10 seconds"

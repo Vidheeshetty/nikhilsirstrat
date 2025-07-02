@@ -5,37 +5,43 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      target: dev
     container_name: paper-trading-daemon
     restart: unless-stopped
-    command: ["python", "-m", "scripts.paper_trading.run_paper_trading_daemon", "--daemon", "--config", "config/paper_trading/my_zerodha.yaml"]
+    command: ["python", "scripts/paper_trading/run_paper_trading_daemon.py", "--daemon", "--config", "config/paper_trading/my_zerodha.yaml"]
     volumes:
-      - paper_trading_data:/app/runlogs
-      - paper_trading_config:/app/config
-      - paper_trading_logs:/app/logs
+      # Bind mount source code for live development (Option 3)
+      - ..:/workspace
+      # Persistent data storage
+      - paper_trading_data:/workspace/runlogs
+      - paper_trading_logs:/workspace/logs
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/workspace
       - TZ=Asia/Kolkata
     networks:
       - paper_trading_net
+    working_dir: /workspace
 
   paper-trading-server:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      target: dev
     container_name: paper-trading-server
     restart: unless-stopped
+    command: ["python", "scripts/paper_trading/paper_trading_server.py", "--host", "0.0.0.0", "--port", "8000", "--config", "config/paper_trading/my_zerodha.yaml"]
     ports:
-      - "8000:8000"    # Web dashboard
+      - "8080:8000"    # Web dashboard
       - "8888:8888"    # Jupyter (if needed)
+      - "2345:2345"    # Debug port
     volumes:
+      # Bind mount source code for live development (Option 3)
+      - ..:/workspace
       # Persistent data storage
-      - paper_trading_data:/app/runlogs
-      - paper_trading_config:/app/config
-      - paper_trading_logs:/app/logs
-      # Mount local config for easy editing (optional)
-      - ../config/paper_trading/my_zerodha.yaml:/app/config/paper_trading/my_zerodha.yaml:ro
+      - paper_trading_data:/workspace/runlogs
+      - paper_trading_logs:/workspace/logs
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/workspace
       - TZ=Asia/Kolkata
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/status"]
@@ -47,6 +53,28 @@ services:
       - paper_trading_net
     depends_on:
       - paper-trading-daemon
+    working_dir: /workspace
+
+  # Development shell service for Option 3
+  devshell:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: dev
+    container_name: paper-trading-devshell
+    command: bash
+    volumes:
+      - ..:/workspace
+    environment:
+      - PYTHONPATH=/workspace
+      - TZ=Asia/Kolkata
+    ports:
+      - "8889:8888"    # Jupyter on different port
+      - "2346:2345"    # Debug on different port
+    networks:
+      - paper_trading_net
+    profiles:
+      - dev
 
   # Optional: Redis for caching and session management
   redis:
@@ -60,6 +88,8 @@ services:
     command: redis-server --appendonly yes
     networks:
       - paper_trading_net
+    profiles:
+      - full
 
   # Optional: PostgreSQL for persistent data storage
   postgres:
@@ -74,47 +104,10 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - paper_trading_net
-
-  # Optional: Monitoring with Grafana
-  grafana:
-    image: grafana/grafana:latest
-    container_name: paper-trading-grafana
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
-    networks:
-      - paper_trading_net
-    depends_on:
-      - postgres
-
-  # Optional: Prometheus for metrics collection
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: paper-trading-prometheus
-    restart: unless-stopped
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-    networks:
-      - paper_trading_net
+    profiles:
+      - full
 
 volumes:
   paper_trading_data:
@@ -126,10 +119,6 @@ volumes:
   redis_data:
     driver: local
   postgres_data:
-    driver: local
-  grafana_data:
-    driver: local
-  prometheus_data:
     driver: local
 
 networks:

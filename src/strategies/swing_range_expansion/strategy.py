@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from utils.strategy.base_strategy import BaseStrategy
 from .config import SwingRangeConfig
 from .entry import compute_signal, Direction
-from .exit import should_exit, ExitReason
+from .exit import should_exit
 from .risk import RiskManager
 from .position import calculate_size
 

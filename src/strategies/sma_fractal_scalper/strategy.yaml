@@ -2,4 +2,5 @@ use_sma: true
 use_fractals: true
 sma_short_period: 5
 sma_long_period: 200
-fractal_window: 1 
+fractal_window: 5
+historical_warmup: true 

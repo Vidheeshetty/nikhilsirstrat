@@ -1,17 +1,18 @@
-from __future__ import annotations
+"""Paper trading strategy runner module.
 
-"""Stub PaperTradingStrategyRunner
-
-A placeholder so the paper-trading CLI can boot in *dry-run* mode even before
-full live-runner integration is complete.
+Provides the main runner class for executing strategies in paper trading mode.
 """
+
+from __future__ import annotations
 
 from typing import Any
 
 __all__ = ["PaperTradingStrategyRunner"]
 
 
-class PaperTradingStrategyRunner:  # pylint: disable=too-few-public-methods
+class PaperTradingStrategyRunner:
+    """Main runner for paper trading strategies."""
+
     def __init__(
         self,
         strategy_name: str,
@@ -50,4 +51,13 @@ class PaperTradingStrategyRunner:  # pylint: disable=too-few-public-methods
             "enabled": True,
             "positions": 0,
             "pnl": 0.0,
-        } 
+        }
+
+    def run(self) -> Any:
+        """Execute the paper trading strategy.
+
+        Returns:
+            Trading results and performance metrics
+        """
+        # Implementation will be added based on specific strategy requirements
+        pass

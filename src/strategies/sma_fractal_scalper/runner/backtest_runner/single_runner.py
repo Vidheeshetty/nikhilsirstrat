@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
@@ -41,7 +40,6 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
 
         from types import SimpleNamespace
         import pandas as pd  # local import to avoid heavyweight dep at module level
-        from pathlib import Path
 
         # ------------------------------------------------------------------
         # Generic retrieval via DataManager using DATA_CATALOG_ROOTS env var
@@ -50,7 +48,9 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
             dm_generic = DataManager()
             generic_prices = dm_generic.get_trade_ticks(instrument_id, allow_stub=False)
             if generic_prices and len(generic_prices) > 1:
-                print(f"DEBUG: Returning {len(generic_prices)} prices from generic DataManager")
+                print(
+                    f"DEBUG: Returning {len(generic_prices)} prices from generic DataManager"
+                )
                 return generic_prices
         except Exception as _e:
             # Fall through to specialised loaders below
@@ -61,13 +61,16 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
         # ------------------------------------------------------------------
         try:
             from nautilus_trader.persistence.catalog.parquet import ParquetDataCatalog  # type: ignore
+
             cat_root = Path("catalog-data/zerodha-gold-guinea/catalog")
             if cat_root.exists():
                 cat = ParquetDataCatalog(cat_root)
                 bar_type = f"{instrument_id}-1-MINUTE-LAST-EXTERNAL"
                 bars = cat.bars(bar_types=[bar_type], as_nautilus=False)
                 if bars:
-                    return bars  # list of objects with open/high/low/close/timestamp attrs
+                    return (
+                        bars  # list of objects with open/high/low/close/timestamp attrs
+                    )
         except Exception:  # pragma: no cover
             pass
 
@@ -76,15 +79,20 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
         # ------------------------------------------------------------------
         # Determine bar base directories from DATA_CATALOG_ROOTS (colon separated)
         import os as _os
-        catalog_roots = _os.environ.get("DATA_CATALOG_ROOTS", "catalog-data").split(":" )
+
+        catalog_roots = _os.environ.get("DATA_CATALOG_ROOTS", "catalog-data").split(":")
         bar_dirs_all = []
         for root in catalog_roots:
             bar_base_dir = Path(root) / "catalog" / "data" / "bar"
             if bar_base_dir.exists():
-                bar_dirs_all.extend(bar_base_dir.glob(f"{instrument_id}*-1-MINUTE-LAST-EXTERNAL"))
+                bar_dirs_all.extend(
+                    bar_base_dir.glob(f"{instrument_id}*-1-MINUTE-LAST-EXTERNAL")
+                )
 
         bar_dirs = list(bar_dirs_all)
-        print(f"DEBUG: Looking for bar dirs with pattern: {instrument_id}*-1-MINUTE-LAST-EXTERNAL")
+        print(
+            f"DEBUG: Looking for bar dirs with pattern: {instrument_id}*-1-MINUTE-LAST-EXTERNAL"
+        )
         print(f"DEBUG: Found bar dirs: {bar_dirs}")
         if bar_dirs:
             bar_dir = bar_dirs[0]  # Take the first match
@@ -110,26 +118,41 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
                     # Use ts_event for timestamps, fallback to index
                     if "ts_event" in df.columns:
                         try:
-                            ts_series = pd.to_numeric(df["ts_event"], errors='coerce').fillna(0).astype(int).tolist()
-                        except:
+                            ts_series = (
+                                pd.to_numeric(df["ts_event"], errors="coerce")
+                                .fillna(0)
+                                .astype(int)
+                                .tolist()
+                            )
+                        except Exception:
                             ts_series = list(range(len(closes)))
                     elif "ts" in df.columns:
                         try:
-                            ts_series = pd.to_numeric(df["ts"], errors='coerce').fillna(0).astype(int).tolist()
-                        except:
+                            ts_series = (
+                                pd.to_numeric(df["ts"], errors="coerce")
+                                .fillna(0)
+                                .astype(int)
+                                .tolist()
+                            )
+                        except Exception:
                             ts_series = list(range(len(closes)))
                     elif "timestamp" in df.columns:
                         try:
-                            ts_series = pd.to_numeric(df["timestamp"], errors='coerce').fillna(0).astype(int).tolist()
-                        except:
+                            ts_series = (
+                                pd.to_numeric(df["timestamp"], errors="coerce")
+                                .fillna(0)
+                                .astype(int)
+                                .tolist()
+                            )
+                        except Exception:
                             ts_series = list(range(len(closes)))
                     else:
                         ts_series = list(range(len(closes)))
 
-                    bars: list[Any] = []
+                    minute_bars: list[Any] = []
                     for idx in range(len(closes)):
                         ts_val = ts_series[idx] if ts_series else idx
-                        bars.append(
+                        minute_bars.append(
                             SimpleNamespace(
                                 open=float(opens[idx]),
                                 high=float(highs[idx]),
@@ -138,10 +161,15 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
                                 timestamp=int(ts_val),
                             )
                         )
-                    if bars:
+                    if minute_bars:
                         target_interval = os.getenv("BAR_INTERVAL", "1-MINUTE").upper()
                         # If caller requested >1 minute bars and catalog lacks them, aggregate.
-                        if target_interval not in ("1-MIN", "1-MINUTE", "1M", "1"):  # simplistic check
+                        if target_interval not in (
+                            "1-MIN",
+                            "1-MINUTE",
+                            "1M",
+                            "1",
+                        ):  # simplistic check
                             match = re.match(r"(\d+)([HM])", target_interval)
                             if match:
                                 factor = int(match.group(1))
@@ -149,11 +177,13 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
                                 if unit == "H":
                                     factor *= 60
                                 if factor > 1:
-                                    print(f"DEBUG: Aggregating 1-minute bars into {target_interval} using factor={factor}")
+                                    print(
+                                        f"DEBUG: Aggregating 1-minute bars into {target_interval} using factor={factor}"
+                                    )
 
                                     agg_bars: list[Any] = []
-                                    for i in range(0, len(bars), factor):
-                                        chunk = bars[i : i + factor]
+                                    for i in range(0, len(minute_bars), factor):
+                                        chunk = minute_bars[i : i + factor]
                                         if not chunk:
                                             continue
                                         open_px = chunk[0].open
@@ -173,11 +203,15 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
                                             )
                                         )
                                     if agg_bars:
-                                        print(f"DEBUG: Returning {len(agg_bars)} aggregated bars")
+                                        print(
+                                            f"DEBUG: Returning {len(agg_bars)} aggregated bars"
+                                        )
                                         return agg_bars
                         # Default: return raw minute bars
-                        print(f"DEBUG: Returning {len(bars)} bar objects (1-minute)")
-                        return bars
+                        print(
+                            f"DEBUG: Returning {len(minute_bars)} bar objects (1-minute)"
+                        )
+                        return minute_bars
             except Exception as e:  # pragma: no cover
                 print(f"DEBUG: Exception loading bars: {e}")
                 pass
@@ -192,10 +226,14 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
                 meta_path = p
                 break
         if meta_path is None:
-            meta_path = Path("catalog-data/zerodha-gold-guinea/catalog-meta/bar_metadata.parquet")
+            meta_path = Path(
+                "catalog-data/zerodha-gold-guinea/catalog-meta/bar_metadata.parquet"
+            )
         if meta_path.exists():
             try:
-                df = pd.read_parquet(meta_path, columns=["instrument_id", "timestamp", "last"])
+                df = pd.read_parquet(
+                    meta_path, columns=["instrument_id", "timestamp", "last"]
+                )
                 print(f"DEBUG: Loaded metadata with shape: {df.shape}")
                 print(f"DEBUG: Unique instrument_ids: {df['instrument_id'].unique()}")
                 df = df[df["instrument_id"] == instrument_id].sort_values("timestamp")
@@ -216,12 +254,8 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
 
     # ------------------------------------------------------------------
     def run(self, instrument_id: str) -> Dict[str, Any]:  # noqa: D401
-        from pathlib import Path
-        from datetime import datetime
         # Load YAML config if present next to strategy, else default dataclass
-        default_yaml_path = (
-            Path(__file__).resolve().parents[2] / "strategy.yaml"
-        )
+        default_yaml_path = Path(__file__).resolve().parents[2] / "strategy.yaml"
         if default_yaml_path.exists():
             try:
                 import yaml
@@ -234,7 +268,7 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
             cfg = SmaFractalScalperConfig()
 
         strat = SmaFractalScalper(cfg)
-        print('DEBUG config use_fractals', cfg.use_fractals)
+        print("DEBUG config use_fractals", cfg.use_fractals)
 
         eng_mgr = EngineManager()
         data_mgr = DataManager(catalog_path="catalog-data/zerodha-gold-guinea")
@@ -254,10 +288,14 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
         if not prices_or_bars:
             raise ValueError(f"No price data found for {instrument_id}")
 
-        print(f'DEBUG instrument_id: {instrument_id}')
-        print(f'DEBUG prices_or_bars type: {type(prices_or_bars[0]) if prices_or_bars else "empty"}')
-        print(f'DEBUG first item: {prices_or_bars[0] if prices_or_bars else "none"}')
-        print(f'DEBUG has close attr: {hasattr(prices_or_bars[0], "close") if prices_or_bars else "none"}')
+        print(f"DEBUG instrument_id: {instrument_id}")
+        print(
+            f"DEBUG prices_or_bars type: {type(prices_or_bars[0]) if prices_or_bars else 'empty'}"
+        )
+        print(f"DEBUG first item: {prices_or_bars[0] if prices_or_bars else 'none'}")
+        print(
+            f"DEBUG has close attr: {hasattr(prices_or_bars[0], 'close') if prices_or_bars else 'none'}"
+        )
 
         # ------------------------------------------------------------------
         # Resample to higher timeframe if BAR_INTERVAL env var specifies
@@ -311,14 +349,18 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
                             )
                         )
                     prices_or_bars = agg_bars or prices_or_bars
-                    print(f"DEBUG: After aggregation factor {factor}, bars = {len(prices_or_bars)}")
+                    print(
+                        f"DEBUG: After aggregation factor {factor}, bars = {len(prices_or_bars)}"
+                    )
 
         eng_mgr.add_data(engine, prices_or_bars)
 
         # For period calculation we load timestamps from parquet meta again
-        from pathlib import Path as _P
         import pandas as _pd
-        meta_path = _P("catalog-data/zerodha-gold-guinea/catalog-meta/bar_metadata.parquet")
+
+        meta_path = Path(
+            "catalog-data/zerodha-gold-guinea/catalog-meta/bar_metadata.parquet"
+        )
         if meta_path.exists():
             _df = _pd.read_parquet(meta_path, columns=["instrument_id", "timestamp"])
             _df = _df[_df["instrument_id"] == instrument_id].sort_values("timestamp")
@@ -341,7 +383,7 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
         except Exception:  # pragma: no cover
             pass
 
-        print('DEBUG trades len', len(strat.trades))
+        print("DEBUG trades len", len(strat.trades))
 
         result = eng_mgr.get_results(engine)
 
@@ -357,8 +399,16 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
         if not trades:
             # Handle both bar objects and price floats --------------------
             has_close_attr = hasattr(prices_or_bars[0], "close")
-            entry_price = float(prices_or_bars[0].close) if has_close_attr else float(prices_or_bars[0])
-            exit_price = float(prices_or_bars[-1].close) if has_close_attr else float(prices_or_bars[-1])
+            entry_price = (
+                float(prices_or_bars[0].close)
+                if has_close_attr
+                else float(prices_or_bars[0])
+            )
+            exit_price = (
+                float(prices_or_bars[-1].close)
+                if has_close_attr
+                else float(prices_or_bars[-1])
+            )
             realised_pnl = exit_price - entry_price
             pnl_pct = (realised_pnl / entry_price * 100) if entry_price else 0.0
             trades = [
@@ -383,10 +433,13 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
             ]
 
         # Peak exposure approximation: max entry price / leverage
-        from decimal import Decimal
         LEVERAGE = 10
         try:
-            peak_expo = max(float(t["Entry_Price"]) for t in trades) / LEVERAGE if trades else 0.0
+            peak_expo = (
+                max(float(t["Entry_Price"]) for t in trades) / LEVERAGE
+                if trades
+                else 0.0
+            )
         except Exception:
             peak_expo = 0.0
 
@@ -403,7 +456,6 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
         # ------------------------------------------------------------------
         try:
             import pandas as pd
-            from pathlib import Path
             import plotly.graph_objects as go
 
             # Build DataFrame of close prices -----------------------------
@@ -431,8 +483,9 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
                 # High fractal -------------------------------------------------
                 highs_window = df["high"].iloc[window_slice]
                 if (
-                    df["high"].iloc[center] == highs_window.max() and
-                    df["high"].iloc[center] > highs_window.drop(index=highs_window.index[2]).max()
+                    df["high"].iloc[center] == highs_window.max()
+                    and df["high"].iloc[center]
+                    > highs_window.drop(index=highs_window.index[2]).max()
                 ):
                     frac_high_x.append(df["idx"].iloc[center])
                     frac_high_y.append(df["high"].iloc[center])
@@ -440,8 +493,9 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
                 # Low fractal --------------------------------------------------
                 lows_window = df["low"].iloc[window_slice]
                 if (
-                    df["low"].iloc[center] == lows_window.min() and
-                    df["low"].iloc[center] < lows_window.drop(index=lows_window.index[2]).min()
+                    df["low"].iloc[center] == lows_window.min()
+                    and df["low"].iloc[center]
+                    < lows_window.drop(index=lows_window.index[2]).min()
                 ):
                     frac_low_x.append(df["idx"].iloc[center])
                     frac_low_y.append(df["low"].iloc[center])
@@ -484,4 +538,4 @@ class SmaFractalScalperBacktestRunner:  # pylint: disable=too-few-public-methods
         return merged
 
 
-__all__ = ["SmaFractalScalperBacktestRunner"] 
+__all__ = ["SmaFractalScalperBacktestRunner"]

@@ -7,8 +7,7 @@ Generates live dashboards, end-of-day reports, and performance analytics.
 
 import asyncio
 import json
-import csv
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 import logging
@@ -36,7 +35,7 @@ class PaperTradingReporter:
         """Initialize paper trading reporter."""
         self.config = config
         self.output_dir = Path(config.get("output_dir", "runlogs/papertrading"))
-        
+
         # Extract strategy name from config
         strategy_name = "unknown_strategy"
         if "strategies" in config:
@@ -47,12 +46,12 @@ class PaperTradingReporter:
                     break
         elif "strategy_name" in config:
             strategy_name = config["strategy_name"].lower()
-        
+
         # Create date-wise folder structure like backtesting
         date_str = datetime.now().strftime("%Y-%m-%d")
         time_str = datetime.now().strftime("%H-%M-%S")
         self.session_id = f"{time_str}_{strategy_name}"
-        
+
         # Create session directory: runlogs/papertrading/YYYY-MM-DD/HH-MM-SS_strategy_name/
         date_dir = self.output_dir / date_str
         self.session_dir = date_dir / self.session_id
@@ -270,6 +269,14 @@ class PaperTradingReporter:
                 if isinstance(balance, dict):
                     total_pnl += balance.get("realized_pnl", 0)
                     total_unrealized_pnl += balance.get("unrealized_pnl", 0)
+                elif isinstance(balance, (int, float)):
+                    # Handle case where balance is a simple number
+                    total_pnl += balance
+                else:
+                    # Skip non-numeric, non-dict values
+                    logger.warning(
+                        f"Unexpected balance type for {broker_name}: {type(balance)}"
+                    )
 
             metrics["total_pnl"] = total_pnl
             metrics["unrealized_pnl"] = total_unrealized_pnl
@@ -310,9 +317,19 @@ class PaperTradingReporter:
                 pnl_series = [
                     s.get("metrics", {}).get("total_value", 0) for s in snapshots
                 ]
-                if pnl_series:
-                    additional_metrics = calculate_additional_metrics(pnl_series)
-                    metrics.update(additional_metrics)
+                if pnl_series and len(pnl_series) > 1:
+                    # Convert PnL series to trade-like format for calculate_additional_metrics
+                    # Calculate period-to-period changes as "trades"
+                    trade_like_data = []
+                    for i in range(1, len(pnl_series)):
+                        pnl_change = pnl_series[i] - pnl_series[i - 1]
+                        trade_like_data.append({"Realised_PnL": pnl_change})
+
+                    if trade_like_data:
+                        additional_metrics = calculate_additional_metrics(
+                            trade_like_data
+                        )
+                        metrics.update(additional_metrics)
 
             return metrics
 

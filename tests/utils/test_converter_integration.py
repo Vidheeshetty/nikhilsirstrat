@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 
 from utils.data_adapters.conversion_config import ConverterConfig
-from scripts import csv_to_parquet_converter as conv
+from scripts.data_import import csv_to_parquet_converter as conv
 
 
 def _create_sample_csv(tmp_path: Path) -> Path:

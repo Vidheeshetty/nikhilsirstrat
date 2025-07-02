@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 from enum import Enum
-from typing import Optional, Tuple
+from typing import Tuple
 
 """Entry signal computation for Swing Range Expansion strategy."""
 

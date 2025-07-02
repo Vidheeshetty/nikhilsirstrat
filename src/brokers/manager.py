@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Any, Type
 from datetime import datetime
 import yaml
 
-from .base import BaseBroker, BrokerConfig, Order, Position, Trade
+from .base import BaseBroker, BrokerConfig, Order, Position
 from .paper import PaperBroker
 from .zerodha import ZerodhaBroker, ZerodhaConfig
 

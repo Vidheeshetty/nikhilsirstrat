@@ -100,17 +100,74 @@
 ### 6.1 Ruff Linting Standard
 
 * **Ruff** is the canonical linter / formatter for this repository.
-* All new or modified Python files **must** pass `ruff check --fix` with **zero errors** before they are committed.
-* Recommended command sequence for Cursor edits:
+* All new or modified Python files **must** pass the project's linting standards before they are committed.
 
-  ```bash
-  ruff format .                 # auto-format (PEP-8 compliant)
-  ruff check . --fix            # apply safe fixes, then rerun to ensure clean
-  pytest -q                     # always follow with tests
-  ```
+#### 6.1.1 Core Development Paths (Strict)
+For files in core development paths, **zero errors** are allowed:
+```bash
+# These paths must pass ruff check with no errors:
+src/ utils/ tests/ scripts/run_backtest.py scripts/run_batch_backtest.py scripts/data_import/
+```
 
-* The helper script `1dev_com.sh` runs `ruff check .` by default.  If it fails, the commit is aborted; fix or stage the Ruff auto-fixes and rerun.
-* When introducing third-party code snippets, adjust import order / remove unused imports so Ruff (rules **E**, **F**, **I**) stays green.  Disable a rule only with a *local* `# noqa: <rule>` comment and include a justification.
+#### 6.1.2 Legacy/Debug Paths (Relaxed)
+For legacy and debug code, unused imports (F401) are ignored but other errors must be fixed:
+```bash
+# These paths use relaxed rules:
+legacy_src/ old-code/ debug-code/ legacy_tests/
+```
+
+#### 6.1.3 Cursor Auto-Linting Workflow
+
+**MANDATORY**: After every Cursor edit to Python files, automatically run:
+
+```bash
+# 1. Activate virtual environment
+source venv/bin/activate
+
+# 2. Auto-format the edited files
+ruff format <edited_files>
+
+# 3. Fix auto-fixable issues
+ruff check <edited_files> --fix
+
+# 4. Check for remaining errors
+ruff check <edited_files>
+```
+
+**If any errors remain after step 4**: 
+- Fix them immediately or ask user for guidance
+- **Never** leave unfixed linting errors in core development paths
+- For legacy paths, only fix critical errors (E722, F823, syntax errors)
+
+#### 6.1.4 Specific Error Handling
+
+**Critical errors that must always be fixed:**
+- **E722**: Bare `except:` clauses → Change to `except Exception:`
+- **F823**: Variable referenced before assignment → Fix import order
+- **F841**: Unused variables → Remove or prefix with `_`
+- **Syntax errors**: Always fix immediately
+
+**Acceptable to ignore in legacy code only:**
+- **F401**: Unused imports (legacy debugging code)
+- **E402**: Module imports not at top (legacy path manipulation)
+
+#### 6.1.5 Development Script Alignment
+
+The helper script `1dev_com.sh` runs:
+```bash
+ruff check --extend-ignore F401 "${CORE_PATHS[@]}"
+```
+
+This aligns with the core development standard (strict) while allowing F401 for debugging imports.
+
+#### 6.1.6 Pre-Commit Checklist for Cursor
+
+Before any commit, Cursor must verify:
+- [ ] All edited Python files pass `ruff format --check`
+- [ ] All edited core path files pass `ruff check` (zero errors)
+- [ ] All edited legacy files pass `ruff check --extend-ignore F401,E402`
+- [ ] No bare `except:` clauses remain anywhere
+- [ ] No undefined variable references (F823) remain
 
 ## 7. Reporting & HTML Output
 

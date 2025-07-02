@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Any, Callable
 from datetime import datetime
 import logging
 
-from ..base import BaseBroker, Order, Position, Trade, OrderStatus
+from ..base import BaseBroker, Order, Position, Trade
 from ..paper import PaperBroker
 from .config import ZerodhaConfig
 

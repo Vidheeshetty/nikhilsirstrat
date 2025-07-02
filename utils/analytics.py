@@ -1,11 +1,8 @@
-from __future__ import annotations
+"""
+Analytical utilities for trading metrics calculation.
 
-"""Generic analytics helpers reused by reporting modules.
-
-This thin wrapper exists so that high-level reporters can import
-``utils.analytics`` without worrying about the exact sub-package where metric
-functions live.  Over time you can move richer analytics here and keep
-existing import paths stable.
+This module provides functions to calculate additional trading metrics
+beyond the standard ones provided by NautilusTrader's built-in analytics.
 """
 
 import math
@@ -14,56 +11,58 @@ from typing import List, Dict
 __all__ = ["calculate_additional_metrics"]
 
 
-def calculate_additional_metrics(series: List[float]) -> Dict[str, float]:  # noqa: D401
-    """Return basic risk/performance metrics for an equity/PnL series.
+def calculate_additional_metrics(trades: List[Dict]) -> Dict:
+    """Calculate additional metrics from a list of trade dictionaries.
 
-    Parameters
-    ----------
-    series : list[float]
-        Chronological series of *equity values* (e.g. cumulative PnL or
-        portfolio value).  Must contain at least two points.
+    Args:
+        trades: List of trade dictionaries containing PnL data
 
-    Returns
-    -------
-    dict
-        Keys: ``mdd_pct`` (max draw-down, %), ``sharpe`` (annualised Sharpe
-        with 252 trading days), ``return_pct`` (simple % return over period).
+    Returns:
+        Dictionary with calculated metrics including win rate, avg win/loss, etc.
     """
+    if not trades:
+        return {}
 
-    if len(series) < 2:
-        return {"mdd_pct": 0.0, "sharpe": 0.0, "return_pct": 0.0}
+    pnls = [
+        trade.get("Realised_PnL", 0)
+        for trade in trades
+        if trade.get("Realised_PnL") is not None
+    ]
 
-    # ------------------------------------------------------------------
-    # Return % over entire period
-    # ------------------------------------------------------------------
-    return_pct = (series[-1] / series[0] - 1) * 100 if series[0] else 0.0
+    if not pnls:
+        return {}
 
-    # ------------------------------------------------------------------
-    # Max draw-down
-    # ------------------------------------------------------------------
-    peak = series[0]
-    max_dd = 0.0
-    for v in series:
-        if v > peak:
-            peak = v
-        dd = (peak - v) / peak if peak else 0.0
-        if dd > max_dd:
-            max_dd = dd
-    mdd_pct = max_dd * 100
+    winning_trades = [pnl for pnl in pnls if pnl > 0]
+    losing_trades = [pnl for pnl in pnls if pnl < 0]
 
-    # ------------------------------------------------------------------
-    # Simple Sharpe ratio using equity diffs as daily returns
-    # ------------------------------------------------------------------
-    rets = [series[i + 1] - series[i] for i in range(len(series) - 1)]
-    if not rets:
-        sharpe = 0.0
-    else:
-        avg_ret = sum(rets) / len(rets)
-        std_ret = math.sqrt(sum((r - avg_ret) ** 2 for r in rets) / len(rets))
-        sharpe = (avg_ret / std_ret * math.sqrt(252)) if std_ret else 0.0
+    total_trades = len(pnls)
+    win_count = len(winning_trades)
+    loss_count = len(losing_trades)
+
+    win_rate = (win_count / total_trades) * 100 if total_trades > 0 else 0
+    avg_win = sum(winning_trades) / win_count if win_count > 0 else 0
+    avg_loss = sum(losing_trades) / loss_count if loss_count > 0 else 0
+
+    profit_factor = abs(avg_win / avg_loss) if avg_loss != 0 else float("inf")
+
+    # Calculate maximum drawdown
+    cumulative_pnl = 0
+    peak = 0
+    max_drawdown = 0
+
+    for pnl in pnls:
+        cumulative_pnl += pnl
+        if cumulative_pnl > peak:
+            peak = cumulative_pnl
+        drawdown = peak - cumulative_pnl
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
 
     return {
-        "return_pct": round(return_pct, 2),
-        "mdd_pct": round(mdd_pct, 2),
-        "sharpe": round(sharpe, 2),
-    } 
+        "total_trades": total_trades,
+        "win_rate": round(win_rate, 2),
+        "avg_win": round(avg_win, 2),
+        "avg_loss": round(avg_loss, 2),
+        "profit_factor": round(profit_factor, 2),
+        "max_drawdown": round(max_drawdown, 2),
+    }

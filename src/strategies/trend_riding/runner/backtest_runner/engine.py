@@ -11,7 +11,7 @@ class BacktestEngine:  # pylint: disable=too-few-public-methods
     This is *NOT* a production-grade engine – just enough to execute the
     strategy against a list of prices or bar objects. Integration tests can later
     switch to the real Nautilus engine behind the same interface.
-    
+
     Parameters
     ----------
     callback : Callable[[Any], Any], optional
@@ -29,13 +29,15 @@ class BacktestEngine:  # pylint: disable=too-few-public-methods
             callback = kwargs.get("on_quote") or kwargs.get("on_bar")
 
         if callback is None:
-            raise ValueError("BacktestEngine requires a callback, got None. Provide 'callback', 'on_quote', or 'on_bar'.")
+            raise ValueError(
+                "BacktestEngine requires a callback, got None. Provide 'callback', 'on_quote', or 'on_bar'."
+            )
 
         self._callback = callback
 
     def run(self, data: List[Any]):
         """Run the backtest by calling the callback for each data item.
-        
+
         The callback could be on_quote (expecting float) or on_bar (expecting bar object).
         We simply pass each data item to the callback as-is.
         """

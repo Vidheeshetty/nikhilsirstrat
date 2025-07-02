@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
-from typing import Tuple, Optional
+from typing import Tuple
 from .entry import Direction
 
 """Exit signal computation for Swing Range Expansion strategy."""

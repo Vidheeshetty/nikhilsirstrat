@@ -53,7 +53,9 @@ class SmaFractalScalperPaperRunner:  # pylint: disable=too-few-public-methods
             try:
                 cfg_dict = yaml.safe_load(Path(self.config_file).read_text()) or {}
             except Exception as exc:  # pragma: no cover
-                logger.warning("Failed to load strategy config %s – %s", self.config_file, exc)
+                logger.warning(
+                    "Failed to load strategy config %s – %s", self.config_file, exc
+                )
 
         # Resolve instrument id ------------------------------------------------
         # Priority: explicit arg  > YAML field 'instrument_id' > env variable
@@ -65,9 +67,22 @@ class SmaFractalScalperPaperRunner:  # pylint: disable=too-few-public-methods
         )
 
         # Build validated config dataclass ------------------------------------
-        config_obj = SmaFractalScalperConfig(**{k: v for k, v in cfg_dict.items() if k != "instrument_id"})
-        self._strategy = SmaFractalScalper(config_obj)
-        logger.info("[%s] Strategy initialised for %s", self.strategy_name, self.instrument_id)
+        config_obj = SmaFractalScalperConfig(
+            **{k: v for k, v in cfg_dict.items() if k != "instrument_id"}
+        )
+        self._strategy = SmaFractalScalper(
+            config_obj,
+            broker_manager=self.broker_manager,
+            instrument_id=self.instrument_id,
+        )
+
+        # Set instrument ID on strategy for historical warm-up
+        if hasattr(self._strategy, "set_instrument_id"):
+            self._strategy.set_instrument_id(self.instrument_id)
+
+        logger.info(
+            "[%s] Strategy initialised for %s", self.strategy_name, self.instrument_id
+        )
 
     # ------------------------------------------------------------------
     async def start(self) -> None:  # noqa: D401
@@ -131,11 +146,17 @@ class SmaFractalScalperPaperRunner:  # pylint: disable=too-few-public-methods
                     bar["oi"] = quote["oi"]  # store last OI within minute
 
         except Exception as exc:  # pragma: no cover
-            logger.error("[%s] Error in market update: %s", self.strategy_name, exc, exc_info=False)
+            logger.error(
+                "[%s] Error in market update: %s",
+                self.strategy_name,
+                exc,
+                exc_info=False,
+            )
 
     # ------------------------------------------------------------------
     def _emit_bar(self, bar_dict: Dict[str, Any]):
         """Convert dict to lightweight bar object and send to strategy."""
+
         class _Bar:
             __slots__ = ("open", "high", "low", "close", "volume", "oi", "timestamp")
 
@@ -149,8 +170,13 @@ class SmaFractalScalperPaperRunner:  # pylint: disable=too-few-public-methods
                 self.timestamp = d["minute"].isoformat()
 
         bar_obj = _Bar(bar_dict)
+        if self._strategy is None:
+            return
         signal_before = len(getattr(self._strategy, "trades", []))
         self._strategy.on_bar(bar_obj)
+
+        # Check for pending orders and submit them
+        asyncio.create_task(self._process_pending_orders())
 
         # If no trade made and no existing position, log rejection reason
         signal_after = len(getattr(self._strategy, "trades", []))
@@ -164,6 +190,70 @@ class SmaFractalScalperPaperRunner:  # pylint: disable=too-few-public-methods
                 bar_obj.close,
                 bar_obj.volume,
                 bar_obj.oi,
+            )
+
+    async def _process_pending_orders(self):
+        """Process any pending orders from the strategy."""
+        if not self._strategy or not hasattr(self._strategy, "get_pending_orders"):
+            return
+
+        try:
+            pending_orders = self._strategy.get_pending_orders()
+
+            for order_id, order_data in pending_orders.items():
+                await self._submit_order_to_broker(order_id, order_data)
+
+        except Exception as exc:
+            logger.error(
+                "[%s] Error processing pending orders: %s", self.strategy_name, exc
+            )
+
+    async def _submit_order_to_broker(self, order_id: str, order_data: Dict[str, Any]):
+        """Submit a single order to the broker."""
+        try:
+            # Import broker classes
+            from brokers.base import Order, OrderType, TransactionType, OrderStatus
+            from datetime import datetime
+
+            # Determine transaction type
+            direction = order_data["direction"]
+            transaction_type = (
+                TransactionType.BUY if direction == "LONG" else TransactionType.SELL
+            )
+
+            # Create order object
+            order = Order(
+                order_id=order_id,
+                instrument_id=order_data["instrument_id"],
+                quantity=order_data["quantity"],
+                price=None,  # Market order for now
+                order_type=OrderType.MARKET,
+                transaction_type=transaction_type,
+                status=OrderStatus.PENDING,
+                timestamp=datetime.now(),
+            )
+
+            # Submit to broker
+            broker_order_id = await self.broker_manager.place_order(order)
+
+            # Mark as submitted in strategy
+            if self._strategy is not None:
+                self._strategy.mark_order_submitted(order_id, broker_order_id)
+
+            logger.info(
+                "[%s] ✅ Order submitted: %s %s @ market price - Broker ID: %s",
+                self.strategy_name,
+                direction,
+                order_data["instrument_id"],
+                broker_order_id,
+            )
+
+        except Exception as exc:
+            logger.error(
+                "[%s] ❌ Failed to submit order %s: %s",
+                self.strategy_name,
+                order_id,
+                exc,
             )
 
     # ------------------------------------------------------------------
@@ -182,4 +272,4 @@ class SmaFractalScalperPaperRunner:  # pylint: disable=too-few-public-methods
             "enabled": self._running,
             "instrument": self.instrument_id,
             "trades": trades_len,
-        } 
+        }

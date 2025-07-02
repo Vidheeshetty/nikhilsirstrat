@@ -101,7 +101,9 @@ class EngineManager:  # pylint: disable=too-few-public-methods
                 callback = getattr(strategy, "on_quote", None)
             if callback is None:
                 # Fallback: use whichever is available
-                callback = getattr(strategy, "on_bar", getattr(strategy, "on_quote", None))
+                callback = getattr(
+                    strategy, "on_bar", getattr(strategy, "on_quote", None)
+                )
             if callback is None:
                 raise AttributeError("Strategy must implement on_bar or on_quote")
             self._engine = BacktestEngine(callback)

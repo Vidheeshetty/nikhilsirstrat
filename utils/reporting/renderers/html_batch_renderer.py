@@ -186,7 +186,9 @@ class HtmlBatchRenderer(Renderer):
         )
 
         # Use peak exposure (max entry price / leverage) instead of naive sum
-        peak_exposure = max(r.get("peak_exposure", 0.0) for r in results) if results else 0.0
+        peak_exposure = (
+            max(r.get("peak_exposure", 0.0) for r in results) if results else 0.0
+        )
         total_investment = peak_exposure
         total_pnl_pct = (
             f"{(total_pnl / peak_exposure * 100):.2f}%" if peak_exposure else "N/A"
@@ -225,8 +227,13 @@ class HtmlBatchRenderer(Renderer):
         # from the catalog or environment
         if results and results[0].get("start_time") and results[0].get("end_time"):
             from datetime import datetime as _dt
-            s = _dt.utcfromtimestamp(results[0]["start_time"] / 1_000_000_000).strftime("%Y-%m-%d")
-            e = _dt.utcfromtimestamp(results[0]["end_time"]   / 1_000_000_000).strftime("%Y-%m-%d")
+
+            s = _dt.utcfromtimestamp(results[0]["start_time"] / 1_000_000_000).strftime(
+                "%Y-%m-%d"
+            )
+            e = _dt.utcfromtimestamp(results[0]["end_time"] / 1_000_000_000).strftime(
+                "%Y-%m-%d"
+            )
             period = f"{s} → {e}"
         else:
             period = self._get_data_period()
@@ -284,6 +291,7 @@ class HtmlBatchRenderer(Renderer):
         config_row = ""
         try:
             import yaml  # type: ignore
+
             if strategy_name:
                 yaml_path = Path(f"src/strategies/{strategy_name}/strategy.yaml")
                 if yaml_path.exists():
@@ -297,7 +305,8 @@ class HtmlBatchRenderer(Renderer):
                         "risk_per_trade",
                     ]
                     cells = "".join(
-                        f"<td><strong>{k}</strong></td><td>{cfg_dict.get(k, 'N/A')}</td>" for k in param_keys
+                        f"<td><strong>{k}</strong></td><td>{cfg_dict.get(k, 'N/A')}</td>"
+                        for k in param_keys
                     )
                     if cells:
                         config_row = f"<tr>{cells}</tr>"
@@ -306,7 +315,9 @@ class HtmlBatchRenderer(Renderer):
             config_row = ""
 
         # --------------------- FINAL RENDER -------------------------------
-        plot_path = next((r.get("plot_path") for r in results if r.get("plot_path")), None)
+        plot_path = next(
+            (r.get("plot_path") for r in results if r.get("plot_path")), None
+        )
         indicator_iframe = (
             f'<iframe src="{plot_path}" width="100%" height="600" style="border:none;"></iframe>'
             if plot_path

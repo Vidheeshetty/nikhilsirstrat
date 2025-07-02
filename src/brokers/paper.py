@@ -7,7 +7,7 @@ Provides realistic order execution, position tracking, and market simulation.
 
 import asyncio
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Optional, Any, Callable
 import logging
 import uuid

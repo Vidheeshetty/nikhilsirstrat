@@ -57,6 +57,12 @@ data/
 _summary.txts/
 assets/
 
+# Legacy & debug code (excluded from core development workflow)
+legacy_src/
+old-code/
+debug-code/
+legacy_tests/
+
 # Notebooks & binary docs
 *.ipynb
 *.pdf

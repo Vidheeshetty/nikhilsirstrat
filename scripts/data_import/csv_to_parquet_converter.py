@@ -127,7 +127,9 @@ def build_bars(
     bars: list[Bar] = []
     for _, row in df.iterrows():
         ts = dt_to_unix_nanos(row["DATE"])
-        volume_val = float(row.get("VOLUME") or row.get("volume") or row.get("VOL") or 0)
+        volume_val = float(
+            row.get("VOLUME") or row.get("volume") or row.get("VOL") or 0
+        )
         bar = Bar(
             bar_type=bar_type,
             open=Price(float(row["OPEN"]), precision),

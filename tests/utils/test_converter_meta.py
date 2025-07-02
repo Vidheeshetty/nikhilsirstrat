@@ -1,5 +1,5 @@
 import pandas as pd
-from scripts.csv_to_parquet_converter import build_bar_metadata
+from scripts.data_import.csv_to_parquet_converter import build_bar_metadata
 
 
 def test_build_bar_metadata():

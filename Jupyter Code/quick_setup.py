@@ -33,10 +33,10 @@ if project_root not in sys.path:
 if not paths_added:
     print("ℹ️  All paths already in sys.path")
 
-print(f"\n📁 Project structure:")
+print("\n📁 Project structure:")
 print(f"   Project root: {project_root}")
 print(f"   Source directory: {src_path}")
 print(f"   Current working directory: {os.getcwd()}")
 
-print(f"\n🔧 Ready to import modules!")
-print(f"   You can now use: from strategies.my_nse_strategy import MyNSEStrategy")
+print("\n🔧 Ready to import modules!")
+print("   You can now use: from strategies.my_nse_strategy import MyNSEStrategy")
