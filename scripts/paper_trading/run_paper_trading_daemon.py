@@ -329,6 +329,9 @@ class PaperTradingDaemon:
             self.running = True
             self.start_time = datetime.now()
 
+            # Write PID file (needed for status checking)
+            self._write_pid_file()
+
             self.logger.info("Starting paper trading daemon...")
             self._update_status("starting")
 
