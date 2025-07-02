@@ -1,0 +1,19 @@
+source_csv: "raw-data/source=Zerodha/instrument=FUT/venue=MCX/symbol=CRUDEOIL/timeframe=MIN/CRUDEOIL25JULFUT_1min_intraday.csv"
+
+destination_root: "catalog-data/source=Zerodha/instrument=FUT/venue=MCX/symbol=CRUDEOIL/timeframe=MIN/"
+
+# Instrument details ---------------------------------------------------
+symbol: "CRUDEOIL"
+venue: "MCX"
+
+data_kind: "bar"
+bar_interval: "1-MINUTE"
+price_precision: 1        # CRUDEOIL trades in rupees with tick size 1
+price_increment: 1
+multiplier: 1
+
+# Additional CSV fields to include in bar-level metadata
+extra_meta_fields:
+  - OI
+  - SYMBOL
+  - EXPIRY_DT 

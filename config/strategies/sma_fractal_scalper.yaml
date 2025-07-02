@@ -1,0 +1,6 @@
+sma_short_period: 5
+sma_long_period: 200
+risk_per_trade: 0.01  # 1% of equity – placeholder
+session_cutoff: "15:20"
+timeframe: "1MIN"
+use_fractals: false 

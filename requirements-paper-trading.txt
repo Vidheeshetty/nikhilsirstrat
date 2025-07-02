@@ -1,0 +1,17 @@
+# Paper Trading Platform Dependencies
+# Core web framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+websockets>=12.0
+
+# System monitoring
+psutil>=5.9.0
+
+# Additional async utilities
+aiofiles>=23.0.0
+
+# Development and testing
+pytest-asyncio>=0.21.0 
+
+# KiteConnect dependency
+KiteConnect>=4.0.0 

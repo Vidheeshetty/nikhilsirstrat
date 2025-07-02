@@ -132,8 +132,10 @@ class DataManager:  # pylint: disable=too-few-public-methods
                         return None
                     return None
 
+                import os as _os
+                interval = _os.environ.get("BAR_INTERVAL", "1-DAY").upper()
                 bars = cat.bars(
-                    bar_types=[f"{instrument_id}-{self._bar_interval}-LAST-EXTERNAL"],
+                    bar_types=[f"{instrument_id}-{interval}-LAST-EXTERNAL"],
                     start=_to_ns(start),
                     end=_to_ns(end),
                     as_nautilus=False,

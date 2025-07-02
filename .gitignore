@@ -50,6 +50,8 @@ nautilus_trader/
 
 # Data & generated artifacts
 runlogs/
+runlogs/test_reports/
+testlogs/
 raw-data/
 data/
 _summary.txts/

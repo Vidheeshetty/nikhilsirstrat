@@ -92,12 +92,16 @@ class EngineManager:  # pylint: disable=too-few-public-methods
         if NAUTILUS_AVAILABLE and isinstance(engine, NTBacktestEngine):
             engine.add_strategy(strategy)
         else:
-            # Auto-detect whether strategy exposes `on_bar` (preferred when full
-            # OHLCV bars are available) or falls back to `on_quote` (single
-            # price ticks). The stub BacktestEngine simply forwards each item
-            # in the supplied data list to *callback*, so we select the method
-            # that matches the shape of the data the caller will provide.
-            callback = getattr(strategy, "on_bar", getattr(strategy, "on_quote", None))
+            # Decide callback based on price data shape
+            data_present = bool(self._prices)
+            first_item = self._prices[0] if data_present else None
+            if first_item is not None and hasattr(first_item, "close"):
+                callback = getattr(strategy, "on_bar", None)
+            else:
+                callback = getattr(strategy, "on_quote", None)
+            if callback is None:
+                # Fallback: use whichever is available
+                callback = getattr(strategy, "on_bar", getattr(strategy, "on_quote", None))
             if callback is None:
                 raise AttributeError("Strategy must implement on_bar or on_quote")
             self._engine = BacktestEngine(callback)

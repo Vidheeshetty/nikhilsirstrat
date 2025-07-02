@@ -13,16 +13,20 @@ class SmaFractalSignalGenerator:
     it can be unit-tested without NautilusTrader present.
     """
 
-    def __init__(self, sma_short: int = 5, sma_long: int = 200, *, use_fractals: bool = True):
+    def __init__(self, sma_short: int = 5, sma_long: int = 200, *, use_fractals: bool = True, use_sma: bool = True, fractal_window: int = 5):
         if sma_short >= sma_long:
             raise ValueError("Short SMA period must be < long SMA period")
         self.sma_short = sma_short
         self.sma_long = sma_long
         self.use_fractals = use_fractals
+        self.use_sma = use_sma
         self._closes: Deque[float] = deque(maxlen=sma_long)
-        # We keep last 5 highs/lows to detect fractals (bar[2] is center)
-        self._highs: Deque[float] = deque(maxlen=5)
-        self._lows: Deque[float] = deque(maxlen=5)
+        if fractal_window < 1 or fractal_window % 2 == 0:
+            raise ValueError("fractal_window must be odd and >=1")
+        self.fractal_window = fractal_window
+        center = fractal_window // 2
+        self._highs: Deque[float] = deque(maxlen=fractal_window)
+        self._lows: Deque[float] = deque(maxlen=fractal_window)
 
         # Cached SMA values
         self._sma_short_val: Optional[float] = None
@@ -35,11 +39,14 @@ class SmaFractalSignalGenerator:
         self._closes.append(bar.close)
         self._highs.append(bar.high)
         self._lows.append(bar.low)
+        # Capture OI if present
+        if hasattr(bar, "oi"):
+            self._current_oi = getattr(bar, "oi")
 
         if len(self._closes) >= self.sma_short:
             self._sma_short_val = sum(list(self._closes)[-self.sma_short:]) / self.sma_short
-        if len(self._closes) == self.sma_long:
-            self._sma_long_val = sum(self._closes) / self.sma_long
+        if len(self._closes) >= self.sma_long:
+            self._sma_long_val = sum(list(self._closes)[-self.sma_long:]) / self.sma_long
 
     # ------------------------------------------------------------------
     def _latest_fractals(self) -> Tuple[Optional[float], Optional[float]]:
@@ -48,57 +55,74 @@ class SmaFractalSignalGenerator:
         A high fractal occurs when high[2] > high[0..4 except 2]. Same for low.
         Need a full 5-bar window.
         """
-        if len(self._highs) < 5:
+        if len(self._highs) < self.fractal_window:
             return None, None
         highs = list(self._highs)
         lows = list(self._lows)
-        high_fractal = highs[2] if highs[2] > max(highs[0], highs[1], highs[3], highs[4]) else None
-        low_fractal = lows[2] if lows[2] < min(lows[0], lows[1], lows[3], lows[4]) else None
+        if self.fractal_window == 1:
+            return highs[0], lows[0]
+        mid = self.fractal_window // 2
+        high_fractal = highs[mid] if highs[mid] > max(highs[:mid] + highs[mid+1:]) else None
+        low_fractal = lows[mid] if lows[mid] < min(lows[:mid] + lows[mid+1:]) else None
         return high_fractal, low_fractal
 
     # ------------------------------------------------------------------
     def generate(self, bar) -> Optional[dict]:  # noqa: D401
         """Return signal dict or None.
 
-        dict keys: direction ('LONG'/'SHORT'), entry_price, stop_price
+        The logic is split so SMA and fractal filters can be toggled independently.
         """
         self.update(bar)
-        if self._sma_short_val is None or self._sma_long_val is None:
-            return None  # not enough data yet
 
-        trend = None
-        if self._sma_short_val > self._sma_long_val:
-            trend = "LONG"
-        elif self._sma_short_val < self._sma_long_val:
-            trend = "SHORT"
-        else:
-            return None
+        # -------------------- Determine *trend* -----------------------
+        trend: str | None = None
+        if self.use_sma:
+            # Need SMA values first
+            if self._sma_short_val is None or self._sma_long_val is None:
+                return None  # insufficient data
+            if self._sma_short_val > self._sma_long_val:
+                trend = "LONG"
+            elif self._sma_short_val < self._sma_long_val:
+                trend = "SHORT"
+            else:
+                return None
 
-        # trigger only on trend change between bars
-        if trend == self._prev_trend:
-            return None
+            # fire only on crossover (trend change)
+            if trend == self._prev_trend:
+                return None
+            self._prev_trend = trend
 
-        self._prev_trend = trend
+        # -------------------- Pure fractal mode ----------------------
+        high_frac, low_frac = self._latest_fractals()
 
-        # If fractal filter disabled, enter immediately on crossover
-        if not self.use_fractals:
+        if not self.use_sma:
+            # direction decided solely by breakout
+            if high_frac is not None and (bar.high > high_frac or (self.fractal_window == 1 and bar.high == high_frac)):
+                trend = "LONG"
+            elif low_frac is not None and (bar.low < low_frac or (self.fractal_window == 1 and bar.low == low_frac)):
+                trend = "SHORT"
+            else:
+                return None
+
+        # If SMA used but fractals disabled, enter immediately --------
+        if self.use_sma and not self.use_fractals:
             return {
                 "direction": trend,
                 "entry_price": bar.close,
                 "stop_price": bar.low if trend == "LONG" else bar.high,
             }
 
-        high_frac, low_frac = self._latest_fractals()
-        if trend == "LONG" and high_frac is not None and bar.close > high_frac:
+        # ----------------------- SMA + fractal OR fractal-only entry ---------
+        if trend == "LONG" and high_frac is not None and (bar.high > high_frac or (self.fractal_window == 1 and bar.high == high_frac)):
             return {
                 "direction": "LONG",
-                "entry_price": bar.close,
-                "stop_price": low_frac if low_frac else bar.low,  # fall-back
+                "entry_price": max(bar.open, high_frac),
+                "stop_price": low_frac if low_frac is not None else bar.low,
             }
-        if trend == "SHORT" and low_frac is not None and bar.close < low_frac:
+        if trend == "SHORT" and low_frac is not None and (bar.low < low_frac or (self.fractal_window == 1 and bar.low == low_frac)):
             return {
                 "direction": "SHORT",
-                "entry_price": bar.close,
-                "stop_price": high_frac if high_frac else bar.high,
+                "entry_price": min(bar.open, low_frac),
+                "stop_price": high_frac if high_frac is not None else bar.high,
             }
         return None 

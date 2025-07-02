@@ -1,3 +1,9 @@
+# 🚧 Documentation Notice
+
+> **Status:** _Partially Stale – pending refresh after the June-2025 refactor._  
+> Sections mentioning file counts, coverage percentages and test-file names may be out-of-date.  
+> The overall testing architecture (unit / integration split, fixtures, CI guidance) remains accurate.
+
 # Automated Testing Scaffolding – Overview
 
 ## 1. Purpose of This Document
@@ -107,4 +113,4 @@ pytest --cov=src --cov-report=term-missing
 ## 10. Conclusion
 The current scaffold offers a solid foundation that balances fast feedback with meaningful integration coverage. It is **not** the final state – the roadmap above highlights concrete next steps. Feedback and pull requests are welcome.
 
-> "_"Tests are not a safety net for bad code; they are a springboard for clean design."_ 
+> "_Tests are not a safety net for bad code; they are a springboard for clean design_." 

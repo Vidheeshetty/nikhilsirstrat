@@ -1,0 +1,36 @@
+# Zerodha dry-run config – uses CSV replay feed (no live orders)
+broker:
+  type: ZerodhaBroker
+  api_key: "DUMMY"
+  api_secret: "DUMMY"
+  access_token: "DUMMY"
+  paper_trading: true
+
+feed:
+  bar_type: 1MIN
+  source: csv_replay               # implemented in utils.feed.csv_replay (assumed)
+  csv_dir: data/nse/                # point to sample CSV dir; replace for real trading
+  update_frequency: 1               # seconds
+  market_start_time: "09:15"
+  market_end_time:   "09:30"
+
+reporting:
+  out_dir: runlogs/papertrading/
+  html: true
+  csv: true
+
+risk_management:
+  global_max_daily_loss: 100000.0
+  max_drawdown_limit: 0.15
+  global_max_positions: 20
+
+strategies:
+  SwingRangeExpansion:
+    enabled: true
+    broker: zerodha
+    runner: utils.runners.paper_trading_runner.PaperTradingStrategyRunner
+    config_file: src/strategies/swing_range_expansion/strategy.yaml
+
+logging:
+  level: INFO
+  file: runlogs/papertrading/paper_trading.log

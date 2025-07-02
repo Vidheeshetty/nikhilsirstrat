@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  paper-trading-daemon:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: paper-trading-daemon
+    restart: unless-stopped
+    command: ["python", "-m", "scripts.paper_trading.run_paper_trading_daemon", "--daemon", "--config", "config/paper_trading/my_zerodha.yaml"]
+    volumes:
+      - paper_trading_data:/app/runlogs
+      - paper_trading_config:/app/config
+      - paper_trading_logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - TZ=Asia/Kolkata
+    networks:
+      - paper_trading_net
+
+  paper-trading-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: paper-trading-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"    # Web dashboard
+      - "8888:8888"    # Jupyter (if needed)
+    volumes:
+      # Persistent data storage
+      - paper_trading_data:/app/runlogs
+      - paper_trading_config:/app/config
+      - paper_trading_logs:/app/logs
+      # Mount local config for easy editing (optional)
+      - ../config/paper_trading/my_zerodha.yaml:/app/config/paper_trading/my_zerodha.yaml:ro
+    environment:
+      - PYTHONPATH=/app
+      - TZ=Asia/Kolkata
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - paper_trading_net
+    depends_on:
+      - paper-trading-daemon
+
+  # Optional: Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: paper-trading-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - paper_trading_net
+
+  # Optional: PostgreSQL for persistent data storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: paper-trading-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: paper_trading
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: trading123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - paper_trading_net
+
+  # Optional: Monitoring with Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: paper-trading-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - paper_trading_net
+    depends_on:
+      - postgres
+
+  # Optional: Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: paper-trading-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - paper_trading_net
+
+volumes:
+  paper_trading_data:
+    driver: local
+  paper_trading_config:
+    driver: local
+  paper_trading_logs:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+networks:
+  paper_trading_net:
+    driver: bridge 

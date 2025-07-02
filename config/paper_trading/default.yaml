@@ -1,0 +1,70 @@
+brokers:
+  zerodha:
+    api_key: paper_key
+    api_secret: paper_secret
+    broker_name: zerodha
+    log_level: INFO
+    log_orders: true
+    log_trades: true
+    max_daily_loss: 50000.0
+    max_open_positions: 10
+    max_position_size: 100
+    paper_brokerage_per_order: 20.0
+    paper_initial_balance: 1000000.0
+    paper_stt_rate: 0.025
+    paper_trading: true
+    paper_transaction_charges: 0.00325
+data_feed:
+  market_end_time: '15:30'
+  market_start_time: 09:15
+  trading_days:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  type: paper
+  update_frequency: 1
+engine:
+  log_level: INFO
+  strategy_id: PAPER_STRATEGY-001
+  trader_id: PAPER_TRADER-001
+  venue: NSE
+logging:
+  backup_count: 5
+  file: runlogs/papertrading/paper_trading.log
+  level: INFO
+  max_file_size: 10MB
+reporting:
+  eod_report: true
+  formats:
+  - json
+  - csv
+  - html
+  metrics:
+  - pnl
+  - positions
+  - orders
+  - trades
+  - drawdown
+  - win_rate
+  output_dir: runlogs/papertrading
+  realtime_updates: true
+  update_frequency: 5
+risk_management:
+  emergency_stop_loss: 0.1
+  global_max_daily_loss: 100000.0
+  global_max_positions: 20
+  max_drawdown_limit: 0.15
+  position_size_limit: 0.05
+strategies:
+  trend_riding:
+    broker: zerodha
+    config_file: src/strategies/trend_riding/config.yaml
+    enabled: false
+
+  sma_fractal_scalper:
+    broker: zerodha
+    config_file: src/strategies/sma_fractal_scalper/strategy.yaml
+    runner: strategies.sma_fractal_scalper.runner.backtest_runner.single_runner.SmaFractalScalperBacktestRunner
+    enabled: true

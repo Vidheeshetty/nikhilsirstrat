@@ -9,3 +9,4 @@ ruff>=0.1.0
 requests>=2.28.0
 pyarrow
 pytest-asyncio>=0.23.0
+KiteConnect>=4.0.0

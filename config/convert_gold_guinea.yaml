@@ -1,0 +1,19 @@
+source_csv: "raw-data/source=Zerodha/instrument=FUT/venue=MCX/symbol=GOLDGUINEA/*.csv"
+
+destination_root: "catalog-data/zerodha-gold-guinea"
+
+# Data description
+data_kind: bar
+bar_interval: "1-MINUTE"
+
+# Instrument metadata
+symbol: GOLDGUINEA
+venue: MCX
+price_precision: 0         # ₹1 tick size implies 0 decimal precision
+price_increment: 1.0
+multiplier: 1
+
+# Extra meta fields to preserve
+extra_meta_fields:
+  - VOLUME
+  - OI 
