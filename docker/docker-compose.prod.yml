@@ -10,8 +10,6 @@ services:
       # Persistent data storage only (no bind mounts in production)
       - paper_trading_data:/workspace/runlogs
       - paper_trading_logs:/workspace/logs
-      # Mount config from host
-      - ./config/paper_trading/my_zerodha.yaml:/workspace/config/paper_trading/my_zerodha.yaml:ro
     environment:
       - PYTHONPATH=/workspace
       - TZ=Asia/Kolkata
@@ -29,8 +27,6 @@ services:
       # Persistent data storage only
       - paper_trading_data:/workspace/runlogs
       - paper_trading_logs:/workspace/logs
-      # Mount config from host
-      - ./config/paper_trading/my_zerodha.yaml:/workspace/config/paper_trading/my_zerodha.yaml:ro
     environment:
       - PYTHONPATH=/workspace
       - TZ=Asia/Kolkata
