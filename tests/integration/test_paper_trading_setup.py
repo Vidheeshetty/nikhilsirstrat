@@ -9,22 +9,21 @@ import pytest
 import asyncio
 import tempfile
 import yaml
+import sys
 from pathlib import Path
 from datetime import datetime
-import sys
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-# Test imports
-from src.brokers.base import Order, OrderType, TransactionType, OrderStatus
-from src.brokers.manager import BrokerManager
-from src.brokers.zerodha.broker import ZerodhaBroker
-from utils.runners.paper_trading_runner import PaperTradingStrategyRunner
-from utils.reporting.paper_trading_reporter import PaperTradingReporter
-from src.brokers.zerodha.config import ZerodhaConfig
-from src.brokers.paper import PaperBroker
+from src.brokers.base import Order, OrderType, TransactionType, OrderStatus  # noqa: E402
+from src.brokers.manager import BrokerManager  # noqa: E402
+from src.brokers.zerodha.broker import ZerodhaBroker  # noqa: E402
+from utils.runners.paper_trading_runner import PaperTradingStrategyRunner  # noqa: E402
+from utils.reporting.paper_trading_reporter import PaperTradingReporter  # noqa: E402
+from src.brokers.zerodha.config import ZerodhaConfig  # noqa: E402
+from src.brokers.paper import PaperBroker  # noqa: E402
 
 
 class TestPaperTradingSetup:

@@ -274,7 +274,8 @@ class PaperTradingServer:
                     "last_signal": None,
                     "signal_count": 0,
                     "no_signal_reason": None,
-                    "total_trades": 0
+                    "total_trades": 0,
+                    "total_orders": 0
                 }
                 
                 # Get data from session files (more reliable for current state)
@@ -299,9 +300,8 @@ class PaperTradingServer:
                             with open(live_data_file, "r") as f:
                                 live_data = json.load(f)
                                 
-                            # Extract metrics
+                            # Extract metrics (but don't use total_trades as it's misleading)
                             metrics = live_data.get("metrics", {})
-                            indicators["total_trades"] = metrics.get("total_trades", 0)
                             
                             # Get current price from broker data
                             broker_data = live_data.get("broker_data", {})
@@ -312,12 +312,20 @@ class PaperTradingServer:
                                         indicators["current_price"] = broker_info["last_price"]
                                         break
                         
-                        # Try to get current price from session data
+                        # Get actual executed trades count from session data
                         session_data_file = latest_session / "session_data.json"
                         if session_data_file.exists():
                             with open(session_data_file, "r") as f:
                                 session_data = json.load(f)
                                 
+                            # Count actual executed trades
+                            actual_trades = session_data.get("trades", [])
+                            indicators["total_trades"] = len(actual_trades)
+                            
+                            # Count actual orders
+                            actual_orders = session_data.get("orders", [])
+                            indicators["total_orders"] = len(actual_orders)
+                            
                             # Get latest performance snapshot for current price
                             snapshots = session_data.get("performance_snapshots", [])
                             if snapshots:
@@ -619,8 +627,12 @@ class PaperTradingServer:
                 <div class="status-value" id="signal-count">-</div>
             </div>
             <div class="status-card">
-                <h3>📊 Total Trades</h3>
+                <h3>📊 Executed Trades</h3>
                 <div class="status-value" id="total-trades">-</div>
+            </div>
+            <div class="status-card">
+                <h3>📋 Total Orders</h3>
+                <div class="status-value" id="total-orders">-</div>
             </div>
             <div class="status-card">
                 <h3>🔔 Last Signal</h3>
@@ -775,6 +787,7 @@ class PaperTradingServer:
             // Update signal information
             document.getElementById('signal-count').textContent = data.signal_count || '0';
             document.getElementById('total-trades').textContent = data.total_trades || '0';
+            document.getElementById('total-orders').textContent = data.total_orders || '0';
             document.getElementById('last-signal').textContent = data.last_signal || 'None';
             
             // Update fractal status

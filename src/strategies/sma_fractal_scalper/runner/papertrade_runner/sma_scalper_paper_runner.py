@@ -8,8 +8,8 @@ from datetime import datetime
 
 import yaml
 
-from strategies.sma_fractal_scalper.strategy import SmaFractalScalper
-from strategies.sma_fractal_scalper.config import SmaFractalScalperConfig
+from src.strategies.sma_fractal_scalper.strategy import SmaFractalScalper
+from src.strategies.sma_fractal_scalper.config import SmaFractalScalperConfig
 
 
 logger = logging.getLogger(__name__)

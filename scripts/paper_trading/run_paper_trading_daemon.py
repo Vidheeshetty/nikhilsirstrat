@@ -295,22 +295,25 @@ class PaperTradingDaemon:
             raise
 
     async def _initialize_strategy(self, name: str, config: Dict[str, Any]):
-        """Initialize a strategy runner."""
+        """Initialize a strategy runner using the unified PaperTradingStrategyRunner interface."""
         try:
             broker_name = config.get("broker", "zerodha")
             config_file = config.get("config_file")
+            instrument_id = config.get("instrument_id")
 
+            # Use unified PaperTradingStrategyRunner - it handles all the dynamic loading
             runner = PaperTradingStrategyRunner(
                 strategy_name=name,
                 broker_manager=self.broker_manager,
                 broker_name=broker_name,
                 config_file=config_file,
+                instrument_id=instrument_id,
             )
 
             await runner.initialize()
             self.strategy_runners[name] = runner
 
-            self.logger.info(f"Initialized strategy runner: {name}")
+            self.logger.info(f"Initialized strategy runner: {name} via unified interface")
 
         except Exception as e:
             self.logger.error(f"Failed to initialize strategy {name}: {e}")

@@ -32,8 +32,6 @@ class SmaFractalScalper(BaseStrategy):
         """Setup the strategy after base initialization."""
         super()._setup()
 
-
-
         self.gen = SmaFractalSignalGenerator(
             sma_short=self.config.sma_short_period,
             sma_long=self.config.sma_long_period,

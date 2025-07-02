@@ -30,7 +30,6 @@ strategies:
   SmaFractalScalper:
     enabled: true
     broker: zerodha
-    runner: strategies.sma_fractal_scalper.runner.papertrade_runner.SmaFractalScalperPaperRunner
     instrument_id: CRUDEOIL20250721.FUT.MCX   # updated to match available data
     config_file: src/strategies/sma_fractal_scalper/strategy.yaml
 
