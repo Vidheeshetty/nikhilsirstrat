@@ -23,7 +23,7 @@ from typing import Dict, Any
 import queue
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.brokers.manager import BrokerManager
 from src.brokers.base import OrderStatus
