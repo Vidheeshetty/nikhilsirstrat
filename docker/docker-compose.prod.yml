@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  paper-trading-daemon:
+    image: docker.io/ntplatform:${DEPLOY_TAG:-latest}
+    container_name: paper-trading-daemon
+    restart: unless-stopped
+    command: ["python", "scripts/paper_trading/run_paper_trading_daemon.py", "--daemon", "--config", "config/paper_trading/my_zerodha.yaml"]
+    volumes:
+      # Persistent data storage only (no bind mounts in production)
+      - paper_trading_data:/workspace/runlogs
+      - paper_trading_logs:/workspace/logs
+      # Mount config from host
+      - ./config/paper_trading/my_zerodha.yaml:/workspace/config/paper_trading/my_zerodha.yaml:ro
+    environment:
+      - PYTHONPATH=/workspace
+      - TZ=Asia/Kolkata
+    networks:
+      - paper_trading_net
+
+  paper-trading-server:
+    image: docker.io/ntplatform:${DEPLOY_TAG:-latest}
+    container_name: paper-trading-server
+    restart: unless-stopped
+    command: ["python", "scripts/paper_trading/paper_trading_server.py", "--host", "0.0.0.0", "--port", "8000", "--config", "config/paper_trading/my_zerodha.yaml"]
+    ports:
+      - "8080:8000"    # Web dashboard
+    volumes:
+      # Persistent data storage only
+      - paper_trading_data:/workspace/runlogs
+      - paper_trading_logs:/workspace/logs
+      # Mount config from host
+      - ./config/paper_trading/my_zerodha.yaml:/workspace/config/paper_trading/my_zerodha.yaml:ro
+    environment:
+      - PYTHONPATH=/workspace
+      - TZ=Asia/Kolkata
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - paper_trading_net
+    depends_on:
+      - paper-trading-daemon
+
+networks:
+  paper_trading_net:
+    driver: bridge
+
+volumes:
+  paper_trading_data:
+  paper_trading_logs: 
