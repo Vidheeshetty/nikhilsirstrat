@@ -5,7 +5,7 @@ services:
     image: docker.io/ntplatform:${DEPLOY_TAG:-latest}
     container_name: paper-trading-daemon
     restart: unless-stopped
-    command: ["python", "scripts/paper_trading/run_paper_trading_daemon.py", "--daemon", "--config", "config/paper_trading/my_zerodha.yaml"]
+    command: ["python", "scripts/paper_trading/run_paper_trading_daemon.py", "--config", "config/paper_trading/my_zerodha.yaml"]
     volumes:
       # Persistent data storage only (no bind mounts in production)
       - paper_trading_data:/workspace/runlogs
