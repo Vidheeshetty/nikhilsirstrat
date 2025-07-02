@@ -36,10 +36,26 @@ class PaperTradingReporter:
         """Initialize paper trading reporter."""
         self.config = config
         self.output_dir = Path(config.get("output_dir", "runlogs/papertrading"))
-        self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        # Create session directory
-        self.session_dir = self.output_dir / self.session_id
+        
+        # Extract strategy name from config
+        strategy_name = "unknown_strategy"
+        if "strategies" in config:
+            # Get the first enabled strategy name
+            for strategy_key, strategy_config in config["strategies"].items():
+                if strategy_config.get("enabled", False):
+                    strategy_name = strategy_key.lower()
+                    break
+        elif "strategy_name" in config:
+            strategy_name = config["strategy_name"].lower()
+        
+        # Create date-wise folder structure like backtesting
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        time_str = datetime.now().strftime("%H-%M-%S")
+        self.session_id = f"{time_str}_{strategy_name}"
+        
+        # Create session directory: runlogs/papertrading/YYYY-MM-DD/HH-MM-SS_strategy_name/
+        date_dir = self.output_dir / date_str
+        self.session_dir = date_dir / self.session_id
         self.session_dir.mkdir(parents=True, exist_ok=True)
 
         # Data storage

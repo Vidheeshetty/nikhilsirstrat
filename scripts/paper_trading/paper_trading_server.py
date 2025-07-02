@@ -178,12 +178,23 @@ class PaperTradingServer:
         async def get_performance():
             """Get performance metrics."""
             try:
-                # Read latest performance data
-                session_dirs = list(Path("runlogs/papertrading").glob("20*"))
+                # Read latest performance data from new date-wise structure
+                base_dir = Path("runlogs/papertrading")
+                session_dirs = []
+                
+                # Look for date folders (YYYY-MM-DD)
+                for date_dir in base_dir.glob("20*-*-*"):
+                    if date_dir.is_dir():
+                        # Look for session folders (HH-MM-SS_strategy_name)
+                        for session_dir in date_dir.glob("*-*-*_*"):
+                            if session_dir.is_dir():
+                                session_dirs.append(session_dir)
+                
                 if not session_dirs:
                     return {"performance": {}}
                 
-                latest_session = max(session_dirs, key=lambda x: x.name)
+                # Sort by full path to get the latest session
+                latest_session = max(session_dirs, key=lambda x: (x.parent.name, x.name))
                 performance_file = latest_session / "live_data.json"
                 
                 if performance_file.exists():

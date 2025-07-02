@@ -27,6 +27,7 @@ For new strategy development, follow this sequence:
 
 ### Development Workflow
 - **[Git Sync Troubleshooting](./git_sync_troubleshooting.md)** - Guide for resolving Git synchronization issues between developers
+- **[Paper Trading Folder Structure](./paper_trading_folder_structure.md)** - Documentation for the new date-wise paper trading log organization
 
 ### Optimizations & Efficiency
 - **[Optimization Suggestions](./optimization_suggestions.md)** - Backtesting framework optimization ideas
