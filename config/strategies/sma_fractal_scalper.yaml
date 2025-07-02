@@ -3,4 +3,7 @@ sma_long_period: 200
 risk_per_trade: 0.01  # 1% of equity – placeholder
 session_cutoff: "23:25"  # MCX Crude Oil trades until 23:30, stop 5 min before
 timeframe: "1MIN"
-use_fractals: false 
+use_fractals: true  # Enable fractal breakout detection
+fractal_window: 5   # 5-bar fractal window
+use_sma: true       # Enable SMA crossover detection
+historical_warmup: true  # Load historical data for warm-up 

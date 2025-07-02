@@ -605,15 +605,23 @@ class PaperTradingServer:
         @app.get("/chart")
         async def chart_dashboard():
             """Serve the advanced chart dashboard."""
-            chart_html_path = Path("web_dashboard/templates/chart.html")
+            # Get absolute path from project root
+            project_root = Path(__file__).parent.parent.parent
+            chart_html_path = project_root / "web_dashboard" / "templates" / "chart.html"
+            
             if chart_html_path.exists():
-                return FileResponse(chart_html_path)
+                return FileResponse(str(chart_html_path))
             else:
-                raise HTTPException(status_code=404, detail="Chart dashboard not found")
+                raise HTTPException(status_code=404, detail=f"Chart dashboard not found at {chart_html_path}")
 
         # Mount static files for the chart dashboard
         try:
-            app.mount("/static", StaticFiles(directory="web_dashboard/static"), name="static")
+            project_root = Path(__file__).parent.parent.parent
+            static_dir = project_root / "web_dashboard" / "static"
+            if static_dir.exists():
+                app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+            else:
+                self.logger.warning(f"Static directory not found at {static_dir}")
         except Exception as e:
             self.logger.warning(f"Could not mount static files: {e}")
 
