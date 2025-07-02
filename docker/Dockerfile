@@ -1,4 +1,4 @@
-# Paper Trading Platform Docker Image - Multi-stage for Option 3
+# Paper Trading Platform Docker Image - Optimized Multi-stage
 FROM python:3.11-slim as base
 
 # Set environment variables
@@ -30,12 +30,20 @@ RUN pip install --upgrade pip && \
 # Production stage
 FROM base as production
 
-# Copy application code
-COPY . .
+# Copy only necessary application files
+COPY src/ src/
+COPY utils/ utils/
+COPY scripts/ scripts/
+COPY config/ config/
+COPY tests/ tests/
+COPY VERSION .
+COPY mypy.ini .
+COPY requirements.txt .
+COPY requirements-paper-trading.txt .
 
 # Create necessary directories
 RUN mkdir -p runlogs/papertrading
-RUN mkdir -p config
+RUN mkdir -p logs
 RUN mkdir -p data
 
 # Expose ports
@@ -58,9 +66,12 @@ RUN pip install --no-cache-dir \
     ipython \
     jupyter
 
+# Copy all files for development
+COPY . .
+
 # Create necessary directories
 RUN mkdir -p runlogs/papertrading
-RUN mkdir -p config
+RUN mkdir -p logs
 RUN mkdir -p data
 
 # Expose additional dev ports

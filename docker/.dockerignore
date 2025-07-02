@@ -1,0 +1,92 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Large data directories
+nautilus_trader/
+raw-data/
+data/
+runlogs/
+testlogs/
+reports/
+catalog-data/
+notebooks/
+
+# Legacy and old code
+legacy_src/
+legacy_tests/
+old-code/
+debug-code/
+
+# Development files
+_summary.txts/
+*.pdf
+examples/
+Jupyter Code/
+
+# Temporary files
+*.tmp
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Docker
+docker/
+Dockerfile*
+docker-compose*.yml
+
+# Documentation
+docs/
+guide/
+*.md
+README*
+
+# Test data and outputs
+tests/data/
+sample_outputs/ 
