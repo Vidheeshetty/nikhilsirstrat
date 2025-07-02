@@ -461,6 +461,162 @@ class PaperTradingServer:
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
 
+        @app.get("/api/chart/data")
+        async def get_chart_data(symbol: str = "GOLDGUINEA", timeframe: str = "1m", bars: int = 500):
+            """Get historical chart data for the trading dashboard."""
+            try:
+                # Mock data for now - in production, this would fetch from data store
+                # You would integrate with your existing data loading mechanisms
+                import pandas as pd
+                from datetime import datetime, timedelta
+                
+                # Generate sample data for demonstration
+                now = datetime.now()
+                data = []
+                
+                for i in range(bars):
+                    timestamp = now - timedelta(minutes=bars-i)
+                    # Mock OHLC data - replace with actual data loading
+                    base_price = 895.0 + (i % 20) * 0.5
+                    data.append({
+                        "timestamp": timestamp.isoformat(),
+                        "open": base_price,
+                        "high": base_price + 2.0,
+                        "low": base_price - 1.5,
+                        "close": base_price + 1.0,
+                        "volume": 1000 + (i % 100) * 10
+                    })
+                
+                return {
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "bars": data,
+                    "count": len(data)
+                }
+                
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to fetch chart data: {str(e)}")
+
+        @app.get("/api/chart/indicators")
+        async def get_chart_indicators(strategy: str = "sma_fractal_scalper", timeframe: str = "1m"):
+            """Get indicator data for chart display."""
+            try:
+                # Mock indicator data - replace with actual indicator calculations
+                from datetime import datetime, timedelta
+                
+                now = datetime.now()
+                indicators = {
+                    "strategy": strategy,
+                    "timeframe": timeframe,
+                    "sma_5": [],
+                    "sma_200": [],
+                    "fractals": [],
+                    "signals": []
+                }
+                
+                # Generate sample SMA data
+                for i in range(200):
+                    timestamp = now - timedelta(minutes=200-i)
+                    
+                    # 5-SMA data
+                    indicators["sma_5"].append({
+                        "timestamp": timestamp.isoformat(),
+                        "value": 895.0 + (i % 10) * 0.3
+                    })
+                    
+                    # 200-SMA data (slower moving)
+                    indicators["sma_200"].append({
+                        "timestamp": timestamp.isoformat(),
+                        "value": 894.0 + (i % 50) * 0.1
+                    })
+                
+                # Generate sample fractal data
+                for i in range(0, 200, 20):
+                    timestamp = now - timedelta(minutes=200-i)
+                    
+                    # High fractal
+                    indicators["fractals"].append({
+                        "timestamp": timestamp.isoformat(),
+                        "type": "high",
+                        "price": 897.0 + (i % 30) * 0.2
+                    })
+                    
+                    # Low fractal
+                    if i > 10:
+                        indicators["fractals"].append({
+                            "timestamp": (timestamp - timedelta(minutes=10)).isoformat(),
+                            "type": "low",
+                            "price": 893.0 + (i % 25) * 0.15
+                        })
+                
+                return indicators
+                
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to fetch indicator data: {str(e)}")
+
+        @app.websocket("/ws/chart")
+        async def chart_websocket_endpoint(websocket: WebSocket):
+            """WebSocket endpoint for real-time chart updates."""
+            await websocket.accept()
+            self.websocket_connections.append(websocket)
+            
+            try:
+                # Send initial connection confirmation
+                await websocket.send_json({
+                    "type": "connection",
+                    "data": {"status": "connected"},
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                while True:
+                    # Send mock real-time updates
+                    # In production, this would be triggered by actual market data
+                    import random
+                    
+                    # Mock bar update
+                    bar_update = {
+                        "type": "bar_update",
+                        "data": {
+                            "symbol": "GOLDGUINEA",
+                            "timeframe": "1m",
+                            "bar": {
+                                "timestamp": datetime.now().isoformat(),
+                                "open": 895.0 + random.uniform(-2, 2),
+                                "high": 897.0 + random.uniform(-1, 3),
+                                "low": 893.0 + random.uniform(-3, 1),
+                                "close": 895.5 + random.uniform(-2, 2),
+                                "volume": 1000 + random.randint(0, 500)
+                            }
+                        },
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    
+                    await websocket.send_json(bar_update)
+                    await asyncio.sleep(10)  # Update every 10 seconds for demo
+                    
+            except WebSocketDisconnect:
+                if websocket in self.websocket_connections:
+                    self.websocket_connections.remove(websocket)
+            except Exception as e:
+                self.logger.error(f"Chart WebSocket error: {e}")
+                if websocket in self.websocket_connections:
+                    self.websocket_connections.remove(websocket)
+
+        @app.get("/chart")
+        async def chart_dashboard():
+            """Serve the advanced chart dashboard."""
+            chart_html_path = Path("web_dashboard/templates/chart.html")
+            if chart_html_path.exists():
+                return FileResponse(chart_html_path)
+            else:
+                raise HTTPException(status_code=404, detail="Chart dashboard not found")
+
+        # Mount static files for the chart dashboard
+        try:
+            app.mount("/static", StaticFiles(directory="web_dashboard/static"), name="static")
+        except Exception as e:
+            self.logger.warning(f"Could not mount static files: {e}")
+
         @app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             """WebSocket endpoint for real-time updates."""
