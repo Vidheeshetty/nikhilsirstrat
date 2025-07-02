@@ -163,20 +163,68 @@ class PaperTradingServer:
 
         @app.get("/api/logs")
         async def get_logs(lines: int = 100):
-            """Get recent log entries."""
+            """Get recent log entries from main log and session activity."""
+            logs = []
+            
+            # Get main log file entries
             log_file = Path("runlogs/papertrading/paper_trading.log")
-            if not log_file.exists():
-                return {"logs": []}
-
+            if log_file.exists():
+                try:
+                    with open(log_file, "r") as f:
+                        all_lines = f.readlines()
+                        recent_lines = (
+                            all_lines[-min(lines//2, len(all_lines)):] if len(all_lines) > 0 else []
+                        )
+                        logs.extend([line.strip() for line in recent_lines])
+                except Exception:
+                    pass
+            
+            # Add session activity summary
             try:
-                with open(log_file, "r") as f:
-                    all_lines = f.readlines()
-                    recent_lines = (
-                        all_lines[-lines:] if len(all_lines) > lines else all_lines
-                    )
-                    return {"logs": [line.strip() for line in recent_lines]}
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
+                base_dir = Path("runlogs/papertrading")
+                session_dirs = []
+                
+                # Look for today's session folders
+                today = datetime.now().strftime("%Y-%m-%d")
+                date_dir = base_dir / today
+                if date_dir.exists():
+                    for session_dir in date_dir.glob("*-*-*_*"):
+                        if session_dir.is_dir():
+                            session_dirs.append(session_dir)
+                
+                if session_dirs:
+                    # Get the latest session
+                    latest_session = max(session_dirs, key=lambda x: x.name)
+                    live_data_file = latest_session / "live_data.json"
+                    
+                    if live_data_file.exists():
+                        with open(live_data_file, "r") as f:
+                            live_data = json.load(f)
+                            
+                        # Add session summary to logs
+                        timestamp = live_data.get("timestamp", "Unknown")
+                        metrics = live_data.get("metrics", {})
+                        
+                        logs.append(f"--- Session Activity Summary ({timestamp}) ---")
+                        logs.append(f"Total Trades: {metrics.get('total_trades', 0)}")
+                        logs.append(f"Open Positions: {metrics.get('open_positions', 0)}")
+                        logs.append(f"Total P&L: ₹{metrics.get('total_pnl', 0):.2f}")
+                        logs.append(f"Win Rate: {metrics.get('win_rate', 0):.1f}%")
+                        
+                        # Add broker status
+                        broker_data = live_data.get("broker_data", {})
+                        if broker_data:
+                            for broker_name, broker_info in broker_data.items():
+                                balance = broker_info.get("total_balance", 0)
+                                logs.append(f"Broker {broker_name}: Balance ₹{balance:,.2f}")
+                        
+                        logs.append("--- End Session Summary ---")
+                        
+            except Exception:
+                pass
+            
+            # Return the most recent entries
+            return {"logs": logs[-lines:] if len(logs) > lines else logs}
 
         @app.get("/api/performance")
         async def get_performance():
