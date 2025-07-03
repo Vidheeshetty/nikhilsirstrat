@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Chart Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            border: 1px solid #333;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #4CAF50; }
+        .error { background-color: #f44336; }
+        .info { background-color: #2196F3; }
+        .log {
+            background-color: #333;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Minimal Chart Test</h1>
+    <div id="status-container"></div>
+    <div class="chart-container" id="chart"></div>
+    <div class="log" id="log"></div>
+
+    <script src="/static/libs/lightweight-charts.standalone.production.js?v=5.0.8"></script>
+    <script>
+        function updateStatus(message, type = 'info') {
+            const container = document.getElementById('status-container');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            container.appendChild(statusDiv);
+            
+            // Also log to console
+            console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
+        }
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function initChart() {
+            try {
+                updateStatus('Starting minimal chart test...', 'info');
+                
+                // Check TradingView library
+                if (typeof LightweightCharts === 'undefined') {
+                    throw new Error('TradingView library not loaded');
+                }
+                updateStatus('TradingView library loaded successfully', 'success');
+                
+                // Create chart
+                const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+                    width: 800,
+                    height: 400,
+                    layout: {
+                        backgroundColor: '#1a1a1a',
+                        textColor: '#ffffff',
+                    },
+                    grid: {
+                        vertLines: {
+                            color: '#333333',
+                        },
+                        horzLines: {
+                            color: '#333333',
+                        },
+                    },
+                    crosshair: {
+                        mode: 1,
+                    },
+                    rightPriceScale: {
+                        borderColor: '#333333',
+                    },
+                    timeScale: {
+                        borderColor: '#333333',
+                    },
+                });
+                updateStatus('Chart created successfully', 'success');
+                
+                // Add candlestick series
+                const candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+                    upColor: '#4bffb5',
+                    downColor: '#ff4976',
+                    borderDownColor: '#ff4976',
+                    borderUpColor: '#4bffb5',
+                    wickDownColor: '#ff4976',
+                    wickUpColor: '#4bffb5',
+                });
+                updateStatus('Candlestick series added successfully', 'success');
+                
+                // Fetch data from API
+                updateStatus('Fetching data from API...', 'info');
+                const response = await fetch('/api/chart/data?symbol=GOLDGUINEA&timeframe=1m&bars=50');
+                const data = await response.json();
+                
+                if (!data.bars || data.bars.length === 0) {
+                    throw new Error('No data received from API');
+                }
+                updateStatus(`Received ${data.bars.length} bars from API`, 'success');
+                
+                // Convert data to TradingView format
+                const chartData = data.bars.map(bar => ({
+                    time: Math.floor(new Date(bar.timestamp).getTime() / 1000),
+                    open: bar.open,
+                    high: bar.high,
+                    low: bar.low,
+                    close: bar.close
+                }));
+                
+                // Set data
+                candlestickSeries.setData(chartData);
+                updateStatus('Chart data loaded successfully', 'success');
+                
+                // Add SMA indicator
+                updateStatus('Adding SMA indicator...', 'info');
+                const smaResponse = await fetch('/api/chart/indicators?strategy=sma_fractal_scalper&timeframe=1m');
+                const smaData = await smaResponse.json();
+                
+                if (smaData.sma_5 && smaData.sma_5.length > 0) {
+                    const sma5Series = chart.addSeries(LightweightCharts.LineSeries, {
+                        color: '#2196F3',
+                        lineWidth: 2,
+                        title: '5-SMA',
+                    });
+                    
+                    const sma5Data = smaData.sma_5.map(point => ({
+                        time: Math.floor(new Date(point.timestamp).getTime() / 1000),
+                        value: point.value
+                    }));
+                    
+                    sma5Series.setData(sma5Data);
+                    updateStatus('5-SMA indicator added successfully', 'success');
+                }
+                
+                // Fit content
+                chart.timeScale().fitContent();
+                updateStatus('Chart initialization complete!', 'success');
+                
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error');
+                console.error('Chart initialization error:', error);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initChart);
+    </script>
+</body>
+</html> 

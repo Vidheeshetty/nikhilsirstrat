@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Dashboard - SMA Fractal Scalper</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+</head>
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-title">
+            📈 Trading Dashboard - SMA Fractal Scalper
+        </div>
+        
+        <div class="header-controls">
+            <div class="status-indicator online" id="connection-status">
+                <span class="status-dot"></span>
+                <span id="status-text">Connected</span>
+            </div>
+            <button class="header-btn" id="settings-btn" title="Settings">⚙️ Settings</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <!-- Left Sidebar -->
+        <aside class="left-sidebar">
+            <!-- Connection Status -->
+            <div class="sidebar-section">
+                <h3>Connection</h3>
+                <div class="connection-status">
+                    <div class="connection-item">
+                        <span class="connection-label">Broker:</span>
+                        <span class="status-indicator online">
+                            <span class="status-dot"></span>
+                            Online
+                        </span>
+                    </div>
+                    <div class="connection-item">
+                        <span class="connection-label">Data Feed:</span>
+                        <span class="status-indicator online">
+                            <span class="status-dot"></span>
+                            Active
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Metrics -->
+            <div class="sidebar-section">
+                <h3>Metrics</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Current Price</div>
+                        <div class="metric-value" id="current-price">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">SMA Trend</div>
+                        <div class="metric-value" id="sma-trend">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">5-SMA</div>
+                        <div class="metric-value" id="sma-5-value">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">200-SMA</div>
+                        <div class="metric-value" id="sma-200-value">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Signals</div>
+                        <div class="metric-value" id="total-signals">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Executed Trades</div>
+                        <div class="metric-value" id="executed-trades">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicator Controls -->
+            <div class="sidebar-section">
+                <h3>Indicators 
+                    <button class="collapse-btn" id="indicators-collapse-btn" title="Show/Hide Indicators">
+                        <span class="collapse-icon">▼</span>
+                    </button>
+                </h3>
+                <div class="indicator-controls" id="indicator-controls">
+                    <!-- SMA Indicators -->
+                    <div class="indicator-group">
+                        <div class="indicator-group-header">
+                            <span class="indicator-group-title">📈 SMA Indicators</span>
+                        </div>
+                        <div class="indicator-item">
+                            <div class="indicator-info">
+                                <span class="indicator-name">5-SMA (Fast)</span>
+                                <span class="indicator-params">Period: 5</span>
+                            </div>
+                            <div class="indicator-controls-right">
+                                <span class="indicator-color" style="background-color: #2196F3;"></span>
+                                <button class="indicator-toggle" id="sma-5-toggle" data-indicator="sma_5" title="Show/Hide">
+                                    <span class="toggle-icon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="indicator-item">
+                            <div class="indicator-info">
+                                <span class="indicator-name">200-SMA (Slow)</span>
+                                <span class="indicator-params">Period: 200</span>
+                            </div>
+                            <div class="indicator-controls-right">
+                                <span class="indicator-color" style="background-color: #FF9800;"></span>
+                                <button class="indicator-toggle" id="sma-200-toggle" data-indicator="sma_200" title="Show/Hide">
+                                    <span class="toggle-icon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fractal Indicators -->
+                    <div class="indicator-group">
+                        <div class="indicator-group-header">
+                            <span class="indicator-group-title">🔺 Fractal Indicators</span>
+                        </div>
+                        <div class="indicator-item">
+                            <div class="indicator-info">
+                                <span class="indicator-name">High Fractals</span>
+                                <span class="indicator-params">Window: 5 bars</span>
+                            </div>
+                            <div class="indicator-controls-right">
+                                <span class="indicator-color" style="background-color: #E91E63;"></span>
+                                <button class="indicator-toggle" id="fractals-high-toggle" data-indicator="fractals_high" title="Show/Hide">
+                                    <span class="toggle-icon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="indicator-item">
+                            <div class="indicator-info">
+                                <span class="indicator-name">Low Fractals</span>
+                                <span class="indicator-params">Window: 5 bars</span>
+                            </div>
+                            <div class="indicator-controls-right">
+                                <span class="indicator-color" style="background-color: #4CAF50;"></span>
+                                <button class="indicator-toggle" id="fractals-low-toggle" data-indicator="fractals_low" title="Show/Hide">
+                                    <span class="toggle-icon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Signal Markers -->
+                    <div class="indicator-group">
+                        <div class="indicator-group-header">
+                            <span class="indicator-group-title">🎯 Trade Signals</span>
+                        </div>
+                        <div class="indicator-item">
+                            <div class="indicator-info">
+                                <span class="indicator-name">Entry/Exit Signals</span>
+                                <span class="indicator-params">SMA + Fractal</span>
+                            </div>
+                            <div class="indicator-controls-right">
+                                <span class="indicator-color" style="background: linear-gradient(45deg, #4bffb5, #ff4976);"></span>
+                                <button class="indicator-toggle" id="signals-toggle" data-indicator="signals" title="Show/Hide">
+                                    <span class="toggle-icon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Controls -->
+            <div class="sidebar-section">
+                <h3>Chart Controls</h3>
+                <div class="control-group">
+                    <button class="control-btn" id="fit-content-btn" title="Fit Content">🔍</button>
+                    <button class="control-btn" id="screenshot-btn" title="Take Screenshot">📷</button>
+                    <button class="control-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Chart Area -->
+        <div class="chart-container">
+            <!-- Timeframe Controls -->
+            <div class="timeframe-controls">
+                <div class="timeframe-label">Timeframe:</div>
+                <div class="timeframe-buttons" id="timeframe-buttons">
+                    <!-- Dynamically populated -->
+                </div>
+                <div class="current-timeframe-display">
+                    Current: <span id="current-timeframe">1m</span>
+                </div>
+            </div>
+
+            <!-- OHLC Display -->
+            <div class="ohlc-display" id="ohlc-display">
+                <div class="ohlc-item">Hover over chart to see OHLC data</div>
+            </div>
+
+            <!-- Chart -->
+            <div class="chart-wrapper">
+                <div class="loading-overlay" id="loading-overlay">
+                    Loading chart data...
+                </div>
+                <div id="trading-chart"></div>
+            </div>
+
+            <!-- Error Message -->
+            <div class="error-message" id="error-message" style="display: none;"></div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <aside class="right-sidebar">
+            <!-- Recent Activity -->
+            <div class="sidebar-section">
+                <h3>Activity</h3>
+                <div class="activity-feed" id="activity-feed">
+                    <div class="activity-item">
+                        <div class="activity-time">Starting up...</div>
+                        <div class="activity-text">Initializing trading dashboard</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strategy Status -->
+            <div class="sidebar-section">
+                <h3>Strategy</h3>
+                <div class="strategy-status" id="strategy-status">
+                    <div class="status-item">
+                        <div class="status-label">Status:</div>
+                        <div class="status-value" id="strategy-status-value">Initializing</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Position:</div>
+                        <div class="status-value" id="current-position">FLAT</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Last Signal:</div>
+                        <div class="status-value" id="last-signal">None</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Fractal Status:</div>
+                        <div class="status-value" id="fractal-status">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="sidebar-section">
+                <h3>Performance</h3>
+                <div class="performance-metrics" id="performance-metrics">
+                    <div class="perf-item">
+                        <div class="perf-label">P&L:</div>
+                        <div class="perf-value" id="total-pnl">₹0.00</div>
+                    </div>
+                    <div class="perf-item">
+                        <div class="perf-label">Win Rate:</div>
+                        <div class="perf-value" id="win-rate">--%</div>
+                    </div>
+                    <div class="perf-item">
+                        <div class="perf-label">Avg Trade:</div>
+                        <div class="perf-value" id="avg-trade">₹0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Logs -->
+            <div class="sidebar-section">
+                <h3>Recent Logs</h3>
+                <div class="logs-panel" id="logs-panel">
+                    <div class="log-entry info">System initializing...</div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settings-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Dashboard Settings</h3>
+                <button class="modal-close" id="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label>Update Frequency (ms):</label>
+                    <input type="number" id="update-frequency" value="1000" min="100" max="10000">
+                </div>
+                <div class="setting-group">
+                    <label>Chart Theme:</label>
+                    <select id="chart-theme">
+                        <option value="dark">Dark</option>
+                        <option value="light">Light</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Auto-fit Chart:</label>
+                    <input type="checkbox" id="auto-fit-chart" checked>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="reset-settings">Reset</button>
+                <button class="btn-primary" id="save-settings">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/libs/lightweight-charts.standalone.production.js?v=5.0.8"></script>
+    <script>
+        // Debug logging for dashboard initialization
+        console.log('🔍 Starting dashboard debug...');
+        
+        // Check if TradingView library loaded
+        console.log('TradingView library:', typeof LightweightCharts !== 'undefined' ? '✅ Loaded' : '❌ Not loaded');
+        
+        // Log module loading
+        const originalConsoleError = console.error;
+        console.error = function(...args) {
+            if (args[0] && args[0].includes && args[0].includes('Failed to load module')) {
+                console.log('🚨 Module loading error detected:', args);
+            }
+            originalConsoleError.apply(console, args);
+        };
+        
+        // Monitor for dashboard initialization
+        window.addEventListener('error', (event) => {
+            console.log('🚨 Global error:', event.error);
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            console.log('🚨 Unhandled promise rejection:', event.reason);
+        });
+    </script>
+    <script type="module" src="/static/js/modules/DataService.js"></script>
+    <script type="module" src="/static/js/modules/ChartManager.js"></script>
+    <script type="module" src="/static/js/modules/IndicatorManager.js"></script>
+    <script type="module" src="/static/js/modules/TimeframeManager.js"></script>
+    <script type="module" src="/static/js/dashboard.js"></script>
+</body>
+</html> 
