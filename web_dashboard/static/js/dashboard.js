@@ -312,11 +312,11 @@ class TradingDashboard {
                 }
             }
             
-            // Update trading metrics
-            if (indicators.total_trades !== undefined) {
+            // Update trading metrics (handle both field names for compatibility)
+            if (indicators.total_trades !== undefined || indicators.executed_trades !== undefined) {
                 const tradesEl = document.getElementById('executed-trades');
                 if (tradesEl) {
-                    tradesEl.textContent = indicators.total_trades;
+                    tradesEl.textContent = indicators.executed_trades || indicators.total_trades || 0;
                 }
             }
             
@@ -338,6 +338,14 @@ class TradingDashboard {
                 const reasonEl = document.getElementById('no-signal-reason');
                 if (reasonEl) {
                     reasonEl.textContent = indicators.no_signal_reason;
+                }
+            }
+            
+            // Update strategy status
+            if (indicators.strategy_status) {
+                const strategyStatusEl = document.getElementById('strategy-status-value');
+                if (strategyStatusEl) {
+                    strategyStatusEl.textContent = indicators.strategy_status;
                 }
             }
         }
