@@ -111,17 +111,26 @@ class TradingDashboard {
         });
         
         // Chart control buttons
-        document.getElementById('fit-content-btn')?.addEventListener('click', () => {
-            this.chartManager.fitContent();
-        });
+        const fitContentBtn = document.getElementById('fit-content-btn');
+        if (fitContentBtn) {
+            fitContentBtn.addEventListener('click', () => {
+                this.chartManager.fitContent();
+            });
+        }
         
-        document.getElementById('screenshot-btn')?.addEventListener('click', () => {
-            this.takeScreenshot();
-        });
+        const screenshotBtn = document.getElementById('screenshot-btn');
+        if (screenshotBtn) {
+            screenshotBtn.addEventListener('click', () => {
+                this.takeScreenshot();
+            });
+        }
         
-        document.getElementById('fullscreen-btn')?.addEventListener('click', () => {
-            this.toggleFullscreen();
-        });
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+                this.toggleFullscreen();
+            });
+        }
     }
 
     /**
@@ -293,33 +302,37 @@ class TradingDashboard {
             }
             
             // Fetch additional metrics from API
-            const response = await fetch('/api/indicators');
-            if (response.ok) {
-                const data = await response.json();
-                
-                // Update executed trades
-                const tradesEl = document.getElementById('executed-trades');
-                if (tradesEl) {
-                    tradesEl.textContent = data.executed_trades || 0;
+            try {
+                const response = await fetch('/api/indicators');
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Update executed trades
+                    const tradesEl = document.getElementById('executed-trades');
+                    if (tradesEl) {
+                        tradesEl.textContent = data.executed_trades || 0;
+                    }
+                    
+                    // Update total signals
+                    const signalsEl = document.getElementById('total-signals');
+                    if (signalsEl) {
+                        signalsEl.textContent = data.total_signals || 0;
+                    }
+                    
+                    // Update fractal status
+                    const fractalStatusEl = document.getElementById('fractal-status');
+                    if (fractalStatusEl) {
+                        fractalStatusEl.textContent = data.fractal_status || '--';
+                    }
+                    
+                    // Update strategy status
+                    const strategyStatusEl = document.getElementById('strategy-status-value');
+                    if (strategyStatusEl) {
+                        strategyStatusEl.textContent = data.strategy_status || 'Running';
+                    }
                 }
-                
-                // Update total signals
-                const signalsEl = document.getElementById('total-signals');
-                if (signalsEl) {
-                    signalsEl.textContent = data.total_signals || 0;
-                }
-                
-                // Update fractal status
-                const fractalStatusEl = document.getElementById('fractal-status');
-                if (fractalStatusEl) {
-                    fractalStatusEl.textContent = data.fractal_status || '--';
-                }
-                
-                // Update strategy status
-                const strategyStatusEl = document.getElementById('strategy-status-value');
-                if (strategyStatusEl) {
-                    strategyStatusEl.textContent = data.strategy_status || 'Running';
-                }
+            } catch (error) {
+                console.warn('⚠️ Failed to fetch additional metrics:', error);
             }
             
         } catch (error) {
@@ -420,30 +433,40 @@ class TradingDashboard {
         const saveBtn = document.getElementById('save-settings');
         const resetBtn = document.getElementById('reset-settings');
         
-        settingsBtn?.addEventListener('click', () => {
-            modal.style.display = 'flex';
-            this.loadSettings();
-        });
+        if (settingsBtn && modal) {
+            settingsBtn.addEventListener('click', () => {
+                modal.style.display = 'flex';
+                this.loadSettings();
+            });
+        }
         
-        closeBtn?.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
+        if (closeBtn && modal) {
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+        }
         
-        saveBtn?.addEventListener('click', () => {
-            this.saveSettings();
-            modal.style.display = 'none';
-        });
+        if (saveBtn && modal) {
+            saveBtn.addEventListener('click', () => {
+                this.saveSettings();
+                modal.style.display = 'none';
+            });
+        }
         
-        resetBtn?.addEventListener('click', () => {
-            this.resetSettings();
-        });
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.resetSettings();
+            });
+        }
         
         // Close modal on outside click
-        modal?.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
     }
 
     /**
@@ -465,7 +488,7 @@ class TradingDashboard {
                     break;
                 case 'Escape':
                     const modal = document.getElementById('settings-modal');
-                    if (modal.style.display === 'flex') {
+                    if (modal && modal.style.display === 'flex') {
                         modal.style.display = 'none';
                     }
                     break;
@@ -516,18 +539,26 @@ class TradingDashboard {
         }
         
         // Update form fields
-        document.getElementById('update-frequency').value = this.settings.updateFrequency;
-        document.getElementById('chart-theme').value = this.settings.chartTheme;
-        document.getElementById('auto-fit-chart').checked = this.settings.autoFitChart;
+        const updateFrequencyEl = document.getElementById('update-frequency');
+        const chartThemeEl = document.getElementById('chart-theme');
+        const autoFitChartEl = document.getElementById('auto-fit-chart');
+        
+        if (updateFrequencyEl) updateFrequencyEl.value = this.settings.updateFrequency;
+        if (chartThemeEl) chartThemeEl.value = this.settings.chartTheme;
+        if (autoFitChartEl) autoFitChartEl.checked = this.settings.autoFitChart;
     }
 
     /**
      * Save settings to localStorage
      */
     saveSettings() {
-        this.settings.updateFrequency = parseInt(document.getElementById('update-frequency').value);
-        this.settings.chartTheme = document.getElementById('chart-theme').value;
-        this.settings.autoFitChart = document.getElementById('auto-fit-chart').checked;
+        const updateFrequencyEl = document.getElementById('update-frequency');
+        const chartThemeEl = document.getElementById('chart-theme');
+        const autoFitChartEl = document.getElementById('auto-fit-chart');
+        
+        if (updateFrequencyEl) this.settings.updateFrequency = parseInt(updateFrequencyEl.value);
+        if (chartThemeEl) this.settings.chartTheme = chartThemeEl.value;
+        if (autoFitChartEl) this.settings.autoFitChart = autoFitChartEl.checked;
         
         localStorage.setItem('dashboard-settings', JSON.stringify(this.settings));
         
@@ -565,9 +596,6 @@ class TradingDashboard {
                 this.updateMetrics();
             }, this.settings.updateFrequency);
         }
-        
-        // Apply chart theme (if implemented)
-        // this.chartManager.setTheme(this.settings.chartTheme);
     }
 
     /**
@@ -593,9 +621,17 @@ class TradingDashboard {
             clearInterval(this.updateInterval);
         }
         
-        this.indicatorManager?.stopRealTimeUpdates();
-        this.dataService?.disconnect();
-        this.chartManager?.destroy();
+        if (this.indicatorManager) {
+            this.indicatorManager.stopRealTimeUpdates();
+        }
+        
+        if (this.dataService) {
+            this.dataService.disconnect();
+        }
+        
+        if (this.chartManager) {
+            this.chartManager.destroy();
+        }
     }
 }
 

@@ -23,7 +23,7 @@ class ChartManager {
                 horzLines: { color: '#2a2a2a' },
             },
             crosshair: {
-                mode: LightweightCharts.CrosshairMode.Normal,
+                mode: 1, // Normal crosshair mode
             },
             rightPriceScale: {
                 borderColor: '#485158',
@@ -49,8 +49,8 @@ class ChartManager {
             // Create chart
             this.chart = LightweightCharts.createChart(container, this.chartOptions);
             
-            // Create candlestick series
-            this.candlestickSeries = this.chart.addCandlestickSeries({
+            // Create candlestick series using correct v5.0.8 API
+            this.candlestickSeries = this.chart.addSeries('Candlestick', {
                 upColor: '#4bffb5',
                 downColor: '#ff4976',
                 borderDownColor: '#ff4976',
@@ -107,7 +107,24 @@ class ChartManager {
         if (!ohlcElement) return;
 
         if (param.time) {
-            const data = param.seriesPrices.get(this.candlestickSeries);
+            let data = null;
+            
+            // Try different API approaches for TradingView v5.0.8
+            try {
+                if (param.seriesPrices && param.seriesPrices.has && param.seriesPrices.has(this.candlestickSeries)) {
+                    data = param.seriesPrices.get(this.candlestickSeries);
+                } else if (param.seriesData && param.seriesData.has && param.seriesData.has(this.candlestickSeries)) {
+                    data = param.seriesData.get(this.candlestickSeries);
+                } else {
+                    // Fallback: log available properties for debugging
+                    console.log('Crosshair param properties:', Object.keys(param));
+                    return;
+                }
+            } catch (error) {
+                console.warn('Crosshair data access error:', error);
+                return;
+            }
+            
             if (data) {
                 const { open, high, low, close } = data;
                 const timestamp = new Date(param.time * 1000).toLocaleString();
@@ -217,7 +234,7 @@ class ChartManager {
 
             switch (type) {
                 case 'sma':
-                    series = this.chart.addLineSeries({
+                    series = this.chart.addSeries('Line', {
                         color: config.color || '#2196F3',
                         lineWidth: config.lineWidth || 2,
                         title: config.title || `SMA ${config.period}`,
@@ -225,9 +242,9 @@ class ChartManager {
                     break;
 
                 case 'fractal':
-                    series = this.chart.addLineSeries({
+                    series = this.chart.addSeries('Line', {
                         color: config.color || '#FF6B6B',
-                        lineStyle: LightweightCharts.LineStyle.Dotted,
+                        lineStyle: 1, // Dotted line style
                         lineWidth: 1,
                         title: config.title || 'Fractals',
                         pointMarkersVisible: true,

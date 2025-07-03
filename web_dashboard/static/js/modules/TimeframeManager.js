@@ -61,18 +61,12 @@ class TimeframeManager {
             // Show loading state
             this.showLoadingState(true);
 
-            // Cache current timeframe data
-            await this.cacheCurrentTimeframeData();
-
             // Update current timeframe
             const previousTimeframe = this.currentTimeframe;
             this.currentTimeframe = timeframe;
 
             // Update UI
             this.setActiveTimeframe(timeframe);
-
-            // Load new timeframe data
-            await this.loadTimeframeData(timeframe);
 
             // Update chart
             await this.chartManager.updateTimeframe(timeframe);
@@ -94,62 +88,6 @@ class TimeframeManager {
         } finally {
             this.showLoadingState(false);
         }
-    }
-
-    /**
-     * Cache current timeframe data
-     */
-    async cacheCurrentTimeframeData() {
-        try {
-            const cachedData = this.dataService.getCachedData(
-                this.chartManager.symbol,
-                this.currentTimeframe,
-                500
-            );
-
-            if (cachedData) {
-                this.timeframeData.set(this.currentTimeframe, {
-                    bars: cachedData.bars,
-                    indicators: this.indicatorManager.getCurrentValues(),
-                    timestamp: Date.now()
-                });
-            }
-        } catch (error) {
-            console.warn('⚠️ Failed to cache timeframe data:', error);
-        }
-    }
-
-    /**
-     * Load timeframe data
-     */
-    async loadTimeframeData(timeframe) {
-        // Check if we have cached data
-        const cachedData = this.timeframeData.get(timeframe);
-        const cacheAge = cachedData ? Date.now() - cachedData.timestamp : Infinity;
-        const maxCacheAge = 5 * 60 * 1000; // 5 minutes
-
-        if (cachedData && cacheAge < maxCacheAge) {
-            console.log(`📦 Using cached data for ${timeframe}`);
-            return cachedData;
-        }
-
-        // Load fresh data
-        console.log(`🔄 Loading fresh data for ${timeframe}`);
-        const data = await this.dataService.getHistoricalData(
-            this.chartManager.symbol,
-            timeframe,
-            500
-        );
-
-        // Cache the new data
-        if (data) {
-            this.timeframeData.set(timeframe, {
-                bars: data.bars,
-                timestamp: Date.now()
-            });
-        }
-
-        return data;
     }
 
     /**
@@ -213,40 +151,6 @@ class TimeframeManager {
     }
 
     /**
-     * Get timeframe display name
-     */
-    getTimeframeDisplayName(timeframe) {
-        const names = {
-            '1m': '1 Minute',
-            '3m': '3 Minutes',
-            '5m': '5 Minutes',
-            '15m': '15 Minutes',
-            '30m': '30 Minutes',
-            '1h': '1 Hour',
-            '4h': '4 Hours',
-            '1d': '1 Day'
-        };
-        return names[timeframe] || timeframe;
-    }
-
-    /**
-     * Get timeframe color for UI
-     */
-    getTimeframeColor(timeframe) {
-        const colors = {
-            '1m': '#4CAF50',
-            '3m': '#2196F3',
-            '5m': '#FF9800',
-            '15m': '#9C27B0',
-            '30m': '#F44336',
-            '1h': '#607D8B',
-            '4h': '#795548',
-            '1d': '#3F51B5'
-        };
-        return colors[timeframe] || '#666';
-    }
-
-    /**
      * Get current timeframe
      */
     getCurrentTimeframe() {
@@ -258,86 +162,6 @@ class TimeframeManager {
      */
     getAvailableTimeframes() {
         return this.availableTimeframes;
-    }
-
-    /**
-     * Preload adjacent timeframes
-     */
-    async preloadAdjacentTimeframes() {
-        const currentIndex = this.availableTimeframes.indexOf(this.currentTimeframe);
-        const adjacent = [];
-
-        // Previous timeframe
-        if (currentIndex > 0) {
-            adjacent.push(this.availableTimeframes[currentIndex - 1]);
-        }
-
-        // Next timeframe
-        if (currentIndex < this.availableTimeframes.length - 1) {
-            adjacent.push(this.availableTimeframes[currentIndex + 1]);
-        }
-
-        // Load adjacent timeframes in background
-        for (const timeframe of adjacent) {
-            if (!this.timeframeData.has(timeframe)) {
-                try {
-                    await this.loadTimeframeData(timeframe);
-                    console.log(`📦 Preloaded ${timeframe} data`);
-                } catch (error) {
-                    console.warn(`⚠️ Failed to preload ${timeframe}:`, error);
-                }
-            }
-        }
-    }
-
-    /**
-     * Clear cached data
-     */
-    clearCache() {
-        this.timeframeData.clear();
-        console.log('🧹 Cleared timeframe cache');
-    }
-
-    /**
-     * Get cache statistics
-     */
-    getCacheStats() {
-        const stats = {
-            totalCached: this.timeframeData.size,
-            timeframes: Array.from(this.timeframeData.keys()),
-            totalSize: 0
-        };
-
-        this.timeframeData.forEach((data, timeframe) => {
-            if (data.bars) {
-                stats.totalSize += data.bars.length;
-            }
-        });
-
-        return stats;
-    }
-
-    /**
-     * Handle real-time timeframe updates
-     */
-    handleRealtimeUpdate(updateData) {
-        const { timeframe, data } = updateData;
-        
-        // Only update if it's the current timeframe
-        if (timeframe === this.currentTimeframe) {
-            // Update cached data
-            const cachedData = this.timeframeData.get(timeframe);
-            if (cachedData && cachedData.bars) {
-                const lastBar = cachedData.bars[cachedData.bars.length - 1];
-                if (lastBar && lastBar.timestamp === data.timestamp) {
-                    // Update existing bar
-                    cachedData.bars[cachedData.bars.length - 1] = data;
-                } else {
-                    // Add new bar
-                    cachedData.bars.push(data);
-                }
-            }
-        }
     }
 
     /**
