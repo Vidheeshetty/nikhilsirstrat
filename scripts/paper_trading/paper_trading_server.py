@@ -125,8 +125,8 @@ class PaperTradingServer:
             total_seconds = server_uptime.total_seconds()
             hours, remainder = divmod(total_seconds, 3600)
             minutes, seconds = divmod(remainder, 60)
-            milliseconds = (seconds % 1) * 100  # Convert to centiseconds (hundredths)
-            uptime_formatted = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}.{milliseconds:05.2f}"
+            centiseconds = int((seconds % 1) * 100)  # Convert to centiseconds (hundredths) as integer
+            uptime_formatted = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}.{centiseconds:02d}"
             
             # Base response with server info
             response = {
