@@ -38,8 +38,106 @@
         test_entry.py, test_exit.py, ...
     /integration/
     /system/
+    /selenium/               # Browser automation tests
   ```
 * Do not replicate test scaffolding. Use shared logic and reuse where applicable.
+
+### 3.1 Selenium Testing Framework (UI/Chart Testing)
+
+**MANDATORY**: All UI development must use the established Selenium testing framework instead of manual browser testing.
+
+#### 3.1.1 Test Categories & Markers
+
+Use pytest markers to categorize tests by lifecycle:
+
+```python
+@pytest.mark.dev      # Development phase tests (temporary, detailed)
+@pytest.mark.prod     # Production tests (permanent, core functionality)  
+@pytest.mark.debug    # Debug and exploration tests
+@pytest.mark.selenium # Browser automation tests
+@pytest.mark.chart    # Chart functionality tests
+@pytest.mark.realtime # Real-time data tests
+@pytest.mark.performance # Performance benchmark tests
+```
+
+#### 3.1.2 TDD Workflow for UI Development
+
+**Development Phase:**
+1. Write detailed development tests with `@pytest.mark.dev`
+2. Run: `./scripts/testing/run_selenium_tests.sh dev --headed`
+3. Use tests to guide implementation and define "done" criteria
+4. Add performance benchmarks: `./scripts/testing/run_selenium_tests.sh performance`
+
+**Stabilization Phase:**
+1. Convert essential tests to `@pytest.mark.prod` 
+2. Remove/consolidate granular development tests
+3. Run: `./scripts/testing/run_selenium_tests.sh prod --headless --parallel`
+4. Add to CI/CD pipeline
+
+#### 3.1.3 Page Object Model (POM)
+
+**MANDATORY**: Use Page Object Model for all UI tests:
+
+```python
+# tests/selenium/page_objects/
+dashboard_page.py    # Dashboard interactions
+chart_page.py        # Chart-specific interactions
+```
+
+#### 3.1.4 Test Execution Commands
+
+```bash
+# Quick validation
+python3 scripts/testing/validate_selenium_framework.py
+
+# Development testing (headed, verbose)
+./scripts/testing/run_selenium_tests.sh dev --headed --verbose
+
+# Production testing (headless, parallel)  
+./scripts/testing/run_selenium_tests.sh prod --headless --parallel
+
+# Performance benchmarking
+./scripts/testing/run_selenium_tests.sh performance
+
+# Debug mode with state capture
+./scripts/testing/run_selenium_tests.sh debug --headed
+```
+
+#### 3.1.5 Performance Benchmarks
+
+All UI tests must meet these performance criteria:
+- Chart load time: < 5 seconds
+- Dashboard load time: < 10 seconds  
+- Memory usage: < 100MB
+- Chart interactions: < 1 second response
+- Real-time updates: < 30 seconds detection
+
+#### 3.1.6 Test Lifecycle Management
+
+**Key Principle**: Tests serve as development tools during active work, then consolidate to essential tests for long-term maintenance to avoid test suite bloat.
+
+**Lifecycle:**
+1. **Add granular dev tests** during feature development
+2. **Use tests to guide implementation** and define "done" criteria  
+3. **Remove/consolidate tests** once features stabilize
+4. **Keep essential tests** for regression protection
+
+#### 3.1.7 Dependencies
+
+Install Selenium testing dependencies:
+```bash
+pip install -r requirements-selenium-testing.txt
+```
+
+#### 3.1.8 Cursor UI Development Mandate
+
+**NEVER** ask users to manually test UI changes in browser. Always:
+1. Write Selenium tests first (TDD approach)
+2. Use tests to validate functionality
+3. Run automated test suite to verify changes
+4. Only ask for manual verification if automated tests are insufficient
+
+**Framework Location**: `tests/selenium/` with complete Page Object Model implementation
 
 ## 4. Code Reuse with Utils
 

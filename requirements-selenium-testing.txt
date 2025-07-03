@@ -1,0 +1,41 @@
+# Selenium Testing Requirements
+# Install with: pip install -r requirements-selenium-testing.txt
+
+# Core testing framework
+pytest>=7.0.0
+pytest-html>=3.1.0
+pytest-xdist>=2.5.0  # For parallel test execution
+pytest-timeout>=2.1.0
+pytest-cov>=4.0.0  # For coverage reporting
+
+# Selenium and browser automation
+selenium>=4.15.0
+webdriver-manager>=4.0.0  # Automatic driver management
+
+# HTTP requests for API testing
+requests>=2.28.0
+
+# Performance monitoring
+psutil>=5.9.0  # For system resource monitoring
+
+# Data handling and validation
+pydantic>=1.10.0
+jsonschema>=4.17.0
+
+# Reporting and logging
+colorlog>=6.7.0
+rich>=13.0.0  # For rich console output
+
+# Development and debugging
+ipdb>=0.13.0  # Interactive debugger
+tabulate>=0.9.0  # For table formatting in reports
+
+# Optional: Image comparison for visual regression testing
+# Pillow>=9.0.0
+# opencv-python>=4.7.0
+
+# Optional: Accessibility testing
+# axe-selenium-python>=2.1.6
+
+# Optional: Performance testing
+# locust>=2.14.0 

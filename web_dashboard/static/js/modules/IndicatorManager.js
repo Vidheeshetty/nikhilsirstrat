@@ -165,7 +165,110 @@ class IndicatorManager {
     }
 
     /**
-     * Update indicators with real-time data
+     * Get indicator configuration for UI
+     */
+    getIndicatorConfig() {
+        const config = [];
+        
+        this.indicators.forEach((indicator, id) => {
+            config.push({
+                id,
+                type: indicator.type,
+                color: indicator.color,
+                visible: indicator.visible,
+                title: this.getIndicatorTitle(id, indicator)
+            });
+        });
+        
+        return config;
+    }
+
+    /**
+     * Get human-readable indicator title
+     */
+    getIndicatorTitle(id, indicator) {
+        switch (id) {
+            case 'sma_5':
+                return '5-Period SMA (Fast)';
+            case 'sma_200':
+                return '200-Period SMA (Slow)';
+            case 'fractals_high':
+                return 'High Fractals';
+            case 'fractals_low':
+                return 'Low Fractals';
+            case 'signals':
+                return 'Trade Signals';
+            default:
+                return id.replace('_', ' ').toUpperCase();
+        }
+    }
+
+    /**
+     * Toggle indicator visibility
+     */
+    toggleIndicator(indicatorId) {
+        const indicator = this.indicators.get(indicatorId);
+        if (!indicator) {
+            console.warn(`⚠️ Indicator ${indicatorId} not found`);
+            return false;
+        }
+        
+        indicator.visible = !indicator.visible;
+        
+        // Toggle in chart manager
+        this.chartManager.toggleIndicator(indicatorId);
+        
+        console.log(`${indicator.visible ? '👁️' : '🙈'} Toggled ${indicatorId} visibility`);
+        return indicator.visible;
+    }
+
+    /**
+     * Get current indicator values for display
+     */
+    getCurrentValues() {
+        const values = {};
+        
+        this.indicators.forEach((indicator, id) => {
+            if (indicator.data && indicator.data.length > 0) {
+                const lastValue = indicator.data[indicator.data.length - 1];
+                values[id] = {
+                    value: lastValue.value,
+                    timestamp: lastValue.time,
+                    type: indicator.type
+                };
+            }
+        });
+        
+        return values;
+    }
+
+    /**
+     * Get trend status based on SMA crossover
+     */
+    getTrendStatus() {
+        const sma5 = this.indicators.get('sma_5');
+        const sma200 = this.indicators.get('sma_200');
+        
+        if (!sma5 || !sma200 || !sma5.data || !sma200.data) {
+            return { trend: 'UNKNOWN', confidence: 0 };
+        }
+        
+        const sma5Value = sma5.data[sma5.data.length - 1]?.value;
+        const sma200Value = sma200.data[sma200.data.length - 1]?.value;
+        
+        if (sma5Value && sma200Value) {
+            const trend = sma5Value > sma200Value ? 'BULLISH' : 'BEARISH';
+            const spread = Math.abs(sma5Value - sma200Value);
+            const confidence = Math.min(spread / sma200Value * 100, 100);
+            
+            return { trend, confidence: confidence.toFixed(2) };
+        }
+        
+        return { trend: 'UNKNOWN', confidence: 0 };
+    }
+
+    /**
+     * Handle indicator updates
      */
     handleIndicatorUpdate(updateData) {
         const { type, data, timestamp } = updateData;
@@ -280,109 +383,6 @@ class IndicatorManager {
             // Update chart markers
             this.chartManager.addSignalMarkers([newSignal]);
         }
-    }
-
-    /**
-     * Toggle indicator visibility
-     */
-    toggleIndicator(indicatorId) {
-        const indicator = this.indicators.get(indicatorId);
-        if (!indicator) {
-            console.warn(`⚠️ Indicator ${indicatorId} not found`);
-            return false;
-        }
-        
-        indicator.visible = !indicator.visible;
-        
-        // Toggle in chart manager
-        this.chartManager.toggleIndicator(indicatorId);
-        
-        console.log(`${indicator.visible ? '👁️' : '🙈'} Toggled ${indicatorId} visibility`);
-        return indicator.visible;
-    }
-
-    /**
-     * Get indicator configuration for UI
-     */
-    getIndicatorConfig() {
-        const config = [];
-        
-        this.indicators.forEach((indicator, id) => {
-            config.push({
-                id,
-                type: indicator.type,
-                color: indicator.color,
-                visible: indicator.visible,
-                title: this.getIndicatorTitle(id, indicator)
-            });
-        });
-        
-        return config;
-    }
-
-    /**
-     * Get human-readable indicator title
-     */
-    getIndicatorTitle(id, indicator) {
-        switch (id) {
-            case 'sma_5':
-                return '5-Period SMA (Fast)';
-            case 'sma_200':
-                return '200-Period SMA (Slow)';
-            case 'fractals_high':
-                return 'High Fractals';
-            case 'fractals_low':
-                return 'Low Fractals';
-            case 'signals':
-                return 'Trade Signals';
-            default:
-                return id.replace('_', ' ').toUpperCase();
-        }
-    }
-
-    /**
-     * Get current indicator values for display
-     */
-    getCurrentValues() {
-        const values = {};
-        
-        this.indicators.forEach((indicator, id) => {
-            if (indicator.data && indicator.data.length > 0) {
-                const lastValue = indicator.data[indicator.data.length - 1];
-                values[id] = {
-                    value: lastValue.value,
-                    timestamp: lastValue.time,
-                    type: indicator.type
-                };
-            }
-        });
-        
-        return values;
-    }
-
-    /**
-     * Get trend status based on SMA crossover
-     */
-    getTrendStatus() {
-        const sma5 = this.indicators.get('sma_5');
-        const sma200 = this.indicators.get('sma_200');
-        
-        if (!sma5 || !sma200 || !sma5.data || !sma200.data) {
-            return { trend: 'UNKNOWN', confidence: 0 };
-        }
-        
-        const sma5Value = sma5.data[sma5.data.length - 1]?.value;
-        const sma200Value = sma200.data[sma200.data.length - 1]?.value;
-        
-        if (sma5Value && sma200Value) {
-            const trend = sma5Value > sma200Value ? 'BULLISH' : 'BEARISH';
-            const spread = Math.abs(sma5Value - sma200Value);
-            const confidence = Math.min(spread / sma200Value * 100, 100);
-            
-            return { trend, confidence: confidence.toFixed(2) };
-        }
-        
-        return { trend: 'UNKNOWN', confidence: 0 };
     }
 
     /**

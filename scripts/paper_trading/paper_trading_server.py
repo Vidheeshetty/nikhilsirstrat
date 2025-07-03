@@ -469,23 +469,35 @@ class PaperTradingServer:
                 # You would integrate with your existing data loading mechanisms
                 import pandas as pd
                 from datetime import datetime, timedelta
+                import random
                 
                 # Generate sample data for demonstration
                 now = datetime.now()
                 data = []
+                base_price = 895.0
+                current_price = base_price
                 
                 for i in range(bars):
                     timestamp = now - timedelta(minutes=bars-i)
-                    # Mock OHLC data - replace with actual data loading
-                    base_price = 895.0 + (i % 20) * 0.5
+                    
+                    # Create more realistic price movements
+                    open_price = current_price
+                    volatility = 2.0  # Increased volatility
+                    change = (random.random() - 0.5) * volatility
+                    high_price = open_price + abs(change) + random.random() * 1.5
+                    low_price = open_price - abs(change) - random.random() * 1.5
+                    close_price = open_price + change
+                    
                     data.append({
                         "timestamp": timestamp.isoformat(),
-                        "open": base_price,
-                        "high": base_price + 2.0,
-                        "low": base_price - 1.5,
-                        "close": base_price + 1.0,
+                        "open": round(open_price, 2),
+                        "high": round(high_price, 2),
+                        "low": round(low_price, 2),
+                        "close": round(close_price, 2),
                         "volume": 1000 + (i % 100) * 10
                     })
+                    
+                    current_price = close_price
                 
                 return {
                     "symbol": symbol,
@@ -614,16 +626,50 @@ class PaperTradingServer:
             else:
                 raise HTTPException(status_code=404, detail=f"Chart dashboard not found at {chart_html_path}")
 
-        # Mount static files for the chart dashboard
-        try:
+        @app.get("/test")
+        async def test_page():
+            """Serve the test page for debugging."""
             project_root = Path(__file__).parent.parent.parent
-            static_dir = project_root / "web_dashboard" / "static"
-            if static_dir.exists():
-                app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+            test_html_path = project_root / "web_dashboard" / "templates" / "test.html"
+            
+            if test_html_path.exists():
+                return FileResponse(str(test_html_path))
             else:
-                self.logger.warning(f"Static directory not found at {static_dir}")
-        except Exception as e:
-            self.logger.warning(f"Could not mount static files: {e}")
+                raise HTTPException(status_code=404, detail=f"Test page not found at {test_html_path}")
+
+        @app.get("/debug")
+        async def debug_page():
+            """Serve the debug page for chart testing."""
+            project_root = Path(__file__).parent.parent.parent
+            debug_html_path = project_root / "web_dashboard" / "templates" / "debug.html"
+            
+            if debug_html_path.exists():
+                return FileResponse(str(debug_html_path))
+            else:
+                raise HTTPException(status_code=404, detail=f"Debug page not found at {debug_html_path}")
+
+        @app.get("/simple-test")
+        async def simple_test_page():
+            """Simple TradingView library test page."""
+            return FileResponse("web_dashboard/templates/simple-test.html")
+
+        # Static file serving
+        app.mount("/static", StaticFiles(directory="web_dashboard/static"), name="static")
+
+        @app.get("/candlestick-test")
+        async def candlestick_test_page():
+            """Comprehensive candlestick functionality test page."""
+            return FileResponse("web_dashboard/templates/candlestick-test.html")
+
+        @app.get("/chart-test")
+        async def chart_test_page():
+            """Test page for fixed TradingView chart API."""
+            return FileResponse("web_dashboard/templates/chart-test.html")
+
+        @app.get("/minimal-chart")
+        async def minimal_chart_page():
+            """Minimal chart test page to isolate issues."""
+            return FileResponse("web_dashboard/templates/minimal-chart.html")
 
         @app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
