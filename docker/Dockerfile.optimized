@@ -13,7 +13,10 @@ RUN apk add --no-cache \
     libffi-dev \
     openssl-dev \
     cargo \
-    rust
+    rust \
+    clang \
+    clang-dev \
+    llvm-dev
 
 # Set working directory
 WORKDIR /build
