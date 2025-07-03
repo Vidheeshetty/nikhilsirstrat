@@ -471,6 +471,30 @@ src/strategies/my_strategy/
 
 See `src/strategies/sma_fractal_scalper_v2/` for complete reference implementation.
 
+### 11.6 Mandatory Strategy Test Suite
+
+For **every new strategy** created with the template in Section 11.4, you **must** add a matching test folder:
+
+```
+/tests/strategies/{strategy_name}/
+├── test_strategy.py   # Core entry/exit & lifecycle logic
+├── test_config.py     # YAML/Config loading & schema validation
+└── test_runner.py     # Runner initialisation & paper-trading execution
+```
+
+* All tests use **pytest** and follow the existing marker convention (`@pytest.mark.dev`, `@pytest.mark.prod`, etc.).
+* Broker / market-data dependencies must be **mocked** (e.g. `pytest-mock`, monkey-patching `utils.brokers.*`) so tests run offline & deterministically.
+* `test_strategy.py` should cover:
+  * entry/exit signal generation with sample bar data
+  * position lifecycle (open → adjust → close)
+  * edge-cases (no data, stale data, error handling)
+* `test_config.py` validates:
+  * YAML schema via `utils.validators.data_schema`
+  * correct parsing into the strategy's `config.py` dataclass
+* `test_runner.py` ensures the **paper-trading runner** starts, processes a mocked data stream, and reports trades without exceptions.
+* **CI Enforcement**: a PR adding `src/strategies/{strategy_name}/` must fail if the corresponding test directory does not exist or `pytest -m prod` fails.
+* Cursor must auto-generate skeleton test files when scaffolding a new strategy package.
+
 ## 12. Learning Documentation System
 
 **MANDATORY: All significant learnings, fixes, and solutions MUST be documented in the learning log.**
