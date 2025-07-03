@@ -66,6 +66,30 @@ temp/
 *.tmp
 *.log
 
+# Keep only essential files for Docker build
+!requirements*.txt
+!scripts/
+!src/
+!utils/
+!config/
+!web_dashboard/
+!docker/
+!VERSION
+
+# Include essential config files (MUST come before exclusions)
+!config/**/*.yaml
+!config/**/*.yml
+!src/**/*.yaml
+!src/**/*.yml
+
+# Exclude specific large files (AFTER inclusions)
+*.parquet
+*.csv
+*.json
+# Exclude YAML files except those already included above
+*.yaml
+*.yml
+
 # Exclude specific large files
 *.parquet
 *.csv
@@ -75,14 +99,4 @@ temp/
 !config/**/*.yaml
 !config/**/*.yml
 !src/**/*.yaml
-!src/**/*.yml
-
-# Keep only essential files for Docker build
-!requirements*.txt
-!scripts/
-!src/
-!utils/
-!config/
-!web_dashboard/
-!docker/
-!VERSION 
+!src/**/*.yml 
