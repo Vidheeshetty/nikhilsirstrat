@@ -53,21 +53,21 @@ class PaperTradingServer:
         self, config_file: str = "config/paper_trading.yaml", *, log_level: str = "info"
     ):
         """Initialize the server."""
+        from datetime import datetime
+        
         self.config_file = config_file
         self.config = self._load_config()
-
-        # File paths
+        self.server_start_time = datetime.now()  # Track web server start time
+        self.logger = logging.getLogger(__name__)
+        
+        # Daemon control files
         self.pid_file = Path("runlogs/papertrading/daemon.pid")
+        self.control_file = Path("runlogs/papertrading/daemon.control")
         self.status_file = Path("runlogs/papertrading/daemon_status.json")
-        self.control_file = Path("runlogs/papertrading/daemon_control.json")
-
+        
         # WebSocket connections
         self.websocket_connections = []
-
-        # Setup logging – honor passed log-level
-        logging.basicConfig(level=getattr(logging, log_level.upper(), logging.INFO))
-        self.logger = logging.getLogger(__name__)
-
+        
         # Create FastAPI app
         self.app = self._create_app()
 
@@ -112,17 +112,60 @@ class PaperTradingServer:
 
         @app.get("/api/status")
         async def get_status():
-            """Get daemon status."""
-            if not is_daemon_running(self.pid_file):
-                return {"status": "stopped", "running": False}
-
-            if self.status_file.exists():
-                with open(self.status_file, "r") as f:
-                    status_data = json.load(f)
-                status_data["running"] = True
-                return status_data
+            """Get daemon and server status."""
+            from datetime import datetime
+            
+            # Calculate web server uptime
+            server_uptime = datetime.now() - self.server_start_time
+            
+            # Check daemon status
+            daemon_running = is_daemon_running(self.pid_file)
+            
+            # Format uptime with milliseconds to 2 decimal places
+            total_seconds = server_uptime.total_seconds()
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            milliseconds = (seconds % 1) * 100  # Convert to centiseconds (hundredths)
+            uptime_formatted = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}.{milliseconds:05.2f}"
+            
+            # Base response with server info
+            response = {
+                "server_status": "running",
+                "server_uptime": uptime_formatted,
+                "server_start_time": self.server_start_time.isoformat(),
+                "daemon_running": daemon_running,
+                "running": daemon_running  # For backwards compatibility
+            }
+            
+            # Add daemon status if available
+            if daemon_running and self.status_file.exists():
+                try:
+                    with open(self.status_file, "r") as f:
+                        daemon_status = json.load(f)
+                    
+                    # Add daemon-specific info
+                    response.update({
+                        "daemon_status": daemon_status.get("status", "unknown"),
+                        "daemon_pid": daemon_status.get("pid"),
+                        "daemon_start_time": daemon_status.get("start_time"),
+                        "daemon_uptime": daemon_status.get("uptime"),
+                        "daemon_last_update": daemon_status.get("last_update"),
+                        "error_count": daemon_status.get("error_count", 0),
+                        "health_stats": daemon_status.get("health_stats", {})
+                    })
+                except Exception as e:
+                    response["daemon_status"] = f"error_reading_status: {str(e)}"
             else:
-                return {"status": "unknown", "running": True}
+                response.update({
+                    "daemon_status": "stopped" if not daemon_running else "status_unavailable",
+                    "daemon_pid": None,
+                    "daemon_start_time": None,
+                    "daemon_uptime": None,
+                    "error_count": 0,
+                    "health_stats": {}
+                })
+            
+            return response
 
         @app.post("/api/start")
         async def start_daemon():
@@ -514,25 +557,43 @@ class PaperTradingServer:
                     "1d": 1440
                 }.get(timeframe, 1)
                 
+                # For higher timeframes, we need fewer bars to cover the same time period
+                # Example: 500 1m bars = 8.33 hours, so 5m bars should be 100 bars for same period
+                actual_bars = min(bars, max(50, bars // timeframe_minutes))
+                
                 # Generate sample data for demonstration
                 now = datetime.now()
+                # Round to nearest timeframe boundary
+                if timeframe_minutes >= 60:
+                    now = now.replace(minute=0, second=0, microsecond=0)
+                elif timeframe_minutes >= 5:
+                    now = now.replace(minute=(now.minute // timeframe_minutes) * timeframe_minutes, second=0, microsecond=0)
+                
                 data = []
                 base_price = 895.0
                 current_price = base_price
                 
-                for i in range(bars):
-                    timestamp = now - timedelta(minutes=(bars-i) * timeframe_minutes)
+                for i in range(actual_bars):
+                    timestamp = now - timedelta(minutes=(actual_bars-i) * timeframe_minutes)
                     
                     # Create more realistic price movements based on timeframe
                     open_price = current_price
-                    volatility = 2.0 * (timeframe_minutes / 60)  # More volatility for longer timeframes
+                    # Higher timeframes have more volatility per bar
+                    volatility = 1.0 + (timeframe_minutes / 15.0)  # Scale volatility with timeframe
                     change = (random.random() - 0.5) * volatility
-                    high_price = open_price + abs(change) + random.random() * (1.5 * timeframe_minutes / 60)
-                    low_price = open_price - abs(change) - random.random() * (1.5 * timeframe_minutes / 60)
+                    
+                    # Higher timeframes have wider high/low ranges
+                    range_factor = 1.0 + (timeframe_minutes / 30.0)
+                    high_price = open_price + abs(change) + random.random() * range_factor
+                    low_price = open_price - abs(change) - random.random() * range_factor
                     close_price = open_price + change
                     
+                    # Ensure high is highest and low is lowest
+                    high_price = max(high_price, open_price, close_price)
+                    low_price = min(low_price, open_price, close_price)
+                    
                     data.append({
-                        "timestamp": timestamp.isoformat(),
+                        "time": int(timestamp.timestamp()),  # TradingView expects Unix timestamp
                         "open": round(open_price, 2),
                         "high": round(high_price, 2),
                         "low": round(low_price, 2),
@@ -542,11 +603,16 @@ class PaperTradingServer:
                     
                     current_price = close_price
                 
+                # Sort by time (oldest first)
+                data.sort(key=lambda x: x["time"])
+                
                 return {
                     "symbol": symbol,
                     "timeframe": timeframe,
                     "bars": data,
-                    "count": len(data)
+                    "count": len(data),
+                    "timeframe_minutes": timeframe_minutes,
+                    "actual_bars": actual_bars
                 }
                 
             except Exception as e:
@@ -571,7 +637,17 @@ class PaperTradingServer:
                     "1d": 1440
                 }.get(timeframe, 1)
                 
+                # For higher timeframes, we need fewer data points to match the bar count
+                base_bars = 500
+                actual_bars = min(base_bars, max(50, base_bars // timeframe_minutes))
+                
                 now = datetime.now()
+                # Round to nearest timeframe boundary
+                if timeframe_minutes >= 60:
+                    now = now.replace(minute=0, second=0, microsecond=0)
+                elif timeframe_minutes >= 5:
+                    now = now.replace(minute=(now.minute // timeframe_minutes) * timeframe_minutes, second=0, microsecond=0)
+                
                 indicators = {
                     "strategy": strategy,
                     "timeframe": timeframe,
@@ -582,40 +658,44 @@ class PaperTradingServer:
                 }
                 
                 # Generate sample SMA data with proper timeframe spacing
-                data_points = min(500, 200 * timeframe_minutes)  # Adjust data points based on timeframe
-                for i in range(data_points):
-                    timestamp = now - timedelta(minutes=(data_points-i) * timeframe_minutes)
+                for i in range(actual_bars):
+                    timestamp = now - timedelta(minutes=(actual_bars-i) * timeframe_minutes)
+                    unix_time = int(timestamp.timestamp())
                     
-                    # 5-SMA data (converted to TradingView format)
+                    # 5-SMA data (more responsive, varies more)
+                    sma5_value = 895.0 + (i % 10) * 0.3 + (timeframe_minutes / 60.0) * 0.5
                     indicators["sma_5"].append({
-                        "time": int(timestamp.timestamp()),
-                        "value": 895.0 + (i % 10) * 0.3
+                        "time": unix_time,
+                        "value": round(sma5_value, 2)
                     })
                     
-                    # 200-SMA data (slower moving, converted to TradingView format)
+                    # 200-SMA data (slower moving, more stable)
+                    sma200_value = 894.0 + (i % 50) * 0.1 + (timeframe_minutes / 120.0) * 0.2
                     indicators["sma_200"].append({
-                        "time": int(timestamp.timestamp()),
-                        "value": 894.0 + (i % 50) * 0.1
+                        "time": unix_time,
+                        "value": round(sma200_value, 2)
                     })
                 
                 # Generate sample fractal data with proper timeframe spacing
-                fractal_interval = max(20, timeframe_minutes * 5)  # Fractals appear less frequently on higher timeframes
-                for i in range(0, data_points, fractal_interval):
-                    timestamp = now - timedelta(minutes=(data_points-i) * timeframe_minutes)
+                # Higher timeframes have fewer fractals
+                fractal_interval = max(10, timeframe_minutes * 3)  # Fractals appear less frequently on higher timeframes
+                for i in range(0, actual_bars, fractal_interval):
+                    timestamp = now - timedelta(minutes=(actual_bars-i) * timeframe_minutes)
                     
                     # High fractal
                     indicators["fractals"].append({
-                        "timestamp": timestamp.isoformat(),
+                        "time": int(timestamp.timestamp()),
                         "type": "high",
-                        "price": 897.0 + (i % 30) * 0.2
+                        "price": round(897.0 + (i % 30) * 0.2 + (timeframe_minutes / 60.0) * 0.3, 2)
                     })
                     
                     # Low fractal
                     if i > fractal_interval:
+                        low_timestamp = timestamp - timedelta(minutes=fractal_interval * timeframe_minutes)
                         indicators["fractals"].append({
-                            "timestamp": (timestamp - timedelta(minutes=fractal_interval * timeframe_minutes)).isoformat(),
+                            "time": int(low_timestamp.timestamp()),
                             "type": "low",
-                            "price": 893.0 + (i % 25) * 0.15
+                            "price": round(893.0 + (i % 25) * 0.15 + (timeframe_minutes / 60.0) * 0.2, 2)
                         })
                 
                 return indicators
@@ -883,7 +963,7 @@ class PaperTradingServer:
                 <div class="status-value" id="open-positions">-</div>
             </div>
             <div class="status-card">
-                <h3>⏱️ Uptime</h3>
+                <h3>⏱️ Web Server Uptime</h3>
                 <div class="status-value" id="uptime">-</div>
             </div>
             <div class="status-card">
@@ -960,15 +1040,17 @@ class PaperTradingServer:
             const statusEl = document.getElementById('daemon-status');
             const statusIndicator = document.querySelector('.status-indicator');
             
-            if (data.running) {
-                statusEl.textContent = data.status || 'Running';
+            // Update daemon status
+            if (data.daemon_running) {
+                statusEl.textContent = data.daemon_status || 'Running';
                 statusIndicator.className = 'status-indicator status-running';
             } else {
                 statusEl.textContent = 'Stopped';
                 statusIndicator.className = 'status-indicator status-stopped';
             }
             
-            document.getElementById('uptime').textContent = data.uptime || '-';
+            // Update uptime - use server uptime for web dashboard
+            document.getElementById('uptime').textContent = data.server_uptime || '-';
             
             // Update performance metrics if available
             if (data.health_stats) {

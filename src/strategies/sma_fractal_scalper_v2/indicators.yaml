@@ -1,0 +1,63 @@
+# Indicators configuration for SMA Fractal Scalper V2
+# This file defines which indicators to use and their parameters
+
+indicators:
+  sma_short:
+    type: sma
+    enabled: true
+    visible_on_chart: true
+    parameters:
+      period: 5
+    chart_settings:
+      color: "#FF6B6B"
+      line_width: 2
+      line_style: "solid"
+      overlay: true
+  
+  sma_long:
+    type: sma
+    enabled: true
+    visible_on_chart: true
+    parameters:
+      period: 200
+    chart_settings:
+      color: "#4ECDC4"
+      line_width: 2
+      line_style: "solid"
+      overlay: true
+  
+  fractal:
+    type: fractal
+    enabled: true
+    visible_on_chart: true
+    parameters:
+      window: 5
+    chart_settings:
+      color: "#45B7D1"
+      line_width: 1
+      line_style: "dotted"
+      overlay: true
+  
+  ema_fast:
+    type: ema
+    enabled: false  # Optional indicator for additional confirmation
+    visible_on_chart: false
+    parameters:
+      period: 12
+    chart_settings:
+      color: "#96CEB4"
+      line_width: 1
+      line_style: "dashed"
+      overlay: true
+  
+  rsi:
+    type: rsi
+    enabled: false  # Optional for additional filtering
+    visible_on_chart: false
+    parameters:
+      period: 14
+    chart_settings:
+      color: "#FFEAA7"
+      line_width: 2
+      line_style: "solid"
+      overlay: false  # RSI goes in separate pane 

@@ -29,7 +29,7 @@ class TradingDashboard {
         try {
             console.log('🚀 Initializing Trading Dashboard...');
             
-            // Initialize UI components
+            // Initialize UI components (without keyboard shortcuts)
             this.initUI();
             
             // Initialize chart manager
@@ -46,6 +46,15 @@ class TradingDashboard {
                 this.dataService
             );
             this.timeframeManager.init();
+            
+            // Initialize indicators
+            await this.indicatorManager.initializeIndicators();
+            
+            // Initialize indicator button states
+            this.initializeIndicatorStates();
+            
+            // Setup keyboard shortcuts (after all managers are initialized)
+            this.setupKeyboardShortcuts();
             
             // Connect to WebSocket
             await this.dataService.connectWebSocket();
@@ -78,8 +87,7 @@ class TradingDashboard {
         // Setup modal handlers
         this.setupModalHandlers();
         
-        // Setup keyboard shortcuts
-        this.setupKeyboardShortcuts();
+        // Note: keyboard shortcuts setup moved to after managers are initialized
         
         // Update connection status
         this.updateConnectionStatus('connecting');
@@ -143,20 +151,78 @@ class TradingDashboard {
             // Load historical chart data
             await this.chartManager.loadHistoricalData();
             
-            // Initialize indicators
+            // Initialize indicators (this will load and display them)
             await this.indicatorManager.initializeIndicators();
             
             // Setup indicator controls
             this.setupIndicatorControls();
             
-            // Load current metrics
-            await this.updateMetrics();
+            // Load current metrics (but don't reload indicators)
+            await this.updateMetricsOnly();
             
             console.log('✅ Initial data loaded');
             
         } catch (error) {
             console.error('❌ Failed to load initial data:', error);
             this.showError('Failed to load chart data');
+        }
+    }
+
+    /**
+     * Update metrics without reloading indicators
+     */
+    async updateMetricsOnly() {
+        try {
+            // Get current indicator values from chart manager
+            const indicatorValues = this.indicatorManager.getCurrentValues();
+            
+            // Update SMA values if available
+            if (indicatorValues.sma_5) {
+                const sma5El = document.getElementById('sma-5-value');
+                if (sma5El) {
+                    sma5El.textContent = `₹${indicatorValues.sma_5.value.toFixed(2)}`;
+                }
+            }
+            
+            if (indicatorValues.sma_200) {
+                const sma200El = document.getElementById('sma-200-value');
+                if (sma200El) {
+                    sma200El.textContent = `₹${indicatorValues.sma_200.value.toFixed(2)}`;
+                }
+            }
+            
+            // Update trend status
+            const trendStatus = this.indicatorManager.getTrendStatus();
+            const trendEl = document.getElementById('sma-trend');
+            if (trendEl) {
+                trendEl.textContent = trendStatus.trend;
+                trendEl.className = `metric-value ${trendStatus.trend.toLowerCase()}`;
+            }
+            
+            // Only fetch non-chart metrics from API (avoid duplicate indicator calls)
+            try {
+                const response = await fetch('/api/indicators');
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Update executed trades
+                    const tradesEl = document.getElementById('executed-trades');
+                    if (tradesEl) {
+                        tradesEl.textContent = data.executed_trades || 0;
+                    }
+                    
+                    // Update total signals
+                    const signalsEl = document.getElementById('total-signals');
+                    if (signalsEl) {
+                        signalsEl.textContent = data.total_signals || 0;
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to fetch additional metrics:', error);
+            }
+            
+        } catch (error) {
+            console.error('❌ Failed to update metrics:', error);
         }
     }
 
@@ -262,9 +328,9 @@ class TradingDashboard {
         // Start indicator updates
         this.indicatorManager.startRealTimeUpdates();
         
-        // Update metrics periodically
+        // Update metrics periodically (use the new method to avoid duplicate calls)
         this.updateInterval = setInterval(() => {
-            this.updateMetrics();
+            this.updateMetricsOnly();
         }, this.settings.updateFrequency);
         
         console.log('🔄 Started real-time updates');
@@ -480,7 +546,9 @@ class TradingDashboard {
             switch (e.key) {
                 case 'f':
                     e.preventDefault();
-                    this.chartManager.fitContent();
+                    if (this.chartManager) {
+                        this.chartManager.fitContent();
+                    }
                     break;
                 case 's':
                     e.preventDefault();
@@ -494,9 +562,111 @@ class TradingDashboard {
                     break;
             }
         });
+
+        // Setup indicator collapse toggle
+        const collapseBtn = document.getElementById('indicators-collapse-btn');
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', this.toggleIndicatorPanel.bind(this));
+        }
+
+        // Setup individual indicator toggles
+        this.setupIndicatorToggles();
+    }
+
+    /**
+     * Setup individual indicator toggle buttons
+     */
+    setupIndicatorToggles() {
+        const toggleButtons = document.querySelectorAll('.indicator-toggle');
         
-        // Setup timeframe shortcuts
-        this.timeframeManager.setupKeyboardShortcuts();
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const indicatorId = button.getAttribute('data-indicator');
+                this.toggleIndicator(indicatorId, button);
+            });
+        });
+    }
+
+    /**
+     * Toggle indicator panel visibility
+     */
+    toggleIndicatorPanel() {
+        const controls = document.getElementById('indicator-controls');
+        const collapseBtn = document.getElementById('indicators-collapse-btn');
+        const collapseIcon = collapseBtn.querySelector('.collapse-icon');
+        
+        if (controls.classList.contains('collapsed')) {
+            controls.classList.remove('collapsed');
+            collapseBtn.classList.remove('collapsed');
+            collapseIcon.textContent = '▼';
+        } else {
+            controls.classList.add('collapsed');
+            collapseBtn.classList.add('collapsed');
+            collapseIcon.textContent = '▶';
+        }
+    }
+
+    /**
+     * Toggle individual indicator visibility
+     */
+    toggleIndicator(indicatorId, button) {
+        if (!this.indicatorManager) return;
+        
+        const isVisible = this.indicatorManager.toggleIndicator(indicatorId);
+        
+        // Update button state
+        if (isVisible) {
+            button.classList.remove('hidden');
+            button.classList.add('active');
+            button.title = 'Hide indicator';
+        } else {
+            button.classList.add('hidden');
+            button.classList.remove('active');
+            button.title = 'Show indicator';
+        }
+        
+        // Log activity
+        this.addActivity(`${isVisible ? 'Showed' : 'Hid'} ${this.getIndicatorDisplayName(indicatorId)}`);
+    }
+
+    /**
+     * Get human-readable indicator name
+     */
+    getIndicatorDisplayName(indicatorId) {
+        const names = {
+            'sma_5': '5-SMA',
+            'sma_200': '200-SMA', 
+            'fractals_high': 'High Fractals',
+            'fractals_low': 'Low Fractals',
+            'signals': 'Trade Signals'
+        };
+        return names[indicatorId] || indicatorId;
+    }
+
+    /**
+     * Initialize indicator button states
+     */
+    initializeIndicatorStates() {
+        if (!this.indicatorManager) return;
+        
+        const toggleButtons = document.querySelectorAll('.indicator-toggle');
+        
+        toggleButtons.forEach(button => {
+            const indicatorId = button.getAttribute('data-indicator');
+            const indicator = this.indicatorManager.indicators.get(indicatorId);
+            
+            if (indicator) {
+                if (indicator.visible) {
+                    button.classList.add('active');
+                    button.classList.remove('hidden');
+                    button.title = 'Hide indicator';
+                } else {
+                    button.classList.remove('active');
+                    button.classList.add('hidden');
+                    button.title = 'Show indicator';
+                }
+            }
+        });
     }
 
     /**

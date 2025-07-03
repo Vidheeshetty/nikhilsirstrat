@@ -78,6 +78,14 @@ class PaperBroker(BaseBroker):
         try:
             self._connected = True
 
+            # Start background tasks - ensure we have an event loop
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                # No event loop running, this shouldn't happen in async context
+                self.logger.error("No event loop running when connecting paper broker")
+                return False
+
             # Start background tasks
             self._market_update_task = asyncio.create_task(self._market_update_loop())
             self._order_processing_task = asyncio.create_task(

@@ -9,6 +9,7 @@ class ChartManager {
         this.chart = null;
         this.candlestickSeries = null;
         this.indicators = new Map();
+        this.markers = new Map(); // Store markers by type
         this.currentTimeframe = '1m';
         this.symbol = 'GOLDGUINEA';
         
@@ -27,12 +28,41 @@ class ChartManager {
             },
             rightPriceScale: {
                 borderColor: '#485158',
+                visible: true,
+                scaleMargins: {
+                    top: 0.1,
+                    bottom: 0.1,
+                },
             },
             timeScale: {
                 borderColor: '#485158',
                 timeVisible: true,
                 secondsVisible: false,
+                fixLeftEdge: false,
+                fixRightEdge: false,
+                lockVisibleTimeRangeOnResize: false,
             },
+            // Enable both horizontal and vertical zooming/scrolling
+            handleScroll: {
+                mouseWheel: true,    // Enable mouse wheel zoom
+                pressedMouseMove: true,  // Enable pan with mouse drag
+                horzTouchDrag: true,     // Enable horizontal touch drag
+                vertTouchDrag: true,     // Enable vertical touch drag
+            },
+            handleScale: {
+                mouseWheel: true,    // Enable zoom with mouse wheel
+                pinch: true,         // Enable pinch to zoom on touch devices
+                axisPressedMouseMove: {
+                    time: true,      // Enable time axis scaling
+                    price: true,     // Enable price axis scaling
+                },
+                axisDoubleClickReset: {
+                    time: true,      // Double-click time axis to reset
+                    price: true,     // Double-click price axis to reset
+                },
+            },
+            width: this.container.clientWidth,
+            height: this.container.clientHeight,
         };
     }
 
@@ -50,7 +80,7 @@ class ChartManager {
             this.chart = LightweightCharts.createChart(container, this.chartOptions);
             
             // Create candlestick series using correct v5.0.8 API
-            this.candlestickSeries = this.chart.addSeries('Candlestick', {
+            this.candlestickSeries = this.chart.addSeries(LightweightCharts.CandlestickSeries, {
                 upColor: '#4bffb5',
                 downColor: '#ff4976',
                 borderDownColor: '#ff4976',
@@ -189,11 +219,12 @@ class ChartManager {
     }
 
     /**
-     * Convert bar data to TradingView Lightweight Charts format
+     * Convert bars to TradingView chart format
      */
     convertToChartFormat(bars) {
         return bars.map(bar => ({
-            time: Math.floor(new Date(bar.timestamp).getTime() / 1000),
+            // Handle both 'time' (Unix timestamp) and 'timestamp' (ISO string) formats
+            time: bar.time || Math.floor(new Date(bar.timestamp).getTime() / 1000),
             open: parseFloat(bar.open),
             high: parseFloat(bar.high),
             low: parseFloat(bar.low),
@@ -202,13 +233,12 @@ class ChartManager {
     }
 
     /**
-     * Add a new bar (real-time update)
+     * Add a new bar to the chart
      */
     addBar(barData) {
-        if (!this.candlestickSeries) return;
-
         const chartBar = {
-            time: Math.floor(new Date(barData.timestamp).getTime() / 1000),
+            // Handle both 'time' (Unix timestamp) and 'timestamp' (ISO string) formats
+            time: barData.time || Math.floor(new Date(barData.timestamp).getTime() / 1000),
             open: parseFloat(barData.open),
             high: parseFloat(barData.high),
             low: parseFloat(barData.low),
@@ -234,7 +264,7 @@ class ChartManager {
 
             switch (type) {
                 case 'sma':
-                    series = this.chart.addSeries('Line', {
+                    series = this.chart.addSeries(LightweightCharts.LineSeries, {
                         color: config.color || '#2196F3',
                         lineWidth: config.lineWidth || 2,
                         title: config.title || `SMA ${config.period}`,
@@ -242,13 +272,37 @@ class ChartManager {
                     break;
 
                 case 'fractal':
-                    series = this.chart.addSeries('Line', {
+                    // For fractals, we create a line series with special markers
+                    series = this.chart.addSeries(LightweightCharts.LineSeries, {
                         color: config.color || '#FF6B6B',
-                        lineStyle: 1, // Dotted line style
-                        lineWidth: 1,
+                        lineStyle: config.lineStyle || 1, // Dotted line
+                        lineWidth: config.lineWidth || 1,
                         title: config.title || 'Fractals',
-                        pointMarkersVisible: true,
+                        pointMarkersVisible: false, // We'll use custom markers
+                        lastValueVisible: false,
+                        priceLineVisible: false,
                     });
+                    
+                    // Add the data to the series
+                    if (data && data.length > 0) {
+                        series.setData(data);
+                        
+                        // Create markers for fractal points
+                        const fractalMarkers = data.map(point => ({
+                            time: point.time,
+                            position: config.fractalsType === 'high' ? 'aboveBar' : 'belowBar',
+                            color: config.color,
+                            shape: config.fractalsType === 'high' ? 'circle' : 'circle',
+                            text: config.fractalsType === 'high' ? '▲' : '▼',
+                            size: 1
+                        }));
+                        
+                        // Add markers to candlestick series if available
+                        if (this.candlestickSeries) {
+                            // Use the new marker management system
+                            this.addMarkers(indicatorId, fractalMarkers);
+                        }
+                    }
                     break;
 
                 case 'signal':
@@ -291,8 +345,8 @@ class ChartManager {
             text: `${signal.direction} @ ${signal.entry_price}`,
         }));
 
-        this.candlestickSeries.setMarkers(markers);
-        console.log(`✅ Added ${markers.length} signal markers`);
+        // Use the new marker management system
+        this.addMarkers('signals', markers);
     }
 
     /**
@@ -320,6 +374,10 @@ class ChartManager {
 
         this.chart.removeSeries(indicator.series);
         this.indicators.delete(indicatorId);
+        
+        // Also remove associated markers
+        this.removeMarkers(indicatorId);
+        
         console.log(`🗑️ Removed indicator: ${indicatorId}`);
     }
 
@@ -345,18 +403,18 @@ class ChartManager {
      */
     async reloadIndicators() {
         try {
+            console.log(`🔄 Reloading indicators for timeframe: ${this.currentTimeframe}`);
+            
             const indicatorData = await this.dataService.getIndicatorData('sma_fractal_scalper', this.currentTimeframe);
             
-            // Clear existing indicators
-            this.indicators.forEach((indicator, id) => {
-                this.removeIndicator(id);
-            });
+            // Clear existing indicators completely
+            this.clearAllIndicators();
 
             // Re-add indicators with new data
             if (indicatorData.sma_5) {
                 this.addIndicator('sma_5', 'sma', {
                     color: '#2196F3',
-                    title: '5-SMA',
+                    title: '5-SMA (Fast)',
                     period: 5
                 }, indicatorData.sma_5);
             }
@@ -364,25 +422,64 @@ class ChartManager {
             if (indicatorData.sma_200) {
                 this.addIndicator('sma_200', 'sma', {
                     color: '#FF9800',
-                    title: '200-SMA',
+                    title: '200-SMA (Slow)',
                     period: 200
                 }, indicatorData.sma_200);
             }
 
             if (indicatorData.fractals) {
-                this.addIndicator('fractals', 'fractal', {
-                    color: '#E91E63',
-                    title: 'Fractals'
-                }, indicatorData.fractals);
+                // Process fractals separately for high and low
+                const highFractals = indicatorData.fractals.filter(f => f.type === 'high');
+                const lowFractals = indicatorData.fractals.filter(f => f.type === 'low');
+                
+                if (highFractals.length > 0) {
+                    this.addMarkersAsLineSeries('high_fractals', highFractals.map(f => ({
+                        time: Math.floor(new Date(f.timestamp).getTime() / 1000),
+                        value: f.price
+                    })));
+                }
+                
+                if (lowFractals.length > 0) {
+                    this.addMarkersAsLineSeries('low_fractals', lowFractals.map(f => ({
+                        time: Math.floor(new Date(f.timestamp).getTime() / 1000),
+                        value: f.price
+                    })));
+                }
             }
 
             if (indicatorData.signals) {
                 this.addSignalMarkers(indicatorData.signals);
             }
 
+            console.log(`✅ Reloaded indicators for timeframe: ${this.currentTimeframe}`);
+
         } catch (error) {
             console.error('❌ Failed to reload indicators:', error);
         }
+    }
+
+    /**
+     * Clear all indicators and markers
+     */
+    clearAllIndicators() {
+        // Remove all indicators
+        this.indicators.forEach((indicator, id) => {
+            this.chart.removeSeries(indicator.series);
+        });
+        this.indicators.clear();
+        
+        // Remove all marker series
+        if (this.markerSeries) {
+            this.markerSeries.forEach((series, id) => {
+                this.chart.removeSeries(series);
+            });
+            this.markerSeries.clear();
+        }
+        
+        // Clear marker storage
+        this.markers.clear();
+        
+        console.log('🧹 Cleared all indicators and markers');
     }
 
     /**
@@ -423,6 +520,143 @@ class ChartManager {
             this.candlestickSeries = null;
             this.indicators.clear();
         }
+    }
+
+    /**
+     * Add markers to chart with proper management
+     */
+    addMarkers(markerId, markers) {
+        if (!this.candlestickSeries || !markers || markers.length === 0) {
+            console.warn(`⚠️ Cannot add markers for ${markerId}: candlestick series not initialized or no markers provided`);
+            return;
+        }
+
+        // Store markers by ID
+        this.markers.set(markerId, markers);
+        
+        // Combine all markers and set them on the candlestick series
+        const allMarkers = [];
+        this.markers.forEach(markerSet => {
+            allMarkers.push(...markerSet);
+        });
+        
+        try {
+            // For now, skip the createSeriesMarkers approach due to internal library errors
+            // and go directly to the line series approach which should work reliably
+            console.log(`🔄 Using line series approach for ${markerId} (skipping createSeriesMarkers due to library issues)`);
+            this.addMarkersAsLineSeries(markerId, markers);
+            
+            /* Commented out until library issues are resolved
+            // In TradingView v5.0.8, check if createSeriesMarkers exists
+            if (typeof LightweightCharts.createSeriesMarkers === 'function') {
+                // Use the new v5.0.8 API
+                console.log(`🔄 Using createSeriesMarkers API for ${markerId}`);
+                this.candlestickSeries.seriesMarkers = LightweightCharts.createSeriesMarkers(this.chart, this.candlestickSeries, {
+                    markers: allMarkers
+                });
+                console.log(`✅ Added ${markers.length} markers for ${markerId} using createSeriesMarkers`);
+            } else if (typeof this.candlestickSeries.setMarkers === 'function') {
+                // Fallback to older API
+                console.log(`🔄 Using legacy setMarkers API for ${markerId}`);
+                this.candlestickSeries.setMarkers(allMarkers);
+                console.log(`✅ Added ${markers.length} markers for ${markerId} using setMarkers`);
+            } else {
+                // Alternative approach: Use line series with custom markers
+                console.log(`🔄 Using alternative approach with line series for ${markerId}`);
+                this.addMarkersAsLineSeries(markerId, markers);
+            }
+            */
+        } catch (error) {
+            console.error(`❌ Failed to set markers for ${markerId}:`, error);
+            console.log('Trying alternative approach...');
+            this.addMarkersAsLineSeries(markerId, markers);
+        }
+    }
+
+    /**
+     * Alternative approach: Add markers as line series with point markers
+     */
+    addMarkersAsLineSeries(markerId, markers) {
+        try {
+            // For fractal markers, we want to show them as individual points
+            // Create a line series for the markers
+            const markerColor = markerId.includes('high') ? '#E91E63' : 
+                               markerId.includes('low') ? '#4CAF50' : '#FF6B6B';
+            
+            const markerSeries = this.chart.addSeries(LightweightCharts.LineSeries, {
+                color: markerColor,
+                lineWidth: 0, // No connecting lines
+                pointMarkersVisible: true,
+                pointMarkersRadius: 4,
+                lastValueVisible: false,
+                priceLineVisible: false,
+                title: `${markerId} Markers`,
+            });
+
+            // Convert markers to line series data
+            // Handle both marker format and fractal data format
+            const lineData = markers.map(marker => {
+                // Support both marker format and direct fractal data format
+                const time = marker.time || Math.floor(new Date(marker.timestamp).getTime() / 1000);
+                const value = marker.value || marker.price;
+                
+                return {
+                    time: time,
+                    value: value
+                };
+            }).filter(point => point.time && point.value); // Filter out invalid points
+
+            if (lineData.length > 0) {
+                markerSeries.setData(lineData);
+                
+                // Store the marker series for cleanup
+                if (!this.markerSeries) {
+                    this.markerSeries = new Map();
+                }
+                this.markerSeries.set(markerId, markerSeries);
+                
+                console.log(`✅ Added ${lineData.length} markers for ${markerId} using line series approach`);
+            } else {
+                console.warn(`⚠️ No valid marker data for ${markerId}`);
+                // Remove the empty series
+                this.chart.removeSeries(markerSeries);
+            }
+        } catch (error) {
+            console.error(`❌ Failed to add markers as line series for ${markerId}:`, error);
+        }
+    }
+
+    /**
+     * Remove markers by ID
+     */
+    removeMarkers(markerId) {
+        if (!this.markers.has(markerId)) return;
+        
+        this.markers.delete(markerId);
+        
+        // Also remove marker series if it exists
+        if (this.markerSeries && this.markerSeries.has(markerId)) {
+            const markerSeries = this.markerSeries.get(markerId);
+            this.chart.removeSeries(markerSeries);
+            this.markerSeries.delete(markerId);
+            console.log(`🗑️ Removed marker series for ${markerId}`);
+        }
+        
+        // Update remaining markers on candlestick series
+        const allMarkers = [];
+        this.markers.forEach(markerSet => {
+            allMarkers.push(...markerSet);
+        });
+        
+        try {
+            if (typeof this.candlestickSeries.setMarkers === 'function') {
+                this.candlestickSeries.setMarkers(allMarkers);
+            }
+        } catch (error) {
+            console.warn(`Warning: Could not update markers after removal:`, error);
+        }
+        
+        console.log(`🗑️ Removed markers for ${markerId}`);
     }
 }
 

@@ -1,0 +1,92 @@
+# Paper Trading Configuration for SMA Fractal Scalper V2
+# This config tests the new pluggable architecture in paper trading mode
+
+brokers:
+  zerodha:
+    api_key: paper_key
+    api_secret: paper_secret
+    broker_name: zerodha
+    log_level: INFO
+    log_orders: true
+    log_trades: true
+    max_daily_loss: 50000.0
+    max_open_positions: 10
+    max_position_size: 100
+    paper_brokerage_per_order: 20.0
+    paper_initial_balance: 1000000.0
+    paper_stt_rate: 0.025
+    paper_trading: true
+    paper_transaction_charges: 0.00325
+
+data_feed:
+  market_end_time: '15:30'
+  market_start_time: 09:15
+  trading_days:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  type: paper
+  update_frequency: 1
+
+engine:
+  log_level: DEBUG
+  strategy_id: PAPER_STRATEGY_V2-001
+  trader_id: PAPER_TRADER_V2-001
+  venue: MCX
+
+logging:
+  backup_count: 5
+  file: runlogs/papertrading/sma_scalper_v2.log
+  level: DEBUG
+  max_file_size: 10MB
+
+reporting:
+  eod_report: true
+  formats:
+  - json
+  - csv
+  - html
+  metrics:
+  - pnl
+  - positions
+  - orders
+  - trades
+  - drawdown
+  - win_rate
+  - signals
+  - indicators
+  output_dir: runlogs/papertrading/v2
+  realtime_updates: true
+  update_frequency: 5
+
+risk_management:
+  emergency_stop_loss: 0.1
+  global_max_daily_loss: 100000.0
+  global_max_positions: 20
+  max_drawdown_limit: 0.15
+  position_size_limit: 0.05
+
+strategies:
+  SmaFractalScalperV2:
+    broker: zerodha
+    config_file: src/strategies/sma_fractal_scalper_v2/strategy.yaml
+    enabled: true
+    instrument_id: CRUDEOIL20250721.FUT.MCX
+    
+    # Additional V2-specific settings
+    enable_dynamic_management: true
+    chart_visualization: true
+    signal_logging: true
+    
+    # Override default indicator settings if needed
+    custom_indicators:
+      - name: "ema_fast"
+        type: "EMA"
+        period: 12
+        enabled: false
+      - name: "rsi"
+        type: "RSI"
+        period: 14
+        enabled: false 

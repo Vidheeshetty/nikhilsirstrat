@@ -1,0 +1,37 @@
+# SMA Fractal Scalper V2 Strategy Configuration
+# This strategy uses the pluggable architecture with configurable indicators and signals
+
+# Strategy parameters
+sma_short_period: 5
+sma_long_period: 200
+risk_per_trade: 0.01
+timeframe: "1MIN"
+session_cutoff: null
+use_fractals: true
+use_sma: true
+fractal_window: 5
+historical_warmup: true
+
+# Pluggable architecture configuration paths
+indicators_config_path: "src/strategies/sma_fractal_scalper_v2/indicators.yaml"
+signals_config_path: "src/strategies/sma_fractal_scalper_v2/signals.yaml"
+
+# Trading instrument (can be overridden by CLI or paper trading config)
+instrument_id: "CRUDEOIL20250721.FUT.MCX"
+
+# Strategy metadata
+strategy_name: "SmaFractalScalperV2"
+description: "SMA Fractal Scalper with pluggable indicator and signal architecture"
+version: "2.0.0"
+author: "NT Trading Platform"
+
+# Risk management
+max_position_size: 1
+max_daily_trades: 10
+stop_loss_pct: 0.02
+take_profit_pct: 0.04
+
+# Logging
+log_level: "DEBUG"
+log_signals: true
+log_indicators: true 

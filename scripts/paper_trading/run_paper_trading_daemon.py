@@ -175,14 +175,22 @@ class PaperTradingDaemon:
     def _update_status(self, status: str, extra_info: Dict[str, Any] = None):
         """Update daemon status file."""
         try:
+            # Format uptime with milliseconds to 2 decimal places
+            uptime_formatted = None
+            if self.start_time:
+                uptime_delta = datetime.now() - self.start_time
+                total_seconds = uptime_delta.total_seconds()
+                hours, remainder = divmod(total_seconds, 3600)
+                minutes, seconds = divmod(remainder, 60)
+                milliseconds = (seconds % 1) * 1000
+                uptime_formatted = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}.{milliseconds:.2f}"
+            
             status_data = {
                 "status": status,
                 "pid": os.getpid(),
                 "start_time": self.start_time.isoformat() if self.start_time else None,
                 "last_update": datetime.now().isoformat(),
-                "uptime": str(datetime.now() - self.start_time)
-                if self.start_time
-                else None,
+                "uptime": uptime_formatted,
                 "error_count": self.error_count,
                 "health_stats": self.health_stats,
                 **(extra_info or {}),
@@ -275,6 +283,14 @@ class PaperTradingDaemon:
         """Initialize all components."""
         try:
             self.logger.info("Initializing paper trading daemon...")
+            
+            # Check if we have an event loop
+            try:
+                loop = asyncio.get_running_loop()
+                self.logger.info(f"Event loop is running: {loop}")
+            except RuntimeError as e:
+                self.logger.error(f"No event loop running during initialization: {e}")
+                raise
 
             # Initialize broker manager
             await self.broker_manager.initialize(self.config_file)
@@ -621,10 +637,15 @@ async def main():
     try:
         # Daemonize if requested
         if args.daemon:
+            daemon.logger.info("Running in daemon mode - daemonizing...")
             daemon.daemonize()
+        else:
+            daemon.logger.info("Running in foreground mode")
 
         # Initialize and start daemon
+        daemon.logger.info("About to initialize daemon...")
         await daemon.initialize()
+        daemon.logger.info("About to start daemon...")
         await daemon.start()
 
     except KeyboardInterrupt:

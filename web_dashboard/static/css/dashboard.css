@@ -235,52 +235,150 @@ body {
 .indicator-controls {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 }
 
-.indicator-control {
+.indicator-controls.collapsed {
+    display: none;
+}
+
+.collapse-btn {
+    background: none;
+    border: none;
+    color: #8b949e;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    margin-left: auto;
+}
+
+.collapse-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f0f6fc;
+}
+
+.collapse-icon {
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+}
+
+.collapse-btn.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.indicator-group {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.indicator-group-header {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid #30363d;
+}
+
+.indicator-group-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #f0f6fc;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.indicator-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid #30363d;
-    border-radius: 4px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+    transition: background-color 0.2s;
+}
+
+.indicator-item:last-child {
+    border-bottom: none;
+}
+
+.indicator-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.indicator-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .indicator-name {
     font-size: 0.85rem;
-    color: #e6edf3;
+    font-weight: 500;
+    color: #f0f6fc;
+}
+
+.indicator-params {
+    font-size: 0.75rem;
+    color: #8b949e;
+}
+
+.indicator-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.indicator-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid #30363d;
+    flex-shrink: 0;
 }
 
 .indicator-toggle {
-    width: 40px;
-    height: 20px;
-    background: #30363d;
-    border-radius: 10px;
-    position: relative;
+    background: none;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 4px 6px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.indicator-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #58a6ff;
 }
 
 .indicator-toggle.active {
-    background: #2196F3;
+    background: rgba(33, 150, 243, 0.2);
+    border-color: #2196F3;
 }
 
-.indicator-toggle::after {
-    content: '';
+.indicator-toggle.hidden {
+    background: rgba(244, 67, 54, 0.2);
+    border-color: #f44336;
+}
+
+.indicator-toggle .toggle-icon {
+    font-size: 0.8rem;
+    transition: opacity 0.2s;
+}
+
+.indicator-toggle.hidden .toggle-icon {
+    opacity: 0.5;
+}
+
+.indicator-toggle.hidden .toggle-icon::after {
+    content: '🚫';
     position: absolute;
-    width: 16px;
-    height: 16px;
-    background: #f0f6fc;
-    border-radius: 50%;
-    top: 2px;
-    left: 2px;
-    transition: all 0.3s;
-}
-
-.indicator-toggle.active::after {
-    left: 22px;
+    font-size: 0.6rem;
+    margin-left: -8px;
+    margin-top: -2px;
 }
 
 /* Chart Controls */

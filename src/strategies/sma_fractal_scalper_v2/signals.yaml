@@ -1,0 +1,62 @@
+# Signals configuration for SMA Fractal Scalper V2
+# This file defines signal generators and their combination rules
+
+signals:
+  primary_signal:
+    type: sma_fractal
+    enabled: true
+    visible_on_chart: true
+    parameters:
+      sma_short_indicator: sma_short
+      sma_long_indicator: sma_long
+      fractal_indicator: fractal
+      sma_short_period: 5
+      sma_long_period: 200
+      fractal_window: 5
+      min_confidence: 0.7
+    chart_settings:
+      long_color: "#2ECC71"
+      short_color: "#E74C3C"
+      signal_size: 8
+      signal_shape: "triangle"
+  
+  confirmation_signal:
+    type: trend_following
+    enabled: false  # Optional confirmation signal
+    visible_on_chart: false
+    parameters:
+      primary_indicator: sma_short
+      trend_indicator: sma_long
+      min_confidence: 0.6
+    chart_settings:
+      long_color: "#3498DB"
+      short_color: "#F39C12"
+      signal_size: 6
+      signal_shape: "circle"
+
+# Signal combination rules
+combination:
+  mode: "primary_only"  # Options: "primary_only", "all_agree", "weighted_average"
+  primary_signal: "primary_signal"
+  min_combined_confidence: 0.7
+  
+  # Weights for weighted_average mode
+  weights:
+    primary_signal: 0.8
+    confirmation_signal: 0.2
+
+# Signal filtering rules
+filters:
+  time_based:
+    enabled: false
+    market_open_buffer: 15  # minutes after market open
+    market_close_buffer: 15  # minutes before market close
+  
+  volatility_based:
+    enabled: false
+    min_volatility: 0.01
+    max_volatility: 0.05
+  
+  trend_based:
+    enabled: false
+    require_trend_alignment: true 

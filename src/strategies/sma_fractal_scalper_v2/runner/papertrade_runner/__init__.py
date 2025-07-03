@@ -1,0 +1,1 @@
+# Paper trade runner package for SMA Fractal Scalper V2 

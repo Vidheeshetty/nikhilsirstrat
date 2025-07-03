@@ -175,6 +175,26 @@ class TestTradingViewAPIFixes:
     
     def test_minimal_chart_works(self, browser, test_config):
         """Test that minimal chart implementation works as baseline."""
+        # Enable comprehensive console error capture
+        browser.execute_script("""
+            window.capturedErrors = [];
+            window.capturedLogs = [];
+            
+            // Capture console errors
+            const originalError = console.error;
+            console.error = function(...args) {
+                window.capturedErrors.push(args.join(' '));
+                originalError.apply(console, args);
+            };
+            
+            // Capture console logs for analysis
+            const originalLog = console.log;
+            console.log = function(...args) {
+                window.capturedLogs.push(args.join(' '));
+                originalLog.apply(console, args);
+            };
+        """)
+        
         # Navigate to minimal chart test page
         browser.get(f"{test_config['dashboard_url']}/minimal-chart")
         
@@ -189,16 +209,55 @@ class TestTradingViewAPIFixes:
         )
         assert completion_found, "Minimal chart should initialize completely"
         
-        # Verify no errors
-        error_elements = browser.find_elements(By.CSS_SELECTOR, ".error")
-        error_count = len([el for el in error_elements if el.is_displayed()])
-        assert error_count == 0, f"Should have no errors, found {error_count}"
+        # Get all captured errors and logs
+        captured_errors = browser.execute_script("return window.capturedErrors || [];")
+        captured_logs = browser.execute_script("return window.capturedLogs || [];")
+        browser_logs = browser.get_log('browser')
         
-        # Verify chart canvas exists
-        canvas = browser.find_element(By.CSS_SELECTOR, "#chart canvas")
-        assert canvas.is_displayed(), "Chart canvas should be visible"
-        assert canvas.size['width'] > 100, "Chart should have meaningful width"
-        assert canvas.size['height'] > 100, "Chart should have meaningful height"
+        # Filter for TradingView API errors
+        tradingview_errors = []
+        for error in captured_errors:
+            if any(keyword in error.lower() for keyword in [
+                'assertion failed', 'addseries', 'candlestick', 'lightweightcharts',
+                'cannot read properties', 'typeerror', 'addlineseries'
+            ]):
+                tradingview_errors.append(f"Console Error: {error}")
+        
+        # Check browser logs for severe errors
+        for log in browser_logs:
+            if log['level'] == 'SEVERE' and 'favicon' not in log['message']:
+                if any(keyword in log['message'].lower() for keyword in [
+                    'assertion failed', 'addseries', 'candlestick', 'typeerror'
+                ]):
+                    tradingview_errors.append(f"Browser Log: {log['message']}")
+        
+        # Check for chart content (should have canvas)
+        canvas_elements = browser.find_elements(By.CSS_SELECTOR, "#chart canvas")
+        if not canvas_elements:
+            tradingview_errors.append("No chart canvas found - chart failed to initialize")
+        
+        # Verify no CSS error elements
+        error_elements = browser.find_elements(By.CSS_SELECTOR, ".error")
+        css_error_count = len([el for el in error_elements if el.is_displayed()])
+        if css_error_count > 0:
+            tradingview_errors.append(f"Found {css_error_count} CSS error elements")
+        
+        # Report all errors found
+        if tradingview_errors:
+            print(f"\n=== DETECTED ERRORS ===")
+            for i, error in enumerate(tradingview_errors, 1):
+                print(f"{i}. {error}")
+            print(f"=== END ERRORS ===\n")
+        
+        # Assert no TradingView errors
+        assert len(tradingview_errors) == 0, f"Found {len(tradingview_errors)} TradingView errors: {'; '.join(tradingview_errors)}"
+        
+        # Verify chart canvas exists and has meaningful size
+        if canvas_elements:
+            canvas = canvas_elements[0]
+            assert canvas.is_displayed(), "Chart canvas should be visible"
+            assert canvas.size['width'] > 100, "Chart should have meaningful width"
+            assert canvas.size['height'] > 100, "Chart should have meaningful height"
 
 @pytest.mark.selenium
 @pytest.mark.chart
