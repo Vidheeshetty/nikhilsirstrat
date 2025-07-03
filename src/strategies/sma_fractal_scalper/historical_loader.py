@@ -19,14 +19,22 @@ class HistoricalDataLoader:
         Args:
             catalog_path: Path to the Parquet data catalog
         """
-        # Auto-detect catalog path for Zerodha crude oil data if default is used
+        # For paper trading, use the correct catalog path
         if catalog_path == "catalog-data":
+            # Check for CRUDEOIL data in the correct catalog structure
+            # Container path: /workspace/catalog-data/source=Zerodha/...
             zerodha_crude_path = "catalog-data/source=Zerodha/instrument=FUT/venue=MCX/symbol=CRUDEOIL/timeframe=MIN/catalog"
             if Path(zerodha_crude_path).exists():
                 catalog_path = zerodha_crude_path
+                logger.info(f"Found CRUDEOIL catalog at: {catalog_path}")
+            else:
+                # Fallback to standard catalog-data directory
+                catalog_path = "catalog-data"
+                logger.info(f"Using fallback catalog path: {catalog_path}")
 
         self.catalog_path = catalog_path
         self._catalog = None
+        logger.info(f"Historical loader initialized with catalog path: {catalog_path}")
 
     def _get_catalog(self):
         """Lazy load the catalog to avoid import issues."""
@@ -37,8 +45,12 @@ class HistoricalDataLoader:
                 )
 
                 self._catalog = ParquetDataCatalog(self.catalog_path)
+                logger.info(f"Nautilus Trader catalog loaded successfully")
             except ImportError as e:
                 logger.error(f"Failed to import Nautilus Trader: {e}")
+                raise
+            except Exception as e:
+                logger.error(f"Failed to create Nautilus catalog: {e}")
                 raise
         return self._catalog
 
@@ -69,7 +81,7 @@ class HistoricalDataLoader:
             logger.info(f"Date range: {start_date.date()} to {end_date.date()}")
             logger.info(f"Looking for {num_bars} recent {bar_type} bars")
 
-            # Try to load bars from catalog
+            # Try to load bars from catalog using Nautilus Trader methods
             bars = catalog.bars(
                 instrument_ids=[instrument_id],
                 start=start_date,
@@ -88,9 +100,10 @@ class HistoricalDataLoader:
             recent_bars = bars[-num_bars:] if len(bars) > num_bars else bars
 
             logger.info(f"✅ Loaded {len(recent_bars)} historical bars for warm-up")
-            logger.info(
-                f"   Date range: {self._format_bar_time(recent_bars[0])} to {self._format_bar_time(recent_bars[-1])}"
-            )
+            if recent_bars:
+                logger.info(
+                    f"   Date range: {self._format_bar_time(recent_bars[0])} to {self._format_bar_time(recent_bars[-1])}"
+                )
 
             return recent_bars
 
@@ -151,7 +164,10 @@ class HistoricalDataLoader:
         """Format bar timestamp for logging."""
         try:
             timestamp = bar.ts_init
-            dt = datetime.fromtimestamp(timestamp / 1_000_000_000)
+            if timestamp > 1e12:  # Nanoseconds
+                dt = datetime.fromtimestamp(timestamp / 1_000_000_000)
+            else:  # Seconds
+                dt = datetime.fromtimestamp(timestamp)
             return dt.strftime("%Y-%m-%d %H:%M:%S")
         except Exception:
             return "unknown"
