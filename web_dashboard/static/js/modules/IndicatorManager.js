@@ -94,14 +94,14 @@ class IndicatorManager {
             const highFractals = indicatorData.fractals
                 .filter(fractal => fractal.type === 'high')
                 .map(fractal => ({
-                    time: Math.floor(new Date(fractal.timestamp).getTime() / 1000),
+                    time: fractal.time || Math.floor(new Date(fractal.timestamp).getTime() / 1000),
                     value: fractal.price
                 }));
 
             const lowFractals = indicatorData.fractals
                 .filter(fractal => fractal.type === 'low')
                 .map(fractal => ({
-                    time: Math.floor(new Date(fractal.timestamp).getTime() / 1000),
+                    time: fractal.time || Math.floor(new Date(fractal.timestamp).getTime() / 1000),
                     value: fractal.price
                 }));
 
@@ -184,7 +184,8 @@ class IndicatorManager {
      */
     convertIndicatorData(data) {
         return data.map(point => ({
-            time: Math.floor(new Date(point.timestamp).getTime() / 1000),
+            // Handle both 'time' (Unix) and 'timestamp' (ISO) formats
+            time: point.time || Math.floor(new Date(point.timestamp).getTime() / 1000),
             value: parseFloat(point.value)
         }));
     }

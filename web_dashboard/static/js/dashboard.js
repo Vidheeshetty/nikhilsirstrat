@@ -3,10 +3,10 @@
  * Orchestrates all modules and handles UI interactions
  */
 
-import DataService from './modules/DataService.js';
-import ChartManager from './modules/ChartManager.js';
-import IndicatorManager from './modules/IndicatorManager.js';
-import TimeframeManager from './modules/TimeframeManager.js';
+import DataService from './modules/DataService.js?v=1.5';
+import ChartManager from './modules/ChartManager.js?v=1.5';
+import IndicatorManager from './modules/IndicatorManager.js?v=1.5';
+import TimeframeManager from './modules/TimeframeManager.js?v=1.5';
 
 class TradingDashboard {
     constructor() {
