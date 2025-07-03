@@ -19,6 +19,13 @@ class SmaFractalScalperV2Config:
     timeframe: str = '1MIN'
     session_cutoff: Optional[str] = None
     
+    # End-of-day position management
+    enable_eod_closing: bool = True
+    eod_closing_time: str = "15:20"  # Time to close positions (HH:MM format)
+    eod_buffer_minutes: int = 10  # Minutes before market close to stop taking new positions
+    eod_order_type: str = "MARKET"  # Order type for EOD closing (MARKET/LIMIT)
+    eod_limit_offset_pct: float = 0.1  # Offset percentage for limit orders (0.1% = 0.001)
+    
     # Original strategy parameters for backward compatibility
     sma_short_period: int = 5
     sma_long_period: int = 200
@@ -65,7 +72,8 @@ class SmaFractalScalperV2Config:
             'indicators_config_path', 'signals_config_path', 'chart_enabled', 'chart_config_path',
             'historical_warmup', 'instrument_id', 'strategy_name', 'description', 'version',
             'author', 'max_position_size', 'max_daily_trades', 'stop_loss_pct', 'take_profit_pct',
-            'log_level', 'log_signals', 'log_indicators'
+            'log_level', 'log_signals', 'log_indicators',
+            'enable_eod_closing', 'eod_closing_time', 'eod_buffer_minutes', 'eod_order_type', 'eod_limit_offset_pct'
         }
         
         # Set defaults
@@ -97,6 +105,11 @@ class SmaFractalScalperV2Config:
         self.log_level = kwargs.get('log_level', None)
         self.log_signals = kwargs.get('log_signals', None)
         self.log_indicators = kwargs.get('log_indicators', None)
+        self.enable_eod_closing = kwargs.get('enable_eod_closing', True)
+        self.eod_closing_time = kwargs.get('eod_closing_time', "15:20")
+        self.eod_buffer_minutes = kwargs.get('eod_buffer_minutes', 10)
+        self.eod_order_type = kwargs.get('eod_order_type', "MARKET")
+        self.eod_limit_offset_pct = kwargs.get('eod_limit_offset_pct', 0.1)
         
         # Store extra parameters
         self.extra_params = {k: v for k, v in kwargs.items() if k not in known_params}
@@ -165,6 +178,11 @@ class SmaFractalScalperV2Config:
                 'chart_config_path': self.chart_config_path,
                 'chart_enabled': self.chart_enabled,
                 'historical_warmup': self.historical_warmup,
+                'enable_eod_closing': self.enable_eod_closing,
+                'eod_closing_time': self.eod_closing_time,
+                'eod_buffer_minutes': self.eod_buffer_minutes,
+                'eod_order_type': self.eod_order_type,
+                'eod_limit_offset_pct': self.eod_limit_offset_pct,
                 **self.extra_params
             }
         }

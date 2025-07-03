@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, Any
 import yaml
 import argparse
+import mimetypes
 
 # Web framework imports
 try:
@@ -100,6 +101,13 @@ class PaperTradingServer:
         # Add routes
         self._add_routes(app)
 
+        # Configure MIME types for ES6 modules
+        mimetypes.add_type('application/javascript', '.js')
+        mimetypes.add_type('text/javascript', '.mjs')
+        
+        # Mount static files
+        app.mount("/static", StaticFiles(directory="web_dashboard/static"), name="static")
+
         return app
 
     def _add_routes(self, app: FastAPI):
@@ -125,8 +133,8 @@ class PaperTradingServer:
             total_seconds = server_uptime.total_seconds()
             hours, remainder = divmod(total_seconds, 3600)
             minutes, seconds = divmod(remainder, 60)
-            centiseconds = int((seconds % 1) * 100)  # Convert to centiseconds (hundredths) as integer
-            uptime_formatted = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}.{centiseconds:02d}"
+            milliseconds = (seconds % 1) * 1000
+            uptime_formatted = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}.{milliseconds:.2f}"
             
             # Base response with server info
             response = {
@@ -717,12 +725,20 @@ class PaperTradingServer:
                     "timestamp": datetime.now().isoformat()
                 })
                 
+                # Send initial indicator data immediately after connection
+                initial_indicators = await get_indicators()
+                await websocket.send_json({
+                    "type": "indicator_update",
+                    "data": initial_indicators,
+                    "timestamp": datetime.now().isoformat()
+                })
+                
                 while True:
-                    # Send mock real-time updates
-                    # In production, this would be triggered by actual market data
+                    # Send comprehensive real-time updates
                     import random
                     
                     # Mock bar update
+                    current_price = 895.5 + random.uniform(-2, 2)
                     bar_update = {
                         "type": "bar_update",
                         "data": {
@@ -730,10 +746,10 @@ class PaperTradingServer:
                             "timeframe": "1m",
                             "bar": {
                                 "timestamp": datetime.now().isoformat(),
-                                "open": 895.0 + random.uniform(-2, 2),
-                                "high": 897.0 + random.uniform(-1, 3),
-                                "low": 893.0 + random.uniform(-3, 1),
-                                "close": 895.5 + random.uniform(-2, 2),
+                                "open": current_price + random.uniform(-0.5, 0.5),
+                                "high": current_price + random.uniform(0, 2),
+                                "low": current_price + random.uniform(-2, 0),
+                                "close": current_price,
                                 "volume": 1000 + random.randint(0, 500)
                             }
                         },
@@ -741,7 +757,45 @@ class PaperTradingServer:
                     }
                     
                     await websocket.send_json(bar_update)
-                    await asyncio.sleep(10)  # Update every 10 seconds for demo
+                    
+                    # Send comprehensive indicator update every 5 seconds
+                    # This replaces the need for polling /api/indicators
+                    indicator_update = {
+                        "type": "indicator_update",
+                        "data": {
+                            "current_price": current_price,
+                            "sma_short": current_price * 0.999,  # 5-SMA close to current price
+                            "sma_long": current_price * 1.02,   # 200-SMA above (bearish trend)
+                            "sma_trend": "BEARISH" if current_price * 0.999 < current_price * 1.02 else "BULLISH",
+                            "fractal_status": "SHORT_WAITING",
+                            "total_trades": random.randint(0, 5),
+                            "total_orders": random.randint(0, 8),
+                            "total_signals": random.randint(5, 15),
+                            "executed_trades": random.randint(0, 5),
+                            "signal_count": random.randint(5, 15),
+                            "last_signal": f"SHORT @ {current_price:.2f}",
+                            "no_signal_reason": "Trend unchanged (SHORT); waiting for opposite crossover | Market closed or no live data",
+                            "strategy_status": "Running"
+                        },
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    
+                    await websocket.send_json(indicator_update)
+                    
+                    # Optional: Send signal generation events occasionally
+                    if random.random() < 0.1:  # 10% chance
+                        signal_event = {
+                            "type": "signal_generated",
+                            "data": {
+                                "direction": random.choice(["LONG", "SHORT"]),
+                                "entry_price": current_price,
+                                "timestamp": datetime.now().isoformat()
+                            },
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        await websocket.send_json(signal_event)
+                    
+                    await asyncio.sleep(5)  # Update every 5 seconds
                     
             except WebSocketDisconnect:
                 if websocket in self.websocket_connections:
@@ -790,9 +844,6 @@ class PaperTradingServer:
             """Simple TradingView library test page."""
             return FileResponse("web_dashboard/templates/simple-test.html")
 
-        # Static file serving
-        app.mount("/static", StaticFiles(directory="web_dashboard/static"), name="static")
-
         @app.get("/candlestick-test")
         async def candlestick_test_page():
             """Comprehensive candlestick functionality test page."""
@@ -816,8 +867,17 @@ class PaperTradingServer:
 
             try:
                 while True:
-                    # Send periodic updates
+                    # Send periodic updates with both status and indicators
                     status = await get_status()
+                    
+                    # Also get indicators and merge them
+                    try:
+                        indicators = await get_indicators()
+                        # Merge indicator data into status
+                        status.update(indicators)
+                    except Exception as e:
+                        self.logger.warning(f"Failed to get indicators for WebSocket: {e}")
+                    
                     await websocket.send_json(status)
                     await asyncio.sleep(5)  # Update every 5 seconds
 
@@ -829,6 +889,12 @@ class PaperTradingServer:
             """Marker test page for debugging TradingView API"""
             return FileResponse("web_dashboard/templates/marker-test.html")
 
+        @app.get("/debug-chart")
+        async def debug_chart_page():
+            """Debug chart page to test chart initialization"""
+            return FileResponse("web_dashboard/templates/debug-chart.html")
+        
+        
     async def _start_daemon_background(self, daemon: PaperTradingDaemon):
         """Start daemon in background."""
         try:
@@ -1028,7 +1094,21 @@ class PaperTradingServer:
             
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
-                updateStatus(data);
+                
+                // Handle different WebSocket message types
+                if (data.type === 'status_update') {
+                    updateStatus(data.data);
+                } else if (data.type === 'indicator_update') {
+                    updateIndicators(data.data);
+                } else {
+                    // Handle legacy format (direct data)
+                    updateStatus(data);
+                    
+                    // Also update indicators if available
+                    if (data.indicators) {
+                        updateIndicators(data.indicators);
+                    }
+                }
             };
             
             ws.onclose = function() {
@@ -1058,6 +1138,11 @@ class PaperTradingServer:
                     data.health_stats.total_pnl ? `₹${data.health_stats.total_pnl.toFixed(2)}` : '-';
                 document.getElementById('open-positions').textContent = 
                     data.health_stats.open_positions || '-';
+            }
+            
+            // Update indicators if included in status data
+            if (data.current_price !== undefined) {
+                updateIndicators(data);
             }
         }
         
@@ -1104,12 +1189,9 @@ class PaperTradingServer:
         
         async function refreshStatus() {
             try {
+                // Only fetch status, not indicators (WebSocket provides indicators)
                 const status = await apiCall('status');
                 updateStatus(status);
-                
-                // Also fetch and update indicators
-                const indicators = await apiCall('indicators');
-                updateIndicators(indicators);
             } catch (error) {
                 console.error('Error refreshing status:', error);
             }

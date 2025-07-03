@@ -19,6 +19,7 @@
                 <span class="status-dot"></span>
                 <span id="status-text">Connected</span>
             </div>
+            <button class="header-btn" id="clear-cache-btn" title="Clear Browser Cache & Reload">🔄 Clear Cache</button>
             <button class="header-btn" id="settings-btn" title="Settings">⚙️ Settings</button>
         </div>
     </header>
@@ -285,16 +286,13 @@
             </div>
             <div class="modal-body">
                 <div class="setting-group">
-                    <label>Update Frequency (ms):</label>
-                    <input type="number" id="update-frequency" value="1000" min="100" max="10000">
-                </div>
-                <div class="setting-group">
                     <label>Chart Theme:</label>
                     <select id="chart-theme">
                         <option value="dark">Dark</option>
                         <option value="light">Light</option>
                     </select>
                 </div>
+                
                 <div class="setting-group">
                     <label>Auto-fit Chart:</label>
                     <input type="checkbox" id="auto-fit-chart" checked>
@@ -334,10 +332,10 @@
             console.log('🚨 Unhandled promise rejection:', event.reason);
         });
     </script>
-    <script type="module" src="/static/js/modules/DataService.js"></script>
-    <script type="module" src="/static/js/modules/ChartManager.js"></script>
-    <script type="module" src="/static/js/modules/IndicatorManager.js"></script>
-    <script type="module" src="/static/js/modules/TimeframeManager.js"></script>
-    <script type="module" src="/static/js/dashboard.js"></script>
+    <script type="module" src="/static/js/modules/DataService.js?v=1.4"></script>
+    <script type="module" src="/static/js/modules/ChartManager.js?v=1.4"></script>
+    <script type="module" src="/static/js/modules/IndicatorManager.js?v=1.4"></script>
+    <script type="module" src="/static/js/modules/TimeframeManager.js?v=1.4"></script>
+    <script type="module" src="/static/js/dashboard.js?v=1.4"></script>
 </body>
 </html> 

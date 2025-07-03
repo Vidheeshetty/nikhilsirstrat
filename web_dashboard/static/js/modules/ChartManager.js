@@ -10,10 +10,12 @@ class ChartManager {
         this.candlestickSeries = null;
         this.indicators = new Map();
         this.markers = new Map(); // Store markers by type
+        this.markerSeries = new Map(); // Store marker series by ID
         this.currentTimeframe = '1m';
         this.symbol = 'GOLDGUINEA';
+        this.indicatorVisibility = new Map(); // Track indicator visibility states
         
-        // Chart configuration
+        // Chart configuration with enhanced features
         this.chartOptions = {
             layout: {
                 background: { color: '#1a1a1a' },
@@ -30,39 +32,73 @@ class ChartManager {
                 borderColor: '#485158',
                 visible: true,
                 scaleMargins: {
-                    top: 0.1,
-                    bottom: 0.1,
+                    top: 0.1,    // 10% margin at top for vertical zoom
+                    bottom: 0.1, // 10% margin at bottom for vertical zoom
                 },
+                autoScale: true,
+                entireTextOnly: false,
+                borderVisible: true,
+                ticksVisible: true,
+                alignLabels: true,
+            },
+            leftPriceScale: {
+                visible: false, // Hide left price scale by default
             },
             timeScale: {
                 borderColor: '#485158',
                 timeVisible: true,
-                secondsVisible: false,
+                secondsVisible: true,
                 fixLeftEdge: false,
                 fixRightEdge: false,
                 lockVisibleTimeRangeOnResize: false,
+                rightOffset: 12,      // Space for live bars to form at 75% mark
+                barSpacing: 6,        // Spacing between bars
+                minBarSpacing: 0.5,   // Minimum bar spacing for zoom
+                visible: true,        // Show timeline on x-axis
+                borderVisible: true,
+                ticksVisible: true,
+                rightBarStaysOnScroll: true, // Keep live bars in view
             },
-            // Enable both horizontal and vertical zooming/scrolling
+            // Enhanced scroll and zoom support
             handleScroll: {
-                mouseWheel: true,    // Enable mouse wheel zoom
+                mouseWheel: true,        // Enable mouse wheel zoom
                 pressedMouseMove: true,  // Enable pan with mouse drag
                 horzTouchDrag: true,     // Enable horizontal touch drag
                 vertTouchDrag: true,     // Enable vertical touch drag
             },
             handleScale: {
-                mouseWheel: true,    // Enable zoom with mouse wheel
-                pinch: true,         // Enable pinch to zoom on touch devices
+                mouseWheel: true,        // Enable zoom with mouse wheel
+                pinch: true,             // Enable pinch to zoom on touch devices
                 axisPressedMouseMove: {
-                    time: true,      // Enable time axis scaling
-                    price: true,     // Enable price axis scaling
+                    time: true,          // Enable time axis scaling (horizontal zoom)
+                    price: true,         // Enable price axis scaling (vertical zoom)
                 },
                 axisDoubleClickReset: {
-                    time: true,      // Double-click time axis to reset
-                    price: true,     // Double-click price axis to reset
+                    time: true,          // Double-click time axis to reset
+                    price: true,         // Double-click price axis to reset
                 },
             },
-            width: this.container.clientWidth,
-            height: this.container.clientHeight,
+            // Scrollbar support
+            scrollbar: {
+                horizontal: {
+                    visible: true,       // Show horizontal scrollbar
+                    size: 16,           // Scrollbar size
+                },
+                vertical: {
+                    visible: true,       // Show vertical scrollbar
+                    size: 16,           // Scrollbar size
+                },
+            },
+            width: 800,  // Default width, will be updated in initChart()
+            height: 600, // Default height, will be updated in initChart()
+        };
+        
+        // Default view settings
+        this.defaultViewSettings = {
+            visibleBars: 100,        // Show 100 bars by default
+            rightOffset: 25,         // 25% offset for live bars (75% mark)
+            autoScale: true,         // Auto-scale price axis
+            priceScaleMode: 0,       // Normal price scale mode
         };
     }
 
@@ -76,8 +112,15 @@ class ChartManager {
                 throw new Error(`Container with id '${this.containerId}' not found`);
             }
 
-            // Create chart
+            // Update chart options with actual container dimensions
+            this.chartOptions.width = container.clientWidth || 800;
+            this.chartOptions.height = container.clientHeight || 600;
+
+            // Create chart with enhanced options
             this.chart = LightweightCharts.createChart(container, this.chartOptions);
+            
+            // Apply default view settings
+            this.applyDefaultViewSettings();
             
             // Create candlestick series using correct v5.0.8 API
             this.candlestickSeries = this.chart.addSeries(LightweightCharts.CandlestickSeries, {
@@ -87,6 +130,7 @@ class ChartManager {
                 borderUpColor: '#4bffb5',
                 wickDownColor: '#ff4976',
                 wickUpColor: '#4bffb5',
+                priceScaleId: 'right',  // Use right price scale
             });
 
             // Handle chart resize
@@ -94,13 +138,68 @@ class ChartManager {
             
             // Setup crosshair move handler for OHLC display
             this.setupCrosshairHandler();
+            
+            // Setup indicator visibility controls
+            this.setupIndicatorControls();
 
-            console.log('✅ Chart initialized successfully');
+            console.log('✅ Chart initialized successfully with enhanced features');
             return this.chart;
         } catch (error) {
             console.error('❌ Chart initialization failed:', error);
             throw error;
         }
+    }
+
+    /**
+     * Apply default view settings for optimal chart display
+     */
+    applyDefaultViewSettings() {
+        if (!this.chart) return;
+        
+        // Set default time scale options
+        this.chart.timeScale().applyOptions({
+            rightOffset: this.defaultViewSettings.rightOffset,
+            barSpacing: 6,
+            fixLeftEdge: false,
+            fixRightEdge: false,
+            lockVisibleTimeRangeOnResize: false,
+            rightBarStaysOnScroll: true,
+        });
+        
+        // Set default price scale options
+        this.chart.priceScale('right').applyOptions({
+            autoScale: this.defaultViewSettings.autoScale,
+            mode: this.defaultViewSettings.priceScaleMode,
+            scaleMargins: {
+                top: 0.1,
+                bottom: 0.1,
+            },
+        });
+        
+        console.log('✅ Applied default view settings (live bars at 75% mark)');
+    }
+
+    /**
+     * Setup indicator visibility controls
+     */
+    setupIndicatorControls() {
+        // Initialize visibility states for all indicators
+        this.indicatorVisibility.set('sma_5', true);
+        this.indicatorVisibility.set('sma_200', true);
+        this.indicatorVisibility.set('fractals_high', true);
+        this.indicatorVisibility.set('fractals_low', true);
+        this.indicatorVisibility.set('signals', true);
+        
+        // Setup event listeners for indicator toggle buttons
+        const toggleButtons = document.querySelectorAll('.indicator-toggle');
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const indicatorId = e.target.closest('.indicator-toggle').dataset.indicator;
+                this.toggleIndicatorVisibility(indicatorId);
+            });
+        });
+        
+        console.log('✅ Setup indicator visibility controls');
     }
 
     /**
@@ -188,7 +287,7 @@ class ChartManager {
     }
 
     /**
-     * Load historical data and display on chart
+     * Load historical data and display on chart with live bars at 75% mark
      */
     async loadHistoricalData(symbol = this.symbol, timeframe = this.currentTimeframe, bars = 500) {
         try {
@@ -203,10 +302,10 @@ class ChartManager {
                 // Set data to candlestick series
                 this.candlestickSeries.setData(chartData);
                 
-                // Fit chart to content
-                this.chart.timeScale().fitContent();
+                // Apply enhanced view settings for live bars at 75% mark
+                this.setupLiveBarsView(chartData);
                 
-                console.log(`✅ Loaded ${chartData.length} bars for ${symbol}`);
+                console.log(`✅ Loaded ${chartData.length} bars for ${symbol} with live bars at 75% mark`);
                 return chartData;
             } else {
                 console.warn('⚠️ No historical data received');
@@ -216,6 +315,39 @@ class ChartManager {
             console.error('❌ Failed to load historical data:', error);
             throw error;
         }
+    }
+
+    /**
+     * Setup chart view so live bars appear at 75% mark
+     */
+    setupLiveBarsView(chartData) {
+        if (!this.chart || !chartData || chartData.length === 0) return;
+        
+        // Calculate the time range for optimal view
+        const lastBarTime = chartData[chartData.length - 1].time;
+        const visibleBars = Math.min(this.defaultViewSettings.visibleBars, chartData.length);
+        
+        // Set visible range to show the last N bars with live bars at 75% mark
+        const firstVisibleBarIndex = Math.max(0, chartData.length - visibleBars);
+        const firstVisibleBarTime = chartData[firstVisibleBarIndex].time;
+        
+        // Apply time scale settings for live bars positioning
+        this.chart.timeScale().applyOptions({
+            rightOffset: this.defaultViewSettings.rightOffset,
+            barSpacing: 6,
+            fixLeftEdge: false,
+            fixRightEdge: false,
+            lockVisibleTimeRangeOnResize: false,
+            rightBarStaysOnScroll: true,
+        });
+        
+        // Set the visible range
+        this.chart.timeScale().setVisibleRange({
+            from: firstVisibleBarTime,
+            to: lastBarTime + (lastBarTime - firstVisibleBarTime) * 0.25 // Add 25% space on the right
+        });
+        
+        console.log(`✅ Setup live bars view - visible bars: ${visibleBars}, live bars at 75% mark`);
     }
 
     /**
@@ -233,7 +365,7 @@ class ChartManager {
     }
 
     /**
-     * Add a new bar to the chart
+     * Add a new bar to the chart and maintain live bars at 75% mark
      */
     addBar(barData) {
         const chartBar = {
@@ -246,21 +378,61 @@ class ChartManager {
         };
 
         this.candlestickSeries.update(chartBar);
+        
+        // Maintain live bars at 75% mark by adjusting the visible range
+        this.maintainLiveBarsPosition();
     }
 
     /**
-     * Update the last bar (current bar update)
+     * Update the last bar (current bar update) and maintain positioning
      */
     updateLastBar(barData) {
         this.addBar(barData); // Same as addBar for TradingView charts
+        
+        // Update indicators if they exist
+        this.updateIndicatorsForNewBar(barData);
     }
 
     /**
-     * Add indicator to chart
+     * Maintain live bars at 75% mark as new data comes in
+     */
+    maintainLiveBarsPosition() {
+        if (!this.chart) return;
+        
+        // Get current visible range
+        const timeScale = this.chart.timeScale();
+        const visibleRange = timeScale.getVisibleRange();
+        
+        if (visibleRange) {
+            // Calculate new range to maintain 75% positioning
+            const rangeWidth = visibleRange.to - visibleRange.from;
+            const newTo = visibleRange.to + (rangeWidth * 0.1); // Shift slightly
+            const newFrom = visibleRange.from + (rangeWidth * 0.1);
+            
+            // Apply the shift to keep live bars at 75% mark
+            timeScale.setVisibleRange({
+                from: newFrom,
+                to: newTo
+            });
+        }
+    }
+
+    /**
+     * Update indicators when new bar data arrives
+     */
+    updateIndicatorsForNewBar(barData) {
+        // This method can be enhanced to update indicators in real-time
+        // For now, we'll just log that a new bar was received
+        console.log(`📊 Updated bar data - indicators may need refresh`);
+    }
+
+    /**
+     * Add indicator to chart with enhanced visibility management
      */
     addIndicator(indicatorId, type, config, data) {
         try {
             let series = null;
+            const isVisible = this.indicatorVisibility.get(indicatorId) !== false;
 
             switch (type) {
                 case 'sma':
@@ -268,6 +440,10 @@ class ChartManager {
                         color: config.color || '#2196F3',
                         lineWidth: config.lineWidth || 2,
                         title: config.title || `SMA ${config.period}`,
+                        visible: isVisible,
+                        priceScaleId: 'right',
+                        lastValueVisible: true,
+                        priceLineVisible: false,
                     });
                     break;
 
@@ -281,6 +457,8 @@ class ChartManager {
                         pointMarkersVisible: false, // We'll use custom markers
                         lastValueVisible: false,
                         priceLineVisible: false,
+                        visible: isVisible,
+                        priceScaleId: 'right',
                     });
                     
                     // Add the data to the series
@@ -321,11 +499,14 @@ class ChartManager {
                     series,
                     type,
                     config,
-                    visible: true
+                    visible: isVisible
                 });
+                
+                // Update visibility state
+                this.indicatorVisibility.set(indicatorId, isVisible);
             }
 
-            console.log(`✅ Added indicator: ${indicatorId} (${type})`);
+            console.log(`✅ Added indicator: ${indicatorId} (${type}) - Visible: ${isVisible}`);
         } catch (error) {
             console.error(`❌ Failed to add indicator ${indicatorId}:`, error);
         }
@@ -350,19 +531,126 @@ class ChartManager {
     }
 
     /**
-     * Toggle indicator visibility
+     * Enhanced method to toggle indicator visibility with UI updates
      */
-    toggleIndicator(indicatorId) {
-        const indicator = this.indicators.get(indicatorId);
-        if (!indicator) return;
+    toggleIndicatorVisibility(indicatorId) {
+        const currentVisibility = this.indicatorVisibility.get(indicatorId) !== false;
+        const newVisibility = !currentVisibility;
+        
+        // Update visibility state
+        this.indicatorVisibility.set(indicatorId, newVisibility);
+        
+        // Handle different indicator types
+        if (indicatorId === 'signals') {
+            // Toggle signal markers visibility
+            this.toggleSignalMarkersVisibility(newVisibility);
+        } else if (indicatorId.startsWith('fractals_')) {
+            // Toggle fractal markers visibility
+            this.toggleFractalMarkersVisibility(indicatorId, newVisibility);
+        } else {
+            // Toggle regular indicator series
+            const indicator = this.indicators.get(indicatorId);
+            if (indicator && indicator.series) {
+                indicator.visible = newVisibility;
+                indicator.series.applyOptions({
+                    visible: newVisibility
+                });
+            }
+        }
+        
+        // Update UI button state
+        this.updateIndicatorToggleButton(indicatorId, newVisibility);
+        
+        console.log(`${newVisibility ? '👁️' : '🙈'} Toggled ${indicatorId} visibility: ${newVisibility}`);
+        return newVisibility;
+    }
 
-        indicator.visible = !indicator.visible;
-        indicator.series.applyOptions({
-            visible: indicator.visible
+    /**
+     * Update indicator toggle button appearance
+     */
+    updateIndicatorToggleButton(indicatorId, isVisible) {
+        const button = document.querySelector(`[data-indicator="${indicatorId}"]`);
+        if (button) {
+            const icon = button.querySelector('.toggle-icon');
+            if (icon) {
+                icon.textContent = isVisible ? '👁️' : '🙈';
+            }
+            button.classList.toggle('indicator-hidden', !isVisible);
+            button.title = isVisible ? 'Hide' : 'Show';
+        }
+    }
+
+    /**
+     * Toggle signal markers visibility
+     */
+    toggleSignalMarkersVisibility(isVisible) {
+        // For now, we'll need to re-add or remove signal markers
+        // This is a limitation of the current TradingView API
+        if (isVisible) {
+            // Re-add signal markers if we have them stored
+            const signalMarkers = this.markers.get('signals');
+            if (signalMarkers) {
+                this.candlestickSeries.setMarkers(this.getAllVisibleMarkers());
+            }
+        } else {
+            // Remove signal markers by filtering them out
+            const allMarkers = this.getAllVisibleMarkers();
+            const filteredMarkers = allMarkers.filter(marker => 
+                !marker.text || !marker.text.includes('@')
+            );
+            this.candlestickSeries.setMarkers(filteredMarkers);
+        }
+    }
+
+    /**
+     * Toggle fractal markers visibility
+     */
+    toggleFractalMarkersVisibility(indicatorId, isVisible) {
+        // Similar to signals, we need to manage fractal markers
+        const fractalType = indicatorId.replace('fractals_', '');
+        
+        if (isVisible) {
+            // Re-add fractal markers
+            const allMarkers = this.getAllVisibleMarkers();
+            this.candlestickSeries.setMarkers(allMarkers);
+        } else {
+            // Remove fractal markers of this type
+            const allMarkers = this.getAllVisibleMarkers();
+            const filteredMarkers = allMarkers.filter(marker => {
+                if (fractalType === 'high') {
+                    return marker.text !== '▲';
+                } else if (fractalType === 'low') {
+                    return marker.text !== '▼';
+                }
+                return true;
+            });
+            this.candlestickSeries.setMarkers(filteredMarkers);
+        }
+    }
+
+    /**
+     * Get all visible markers based on current visibility settings
+     */
+    getAllVisibleMarkers() {
+        const allMarkers = [];
+        
+        this.markers.forEach((markerSet, markerId) => {
+            let shouldInclude = true;
+            
+            // Check visibility based on marker type
+            if (markerId === 'signals') {
+                shouldInclude = this.indicatorVisibility.get('signals') !== false;
+            } else if (markerId.includes('fractals')) {
+                const fractalType = markerId.includes('high') ? 'fractals_high' : 'fractals_low';
+                shouldInclude = this.indicatorVisibility.get(fractalType) !== false;
+            }
+            
+            if (shouldInclude) {
+                allMarkers.push(...markerSet);
+            }
         });
-
-        console.log(`${indicator.visible ? '👁️' : '🙈'} Toggled ${indicatorId} visibility`);
-        return indicator.visible;
+        
+        return allMarkers;
     }
 
     /**

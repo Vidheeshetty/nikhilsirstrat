@@ -16,7 +16,7 @@ class TradingDashboard {
         this.timeframeManager = null;
         this.updateInterval = null;
         this.settings = {
-            updateFrequency: 1000,
+            updateFrequency: 5000,
             chartTheme: 'dark',
             autoFitChart: true
         };
@@ -139,6 +139,14 @@ class TradingDashboard {
                 this.toggleFullscreen();
             });
         }
+        
+        // Clear cache button
+        const clearCacheBtn = document.getElementById('clear-cache-btn');
+        if (clearCacheBtn) {
+            clearCacheBtn.addEventListener('click', () => {
+                this.clearBrowserCache();
+            });
+        }
     }
 
     /**
@@ -173,7 +181,7 @@ class TradingDashboard {
      */
     async updateMetricsOnly() {
         try {
-            // Get current indicator values from chart manager
+            // Get current indicator values from chart manager (no API call)
             const indicatorValues = this.indicatorManager.getCurrentValues();
             
             // Update SMA values if available
@@ -199,30 +207,11 @@ class TradingDashboard {
                 trendEl.className = `metric-value ${trendStatus.trend.toLowerCase()}`;
             }
             
-            // Only fetch non-chart metrics from API (avoid duplicate indicator calls)
-            try {
-                const response = await fetch('/api/indicators');
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Update executed trades
-                    const tradesEl = document.getElementById('executed-trades');
-                    if (tradesEl) {
-                        tradesEl.textContent = data.executed_trades || 0;
-                    }
-                    
-                    // Update total signals
-                    const signalsEl = document.getElementById('total-signals');
-                    if (signalsEl) {
-                        signalsEl.textContent = data.total_signals || 0;
-                    }
-                }
-            } catch (error) {
-                console.warn('⚠️ Failed to fetch additional metrics:', error);
-            }
+            // ✅ REMOVED API CALL - All metrics now come via WebSocket
+            console.log('📊 Metrics updated from local data (no API call)');
             
         } catch (error) {
-            console.error('❌ Failed to update metrics:', error);
+            console.error('❌ Error updating metrics:', error);
         }
     }
 
@@ -286,7 +275,72 @@ class TradingDashboard {
      */
     handleIndicatorUpdate(data) {
         this.indicatorManager.handleIndicatorUpdate(data);
-        this.updateIndicatorValues();
+        
+        // Update all UI elements from WebSocket data
+        if (data.data) {
+            const indicators = data.data;
+            
+            // Update price and trend
+            if (indicators.current_price) {
+                const priceEl = document.getElementById('current-price');
+                if (priceEl) {
+                    priceEl.textContent = `₹${indicators.current_price.toFixed(2)}`;
+                }
+            }
+            
+            // Update SMA values
+            if (indicators.sma_short) {
+                const sma5El = document.getElementById('sma-5-value');
+                if (sma5El) {
+                    sma5El.textContent = `₹${indicators.sma_short.toFixed(2)}`;
+                }
+            }
+            
+            if (indicators.sma_long) {
+                const sma200El = document.getElementById('sma-200-value');
+                if (sma200El) {
+                    sma200El.textContent = `₹${indicators.sma_long.toFixed(2)}`;
+                }
+            }
+            
+            // Update trend
+            if (indicators.sma_trend) {
+                const trendEl = document.getElementById('sma-trend');
+                if (trendEl) {
+                    trendEl.textContent = indicators.sma_trend;
+                    trendEl.className = `metric-value ${indicators.sma_trend.toLowerCase()}`;
+                }
+            }
+            
+            // Update trading metrics
+            if (indicators.total_trades !== undefined) {
+                const tradesEl = document.getElementById('executed-trades');
+                if (tradesEl) {
+                    tradesEl.textContent = indicators.total_trades;
+                }
+            }
+            
+            if (indicators.total_signals !== undefined) {
+                const signalsEl = document.getElementById('total-signals');
+                if (signalsEl) {
+                    signalsEl.textContent = indicators.total_signals;
+                }
+            }
+            
+            if (indicators.fractal_status) {
+                const fractalEl = document.getElementById('fractal-status');
+                if (fractalEl) {
+                    fractalEl.textContent = indicators.fractal_status;
+                }
+            }
+            
+            if (indicators.no_signal_reason) {
+                const reasonEl = document.getElementById('no-signal-reason');
+                if (reasonEl) {
+                    reasonEl.textContent = indicators.no_signal_reason;
+                }
+            }
+        }
     }
 
     /**
@@ -317,23 +371,26 @@ class TradingDashboard {
             `${trade.side} ${trade.quantity} @ ₹${trade.price}`
         );
         
-        // Update metrics
-        this.updateMetrics();
+        // Update metrics from WebSocket data only (no API call)
+        this.updateMetricsOnly();
     }
 
     /**
      * Start real-time updates
      */
     startRealTimeUpdates() {
+        // CRITICAL: Always clear any existing interval first
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+        }
+        
         // Start indicator updates
         this.indicatorManager.startRealTimeUpdates();
         
-        // Update metrics periodically (use the new method to avoid duplicate calls)
-        this.updateInterval = setInterval(() => {
-            this.updateMetricsOnly();
-        }, this.settings.updateFrequency);
-        
-        console.log('🔄 Started real-time updates');
+        // ✅ REMOVED POLLING - All data now comes via WebSocket
+        // No more setInterval polling - WebSocket handles all real-time updates
+        console.log('✅ Real-time updates started (WebSocket only - no polling)');
     }
 
     /**
@@ -367,39 +424,9 @@ class TradingDashboard {
                 trendEl.className = `metric-value ${trendStatus.trend.toLowerCase()}`;
             }
             
-            // Fetch additional metrics from API
-            try {
-                const response = await fetch('/api/indicators');
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Update executed trades
-                    const tradesEl = document.getElementById('executed-trades');
-                    if (tradesEl) {
-                        tradesEl.textContent = data.executed_trades || 0;
-                    }
-                    
-                    // Update total signals
-                    const signalsEl = document.getElementById('total-signals');
-                    if (signalsEl) {
-                        signalsEl.textContent = data.total_signals || 0;
-                    }
-                    
-                    // Update fractal status
-                    const fractalStatusEl = document.getElementById('fractal-status');
-                    if (fractalStatusEl) {
-                        fractalStatusEl.textContent = data.fractal_status || '--';
-                    }
-                    
-                    // Update strategy status
-                    const strategyStatusEl = document.getElementById('strategy-status-value');
-                    if (strategyStatusEl) {
-                        strategyStatusEl.textContent = data.strategy_status || 'Running';
-                    }
-                }
-            } catch (error) {
-                console.warn('⚠️ Failed to fetch additional metrics:', error);
-            }
+            // ✅ REMOVED API POLLING - All metrics now come via WebSocket indicator_update events
+            // The handleIndicatorUpdate() method handles all metrics updates in real-time
+            console.log('📊 Metrics updated (WebSocket-only, no API calls)');
             
         } catch (error) {
             console.warn('⚠️ Failed to update metrics:', error);
@@ -670,6 +697,59 @@ class TradingDashboard {
     }
 
     /**
+     * Clear browser cache and reload page
+     */
+    clearBrowserCache() {
+        // Show confirmation dialog
+        const confirmed = confirm(
+            'This will clear the browser cache and reload the page. ' +
+            'This may help resolve dashboard loading issues. Continue?'
+        );
+        
+        if (!confirmed) return;
+        
+        // Clear various browser caches
+        try {
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            
+            // Clear IndexedDB (if supported)
+            if ('indexedDB' in window) {
+                indexedDB.databases().then(databases => {
+                    databases.forEach(db => {
+                        indexedDB.deleteDatabase(db.name);
+                    });
+                });
+            }
+            
+            // Clear service worker caches (if supported)
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                });
+            }
+            
+            // Add timestamp to force reload
+            const timestamp = Date.now();
+            const url = new URL(window.location);
+            url.searchParams.set('_cache_bust', timestamp);
+            
+            // Reload with cache busting
+            window.location.href = url.toString();
+            
+        } catch (error) {
+            console.error('Error clearing cache:', error);
+            // Fallback: hard reload
+            window.location.reload(true);
+        }
+    }
+
+    /**
      * Take screenshot
      */
     takeScreenshot() {
@@ -743,7 +823,7 @@ class TradingDashboard {
      */
     resetSettings() {
         this.settings = {
-            updateFrequency: 1000,
+            updateFrequency: 5000,
             chartTheme: 'dark',
             autoFitChart: true
         };
@@ -759,13 +839,21 @@ class TradingDashboard {
      * Apply current settings
      */
     applySettings() {
-        // Update update interval
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-            this.updateInterval = setInterval(() => {
-                this.updateMetrics();
-            }, this.settings.updateFrequency);
+        // ✅ REMOVED POLLING - No more interval creation
+        // Settings now only affect chart appearance, not data polling
+        
+        // Apply chart theme
+        if (this.chartManager) {
+            this.chartManager.applyTheme(this.settings.chartTheme);
         }
+        
+        // Apply auto-fit setting
+        if (this.settings.autoFitChart && this.chartManager) {
+            this.chartManager.fitContent();
+        }
+        
+        console.log('⚙️ Settings applied (no polling intervals created)');
+        this.addActivity('Settings', 'Settings applied successfully');
     }
 
     /**
@@ -787,8 +875,12 @@ class TradingDashboard {
      * Cleanup on page unload
      */
     cleanup() {
+        console.log('🧹 Cleaning up dashboard...');
+        
+        // CRITICAL: Clear all intervals
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
+            this.updateInterval = null;
         }
         
         if (this.indicatorManager) {
@@ -802,6 +894,8 @@ class TradingDashboard {
         if (this.chartManager) {
             this.chartManager.destroy();
         }
+        
+        console.log('✅ Dashboard cleanup completed');
     }
 }
 
