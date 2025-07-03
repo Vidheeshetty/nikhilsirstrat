@@ -36,6 +36,7 @@ COPY utils/ utils/
 COPY scripts/ scripts/
 COPY config/ config/
 COPY tests/ tests/
+COPY web_dashboard/ web_dashboard/
 COPY VERSION .
 COPY mypy.ini .
 COPY requirements.txt .
