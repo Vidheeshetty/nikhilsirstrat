@@ -8,7 +8,7 @@ services:
       target: dev
     container_name: paper-trading-daemon
     restart: unless-stopped
-    command: ["python", "scripts/paper_trading/run_paper_trading_daemon.py", "--daemon", "--config", "config/paper_trading/my_zerodha.yaml"]
+    command: ["python", "scripts/paper_trading/run_paper_trading_daemon.py", "--daemon", "--config", "/workspace/config/paper_trading/my_zerodha.yaml"]
     volumes:
       # Bind mount source code for live development (Option 3)
       - ..:/workspace
@@ -29,7 +29,7 @@ services:
       target: dev
     container_name: paper-trading-server
     restart: unless-stopped
-    command: ["python", "scripts/paper_trading/paper_trading_server.py", "--host", "0.0.0.0", "--port", "8000", "--config", "config/paper_trading/my_zerodha.yaml"]
+    command: ["python", "scripts/paper_trading/paper_trading_server.py", "--host", "0.0.0.0", "--port", "8000", "--config", "/workspace/config/paper_trading/my_zerodha.yaml"]
     ports:
       - "8080:8000"    # Web dashboard
       - "8888:8888"    # Jupyter (if needed)
