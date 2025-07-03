@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
 import yaml
+import argparse
 
 # Web framework imports
 try:
@@ -687,6 +688,11 @@ class PaperTradingServer:
             except WebSocketDisconnect:
                 self.websocket_connections.remove(websocket)
 
+        @app.get("/marker-test")
+        async def marker_test():
+            """Marker test page for debugging TradingView API"""
+            return FileResponse("web_dashboard/templates/marker-test.html")
+
     async def _start_daemon_background(self, daemon: PaperTradingDaemon):
         """Start daemon in background."""
         try:
@@ -994,107 +1000,123 @@ class PaperTradingServer:
             document.getElementById('sma-long').textContent = 
                 data.sma_long ? `₹${data.sma_long.toFixed(2)}` : '-';
             
-            // Update signal information
-            document.getElementById('signal-count').textContent = data.signal_count || '0';
-            document.getElementById('total-trades').textContent = data.total_trades || '0';
+            // Update other indicators
+            document.getElementById('signal-count').textContent = data.total_signals || '0';
+            document.getElementById('total-trades').textContent = data.executed_trades || '0';
             document.getElementById('total-orders').textContent = data.total_orders || '0';
-            document.getElementById('last-signal').textContent = data.last_signal || 'None';
-            
-            // Update fractal status
-            const fractalEl = document.getElementById('fractal-status');
-            fractalEl.textContent = data.fractal_status || 'Unknown';
-            
-            // Color code fractal status
-            if (data.fractal_status === 'LONG_WAITING') {
-                fractalEl.style.color = '#28a745';
-            } else if (data.fractal_status === 'SHORT_WAITING') {
-                fractalEl.style.color = '#dc3545';
-            } else {
-                fractalEl.style.color = '#007bff';
-            }
-            
-            // Update no-signal reason (truncate if too long)
-            const reason = data.no_signal_reason || '-';
-            const truncatedReason = reason.length > 50 ? reason.substring(0, 50) + '...' : reason;
-            document.getElementById('no-signal-reason').textContent = truncatedReason;
-            document.getElementById('no-signal-reason').title = reason; // Full text on hover
+            document.getElementById('fractal-status').textContent = data.fractal_status || '-';
+            document.getElementById('last-signal').textContent = data.last_signal || '-';
+            document.getElementById('no-signal-reason').textContent = data.no_signal_reason || '-';
         }
         
         async function loadLogs() {
             try {
-                const result = await apiCall('logs?lines=50');
-                const logsEl = document.getElementById('logs');
+                const response = await fetch('/api/logs?lines=50');
+                const data = await response.json();
+                const logsContainer = document.getElementById('logs');
                 
-                // Format logs with proper line breaks and styling
-                const formattedLogs = result.logs.map(log => {
-                    // Add different colors for different log types
-                    if (log.includes('ERROR')) {
-                        return `<div style="color: #ff6b6b;">${log}</div>`;
-                    } else if (log.includes('WARNING')) {
-                        return `<div style="color: #feca57;">${log}</div>`;
-                    } else if (log.includes('INFO')) {
-                        return `<div style="color: #48dbfb;">${log}</div>`;
-                    } else if (log.includes('Session Activity Summary')) {
-                        return `<div style="color: #1dd1a1; font-weight: bold;">${log}</div>`;
-                    } else if (log.includes('Total Trades:') || log.includes('Total P&L:') || log.includes('Broker')) {
-                        return `<div style="color: #ffeaa7; margin-left: 20px;">${log}</div>`;
-                    } else {
-                        return `<div style="color: #ddd;">${log}</div>`;
-                    }
-                }).join('');
-                
-                logsEl.innerHTML = formattedLogs;
-                logsEl.scrollTop = logsEl.scrollHeight;
+                if (data.logs && data.logs.length > 0) {
+                    // Format each log entry properly
+                    const formattedLogs = data.logs.map(log => {
+                        // Parse JSON logs if they contain health check data
+                        if (log.includes('Health check completed:')) {
+                            try {
+                                const parts = log.split('Health check completed: ');
+                                if (parts.length > 1) {
+                                    const timestamp = parts[0].replace(/ - __main__ - INFO - $/, '');
+                                    const healthData = JSON.parse(parts[1]);
+                                    
+                                    // Format health check nicely
+                                    let formatted = `<div style="color: #4CAF50; margin: 5px 0;">${timestamp} - Health Check:</div>`;
+                                    formatted += `<div style="margin-left: 20px; color: #E0E0E0;">`;
+                                    formatted += `CPU: ${healthData.cpu_percent}% | Memory: ${healthData.memory_mb.toFixed(1)}MB<br>`;
+                                    
+                                    if (healthData.brokers) {
+                                        Object.entries(healthData.brokers).forEach(([broker, status]) => {
+                                            const statusColor = status.status === 'healthy' ? '#4CAF50' : '#F44336';
+                                            formatted += `Broker ${broker}: <span style="color: ${statusColor}">${status.status}</span> | Connected: ${status.connected}<br>`;
+                                        });
+                                    }
+                                    
+                                    if (healthData.strategies) {
+                                        Object.entries(healthData.strategies).forEach(([strategy, info]) => {
+                                            formatted += `Strategy ${strategy}: ${info.trades} trades on ${info.instrument}<br>`;
+                                        });
+                                    }
+                                    
+                                    formatted += `</div>`;
+                                    return formatted;
+                                }
+                            } catch (e) {
+                                // If parsing fails, fall back to original log
+                            }
+                        }
+                        
+                        // Color code different log levels
+                        if (log.includes(' - ERROR - ')) {
+                            return `<div style="color: #F44336; margin: 2px 0;">${log}</div>`;
+                        } else if (log.includes(' - WARNING - ')) {
+                            return `<div style="color: #FF9800; margin: 2px 0;">${log}</div>`;
+                        } else if (log.includes(' - INFO - ')) {
+                            return `<div style="color: #E0E0E0; margin: 2px 0;">${log}</div>`;
+                        } else {
+                            return `<div style="color: #BDBDBD; margin: 2px 0;">${log}</div>`;
+                        }
+                    });
+                    
+                    logsContainer.innerHTML = formattedLogs.join('');
+                } else {
+                    logsContainer.innerHTML = '<div style="color: #757575;">No logs available</div>';
+                }
             } catch (error) {
+                document.getElementById('logs').innerHTML = '<div style="color: #F44336;">Error loading logs</div>';
                 console.error('Error loading logs:', error);
             }
         }
         
         // Initialize
-        connectWebSocket();
-        refreshStatus();
-        loadLogs();
-        
-        // Refresh logs every 30 seconds
-        setInterval(loadLogs, 30000);
+        document.addEventListener('DOMContentLoaded', function() {
+            connectWebSocket();
+            refreshStatus();
+            loadLogs();
+            
+            // Refresh every 30 seconds
+            setInterval(() => {
+                refreshStatus();
+                loadLogs();
+            }, 30000);
+        });
     </script>
 </body>
 </html>
         """
 
-    def run(self, host: str = "0.0.0.0", port: int = 8000, *, log_level: str = "info"):
-        """Run the server with specified Uvicorn log-level."""
-        self.logger.info(
-            "Starting Paper Trading Server on %s:%s (log-level=%s)",
-            host,
-            port,
-            log_level,
-        )
-        uvicorn.run(self.app, host=host, port=port, log_level=log_level)
 
-
-def main():
-    """Main entry point."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Paper Trading Web Server")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+async def main():
+    """Main function to run the server."""
+    parser = argparse.ArgumentParser(description="Paper Trading Server")
+    parser.add_argument("--config", required=True, help="Path to configuration file")
+    parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     parser.add_argument("--port", type=int, default=8000, help="Port to bind to")
-    parser.add_argument(
-        "--config", default="config/paper_trading.yaml", help="Config file"
-    )
-    parser.add_argument(
-        "--log-level",
-        default="info",
-        choices=["debug", "info", "warning", "error", "critical"],
-        help="Logging level",
-    )
-
+    parser.add_argument("--log-level", default="info", help="Log level")
+    
     args = parser.parse_args()
-
+    
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()))
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting Paper Trading Server on {args.host}:{args.port} (log-level={args.log_level})")
+    
     server = PaperTradingServer(args.config, log_level=args.log_level)
-    server.run(host=args.host, port=args.port, log_level=args.log_level)
+    
+    config = uvicorn.Config(
+        server.app, 
+        host=args.host, 
+        port=args.port, 
+        log_level=args.log_level
+    )
+    server_instance = uvicorn.Server(config)
+    await server_instance.serve()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
