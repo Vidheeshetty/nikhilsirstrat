@@ -18,8 +18,8 @@ class SMAFractalSignalGenerator(BaseSignalGenerator):
     strategy, ensuring identical signal generation behavior.
     """
     
-    def __init__(self, name: str, config: SignalConfig):
-        super().__init__(name, config)
+    def __init__(self, config: SignalConfig):
+        super().__init__(config)
         
         # State tracking for crossover detection (like V1)
         self._prev_trend: str = None
