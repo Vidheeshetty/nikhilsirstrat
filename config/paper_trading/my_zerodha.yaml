@@ -4,7 +4,7 @@ brokers:
     broker_name: zerodha
     api_key: "hslyadhjsmm0rtqe"
     api_secret: "sn29e7mctbe42vmgp9quut7mut3ytc30"
-    access_token: "Z8t9eFK4qjMVhFPteyvrZ5DU0deo29j9"  # Generated via login flow on 3 July
+    access_token: "UXntoe2mkjr4I7wDekXVSu8giKGHjMSj"  # Generated via login flow on 4 July
     paper_trading: true        # keeps orders virtual (no live execution)
 
 data_feed:
