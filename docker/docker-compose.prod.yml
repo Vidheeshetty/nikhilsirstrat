@@ -1,4 +1,4 @@
-version: '3.8'
+## removed explicit version line (Compose v3+ no longer requires it)
 
 x-common-env: &common-env
   environment:
