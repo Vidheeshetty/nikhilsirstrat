@@ -1,0 +1,89 @@
+name: Deploy Dev (staging)
+
+on:
+  push:
+    branches: [ development ]
+  workflow_dispatch: {}
+
+jobs:
+  build-test-deploy-dev:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: docker.io
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/ntplatform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit/integration tests
+        run: pytest -q
+
+      - name: Build Docker image (dev tag)
+        run: |
+          IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }}
+          echo "Building $IMAGE"
+          docker build -f docker/Dockerfile -t $IMAGE .
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push image
+        run: |
+          IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }}
+          docker push $IMAGE
+
+      - name: Deploy to dev stack via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            export DEPLOY_USER=${{ secrets.PROD_USER }}
+            export DEPLOY_HOST=${{ secrets.PROD_HOST }}
+            export DEPLOY_TAG=dev-${{ github.sha }}
+            cd NTbasedPlatform && git fetch --all && git reset --hard ${{ github.sha }}
+            scripts/v2/deploy/launch_v2.sh dev
+            # remove old dev images (keep 5)
+            docker images ntplatform | awk '/dev-/ {print $3}' | tail -n +6 | xargs -r docker rmi || true
+
+      - name: Run live Selenium smoke tests
+        run: |
+          BASE_URL=https://dev.synaptictrading.com pytest -m selenium -q
+
+      # -------------------------------------------------
+      # Discord notifications
+      # -------------------------------------------------
+      - name: Notify Discord success
+        if: success()
+        uses: Ilshidur/action-discord@v2
+        with:
+          webhook: https://discord.com/api/webhooks/1390888591760166992/dHQhSnoJ29pd40R7HoB9rPeokWXef_lH7A9cyRY5D3H6tr4ti5wJu9CtrdgT0ZeQuq8B
+          message: |
+            ✅ **Dev deploy succeeded** for `${{ github.repository }}`
+            • Commit: `${{ github.sha }}`
+            • <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow details>
+
+      - name: Notify Discord failure
+        if: failure()
+        uses: Ilshidur/action-discord@v2
+        with:
+          webhook: https://discord.com/api/webhooks/1390888591760166992/dHQhSnoJ29pd40R7HoB9rPeokWXef_lH7A9cyRY5D3H6tr4ti5wJu9CtrdgT0ZeQuq8B
+          message: |
+            ❌ **Dev deploy FAILED** for `${{ github.repository }}`
+            • Commit: `${{ github.sha }}`
+            • <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|See logs> 
