@@ -70,7 +70,7 @@ jobs:
       # -------------------------------------------------
       - name: Notify Discord success
         if: success()
-        uses: Ilshidur/action-discord@v2
+        uses: Ilshidur/action-discord@v1
         with:
           webhook: https://discord.com/api/webhooks/1390888591760166992/dHQhSnoJ29pd40R7HoB9rPeokWXef_lH7A9cyRY5D3H6tr4ti5wJu9CtrdgT0ZeQuq8B
           message: |
@@ -80,7 +80,7 @@ jobs:
 
       - name: Notify Discord failure
         if: failure()
-        uses: Ilshidur/action-discord@v2
+        uses: Ilshidur/action-discord@v1
         with:
           webhook: https://discord.com/api/webhooks/1390888591760166992/dHQhSnoJ29pd40R7HoB9rPeokWXef_lH7A9cyRY5D3H6tr4ti5wJu9CtrdgT0ZeQuq8B
           message: |
