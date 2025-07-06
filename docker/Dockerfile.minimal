@@ -1,0 +1,71 @@
+# Paper Trading Platform Docker Image - Minimal
+# Target size: ~200-300MB (down from 1.44GB)
+
+# Build stage
+FROM python:3.11-alpine as builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    gcc \
+    g++ \
+    musl-dev \
+    linux-headers \
+    libffi-dev
+
+# Set working directory
+WORKDIR /build
+
+# Copy minimal requirements
+COPY requirements-minimal.txt .
+
+# Install Python dependencies
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements-minimal.txt
+
+# Production stage
+FROM python:3.11-alpine as production
+
+# Install only essential runtime dependencies
+RUN apk add --no-cache curl && \
+    rm -rf /var/cache/apk/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy only essential application files
+COPY src/ src/
+COPY utils/ utils/
+COPY scripts/paper_trading/ scripts/paper_trading/
+COPY scripts/__init__.py scripts/
+COPY config/ config/
+COPY web_dashboard/ web_dashboard/
+COPY VERSION .
+
+# Create necessary directories
+RUN mkdir -p runlogs/papertrading logs data
+
+# Create non-root user
+RUN addgroup -g 1001 -S trader && \
+    adduser -S trader -u 1001 -G trader
+RUN chown -R trader:trader /workspace
+USER trader
+
+# Expose ports
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/api/status || exit 1
+
+# Default command
+CMD ["python", "-m", "scripts.paper_trading.paper_trading_server", "--host", "0.0.0.0", "--port", "8000"]

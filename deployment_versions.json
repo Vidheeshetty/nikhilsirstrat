@@ -1,0 +1,57 @@
+{
+  "versions": [
+    {
+      "version": "v1.0.0",
+      "timestamp": "2025-07-03T10:16:51Z",
+      "local_timestamp": "2025-07-03 15:46:51",
+      "status": "success",
+      "git_commit": "015a935",
+      "git_branch": "main",
+      "image_size": "unknown",
+      "notes": "Initial version for testing",
+      "deployed_by": "nitindhawan",
+      "deployment_duration": "unknown"
+    },
+    {
+      "version": "v1.0.0",
+      "timestamp": "2025-07-03T10:50:27Z",
+      "local_timestamp": "2025-07-03 16:20:27",
+      "status": "success",
+      "git_commit": "015a935",
+      "git_branch": "main",
+      "image_size": "unknown",
+      "notes": "Initial version for testing",
+      "deployed_by": "nitindhawan",
+      "deployment_duration": "unknown"
+    },
+    {
+      "version": "0.3.0",
+      "timestamp": "2025-07-03T11:36:39Z",
+      "local_timestamp": "2025-07-03 17:06:39",
+      "status": "created",
+      "git_commit": "015a935",
+      "git_branch": "main",
+      "image_size": "unknown",
+      "notes": "Implement new semantic versioning system",
+      "deployed_by": "nitindhawan",
+      "deployment_duration": "unknown"
+    },
+    {
+      "version": "0.3.0",
+      "timestamp": "2025-07-03T11:42:38Z",
+      "local_timestamp": "2025-07-03 17:12:38",
+      "status": "in_progress",
+      "git_commit": "015a935",
+      "git_branch": "main",
+      "image_size": "unknown",
+      "notes": "Automated deployment started",
+      "deployed_by": "nitindhawan",
+      "deployment_duration": "unknown"
+    }
+  ],
+  "metadata": {
+    "created": "2025-07-03T10:16:42Z",
+    "last_updated": "2025-07-03T11:42:38Z",
+    "total_deployments": 4
+  }
+}

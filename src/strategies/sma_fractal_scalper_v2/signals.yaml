@@ -1,0 +1,83 @@
+# Signals configuration for SMA Fractal Scalper V2
+# This file defines signal generators and their combination rules
+
+signals:
+  primary_signal:
+    type: sma_fractal
+    enabled: true
+    visible_on_chart: true
+    parameters:
+      sma_short_period: 5
+      sma_long_period: 200
+      fractal_window: 5
+      use_sma: true
+      use_fractals: true
+      min_confidence: 0.7
+    chart_settings:
+      long_color: "#2ECC71"
+      short_color: "#E74C3C"
+      signal_size: 8
+      signal_shape: "triangle"
+  
+  confirmation_signal:
+    type: trend_following
+    enabled: false  # Optional confirmation signal
+    visible_on_chart: false
+    parameters:
+      min_indicators_agree: 2
+      min_confidence: 0.6
+    chart_settings:
+      long_color: "#27AE60"
+      short_color: "#C0392B"
+      signal_size: 6
+      signal_shape: "circle"
+
+# Signal combination configuration
+combination:
+  mode: "primary_only"  # Options: "primary_only", "all_agree", "weighted_average"
+  primary_signal: "primary_signal"
+  
+  # Configuration for "all_agree" mode
+  min_signals_required: 2
+  
+  # Configuration for "weighted_average" mode
+  weights:
+    primary_signal: 0.8
+    confirmation_signal: 0.2
+  min_combined_confidence: 0.7
+  
+  # Chart display settings for combined signals
+  chart_settings:
+    combined_long_color: "#1ABC9C"
+    combined_short_color: "#E67E22"
+    combined_signal_size: 10
+    combined_signal_shape: "diamond"
+
+# Global signal settings
+global_settings:
+  confidence_threshold: 0.5
+  max_signals_per_bar: 3
+  signal_cooldown_bars: 1
+  enable_signal_filtering: true
+  
+  # Filtering rules
+  filters:
+    min_price_movement: 0.1  # Minimum price movement to generate signal
+    max_signals_per_session: 50
+    blackout_periods: []  # Time periods to disable signals
+
+# Signal filtering rules
+filters:
+  time_based:
+    enabled: false
+    market_open_buffer: 15  # minutes after market open
+    market_close_buffer: 15  # minutes before market close
+  
+  volatility_based:
+    enabled: false
+    min_volatility: 0.01
+    max_volatility: 0.05
+  
+  trend_based:
+    enabled: false
+    require_trend_alignment: true 

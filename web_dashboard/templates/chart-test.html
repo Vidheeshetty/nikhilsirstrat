@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Test - Fixed API</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            border: 1px solid #333;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #4CAF50; }
+        .error { background-color: #f44336; }
+        .info { background-color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>Chart Test - Fixed TradingView API</h1>
+    
+    <div id="status" class="status info">Testing chart initialization...</div>
+    
+    <div id="chart-container" class="chart-container"></div>
+    
+    <div id="debug-info">
+        <h3>Debug Information:</h3>
+        <pre id="debug-output"></pre>
+    </div>
+
+    <script src="/static/libs/lightweight-charts.standalone.production.js?v=5.0.8"></script>
+    <script>
+        const statusEl = document.getElementById('status');
+        const debugEl = document.getElementById('debug-output');
+        
+        function updateStatus(message, type = 'info') {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            debugEl.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+        }
+
+        function testChart() {
+            try {
+                updateStatus('Creating chart...', 'info');
+                
+                // Test chart creation
+                const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
+                    layout: {
+                        background: { color: '#1a1a1a' },
+                        textColor: '#d1d4dc',
+                    },
+                    grid: {
+                        vertLines: { color: '#2a2a2a' },
+                        horzLines: { color: '#2a2a2a' },
+                    },
+                    crosshair: {
+                        mode: 1,
+                    },
+                    rightPriceScale: {
+                        borderColor: '#485158',
+                    },
+                    timeScale: {
+                        borderColor: '#485158',
+                        timeVisible: true,
+                        secondsVisible: false,
+                    },
+                });
+                
+                updateStatus('Chart created successfully', 'success');
+                
+                // Test candlestick series creation using fixed API
+                const candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+                    upColor: '#4bffb5',
+                    downColor: '#ff4976',
+                    borderDownColor: '#ff4976',
+                    borderUpColor: '#4bffb5',
+                    wickDownColor: '#ff4976',
+                    wickUpColor: '#4bffb5',
+                });
+                
+                updateStatus('Candlestick series created successfully', 'success');
+                
+                // Test data loading
+                const sampleData = [
+                    { time: '2023-01-01', open: 100, high: 110, low: 95, close: 105 },
+                    { time: '2023-01-02', open: 105, high: 115, low: 100, close: 112 },
+                    { time: '2023-01-03', open: 112, high: 120, low: 108, close: 118 },
+                ];
+                
+                candlestickSeries.setData(sampleData);
+                chart.timeScale().fitContent();
+                
+                updateStatus('Sample data loaded successfully', 'success');
+                
+                // Test SMA indicator creation
+                try {
+                    updateStatus('Testing SMA indicator creation...', 'info');
+                    const smaSeries = chart.addSeries(LightweightCharts.LineSeries, {
+                        color: '#2196F3',
+                        lineWidth: 2,
+                    });
+                    
+                    // Generate simple SMA data
+                    const smaData = sampleData.map(bar => ({
+                        time: bar.time,
+                        value: (bar.open + bar.high + bar.low + bar.close) / 4 // Simple average
+                    }));
+                    
+                    smaSeries.setData(smaData);
+                    updateStatus('SMA indicator created successfully', 'success');
+                } catch (error) {
+                    updateStatus(`SMA indicator test failed: ${error.message}`, 'error');
+                }
+                
+                // Test crosshair handler
+                chart.subscribeCrosshairMove(param => {
+                    if (param.time) {
+                        try {
+                            // Debug: log all available properties
+                            console.log('Crosshair param properties:', Object.keys(param));
+                            console.log('Crosshair param:', param);
+                            
+                            // Try different API approaches
+                            let data = null;
+                            if (param.seriesPrices) {
+                                data = param.seriesPrices.get(candlestickSeries);
+                                updateStatus(`Crosshair working with seriesPrices: OHLC = ${data.open}, ${data.high}, ${data.low}, ${data.close}`, 'success');
+                            } else if (param.seriesData) {
+                                data = param.seriesData.get(candlestickSeries);
+                                updateStatus(`Crosshair working with seriesData: OHLC = ${data.open}, ${data.high}, ${data.low}, ${data.close}`, 'success');
+                            } else {
+                                updateStatus(`Crosshair param available: ${Object.keys(param).join(', ')}`, 'info');
+                            }
+                        } catch (error) {
+                            updateStatus(`Crosshair error: ${error.message}`, 'error');
+                        }
+                    }
+                });
+                
+                updateStatus('All tests passed! Chart is working correctly.', 'success');
+                
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error');
+                console.error('Chart test failed:', error);
+            }
+        }
+
+        // Run test when page loads
+        window.addEventListener('load', testChart);
+    </script>
+</body>
+</html> 

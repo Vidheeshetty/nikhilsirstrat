@@ -2,10 +2,11 @@
 
 # Paper Trading Startup Script
 # Starts both the daemon and web server for paper trading
+# Default: Uses V2 strategy with pluggable architecture
 
 set -e
 
-CONFIG_FILE="config/paper_trading/my_zerodha.yaml"
+CONFIG_FILE="${1:-config/paper_trading/sma_scalper_v2.yaml}"
 DAEMON_CMD="python3 scripts/paper_trading/run_paper_trading_daemon.py --config $CONFIG_FILE"
 WEB_SERVER_CMD="python3 scripts/paper_trading/paper_trading_server.py --config $CONFIG_FILE --host 0.0.0.0 --port 8000"
 
@@ -166,9 +167,10 @@ case "${1:-start}" in
         start_web_server
         
         echo
-        print_success "🚀 Paper Trading Platform Started Successfully!"
+        print_success "🚀 Paper Trading Platform (V2 Strategy) Started Successfully!"
         echo
         echo "📊 Web Dashboard: http://localhost:8000"
+        echo "🔧 Strategy: SmaFractalScalperV2 (Pluggable Architecture)"
         echo "📋 Logs Directory: runlogs/papertrading/"
         echo
         echo "Use './start_paper_trading.sh status' to check service status"

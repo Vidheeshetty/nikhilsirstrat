@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #0a0a0a;
+            color: #fff;
+        }
+        #chart-container {
+            width: 800px;
+            height: 400px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            background: #333;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chart Loading Test</h1>
+    
+    <div class="status" id="status">
+        Loading...
+    </div>
+    
+    <div id="chart-container"></div>
+    
+    <script src="/static/libs/lightweight-charts.standalone.production.js"></script>
+    <script>
+        console.log('🔍 Starting chart test...');
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            console.log(message);
+        }
+        
+        // Check if LightweightCharts is available
+        if (typeof LightweightCharts === 'undefined') {
+            updateStatus('❌ LightweightCharts library not loaded');
+        } else {
+            updateStatus('✅ LightweightCharts library loaded');
+            
+            try {
+                // Create a simple chart
+                const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
+                    width: 800,
+                    height: 400,
+                    layout: {
+                        background: { color: '#1a1a1a' },
+                        textColor: '#d1d4dc',
+                    },
+                    grid: {
+                        vertLines: { color: '#2a2a2a' },
+                        horzLines: { color: '#2a2a2a' },
+                    }
+                });
+                
+                // Add candlestick series
+                const candlestickSeries = chart.addCandlestickSeries({
+                    upColor: '#4bffb5',
+                    downColor: '#ff4976',
+                    borderDownColor: '#ff4976',
+                    borderUpColor: '#4bffb5',
+                    wickDownColor: '#ff4976',
+                    wickUpColor: '#4bffb5',
+                });
+                
+                // Add sample data
+                const sampleData = [
+                    { time: '2023-12-22', open: 75.16, high: 82.84, low: 36.16, close: 45.72 },
+                    { time: '2023-12-23', open: 45.12, high: 53.90, low: 45.12, close: 48.09 },
+                    { time: '2023-12-24', open: 60.71, high: 60.71, low: 53.39, close: 59.29 },
+                    { time: '2023-12-25', open: 68.26, high: 68.26, low: 59.04, close: 60.50 },
+                    { time: '2023-12-26', open: 67.71, high: 105.85, low: 66.67, close: 91.04 },
+                ];
+                
+                candlestickSeries.setData(sampleData);
+                
+                updateStatus('✅ Chart created successfully!');
+                
+            } catch (error) {
+                updateStatus(`❌ Error creating chart: ${error.message}`);
+                console.error('Chart creation error:', error);
+            }
+        }
+        
+        // Test API endpoints
+        fetch('/api/chart/data?bars=3')
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ API test successful:', data);
+                updateStatus(updateStatus.textContent + ' | API working');
+            })
+            .catch(error => {
+                console.error('❌ API test failed:', error);
+                updateStatus(updateStatus.textContent + ' | API failed');
+            });
+    </script>
+</body>
+</html> 

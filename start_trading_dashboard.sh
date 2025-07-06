@@ -2,6 +2,7 @@
 
 # Trading Dashboard Startup Script
 # Starts the paper trading server with chart dashboard
+# Default: Uses V2 strategy with pluggable architecture
 
 set -e
 
@@ -12,14 +13,14 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-CONFIG_FILE="config/paper_trading/my_zerodha.yaml"
+# Configuration - DEFAULT TO V2 STRATEGY
+CONFIG_FILE="${1:-config/paper_trading/sma_scalper_v2.yaml}"
 HOST="0.0.0.0"
 PORT="8000"
 LOG_LEVEL="info"
 
-echo -e "${BLUE}🚀 Trading Dashboard Startup${NC}"
-echo -e "${BLUE}================================${NC}"
+echo -e "${BLUE}🚀 Trading Dashboard Startup (V2 Strategy)${NC}"
+echo -e "${BLUE}===========================================${NC}"
 
 # Check if config file exists
 if [ ! -f "$CONFIG_FILE" ]; then

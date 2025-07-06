@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candlestick Test - NTbasedPlatform</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #d1d4dc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .status.success {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+        }
+        
+        .status.error {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid #f44336;
+            color: #f44336;
+        }
+        
+        .status.info {
+            background: rgba(33, 150, 243, 0.1);
+            border: 1px solid #2196F3;
+            color: #2196F3;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #1976D2;
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        
+        .logs {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .log-success { color: #4CAF50; }
+        .log-error { color: #f44336; }
+        .log-warn { color: #FF9800; }
+        .log-info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🕯️ Candlestick Chart Test</h1>
+            <p>Testing TradingView Lightweight Charts v5.0.8 with fixed API calls</p>
+        </div>
+        
+        <div class="status info" id="library-status">
+            📚 Loading TradingView Lightweight Charts library...
+        </div>
+        
+        <div class="controls">
+            <button id="init-chart" disabled>Initialize Chart</button>
+            <button id="load-data" disabled>Load Sample Data</button>
+            <button id="add-indicators" disabled>Add Indicators</button>
+            <button id="test-crosshair" disabled>Test Crosshair</button>
+            <button id="clear-logs">Clear Logs</button>
+        </div>
+        
+        <div class="chart-container" id="chart-container">
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                Chart will appear here...
+            </div>
+        </div>
+        
+        <div class="status" id="test-results">
+            🧪 Test results will appear here...
+        </div>
+        
+        <h3>📋 Test Logs</h3>
+        <div class="logs" id="logs"></div>
+    </div>
+
+    <script src="/static/libs/lightweight-charts.standalone.production.js?v=5.0.8"></script>
+    <script>
+        let chart = null;
+        let candlestickSeries = null;
+        let testResults = [];
+        
+        // Logging function
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            const logsContainer = document.getElementById('logs');
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Update status
+        function updateStatus(message, type = 'info') {
+            const statusElement = document.getElementById('test-results');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+        }
+        
+        // Test 1: Library Loading
+        function testLibraryLoading() {
+            const libraryStatus = document.getElementById('library-status');
+            
+            if (typeof LightweightCharts === 'undefined') {
+                libraryStatus.textContent = '❌ TradingView Lightweight Charts library failed to load';
+                libraryStatus.className = 'status error';
+                log('Library loading failed', 'error');
+                return false;
+            }
+            
+            // Check for required methods
+            const requiredMethods = ['createChart'];
+            const missingMethods = requiredMethods.filter(method => 
+                typeof LightweightCharts[method] !== 'function'
+            );
+            
+            if (missingMethods.length > 0) {
+                libraryStatus.textContent = `❌ Missing methods: ${missingMethods.join(', ')}`;
+                libraryStatus.className = 'status error';
+                log(`Missing methods: ${missingMethods.join(', ')}`, 'error');
+                return false;
+            }
+            
+            libraryStatus.textContent = '✅ TradingView Lightweight Charts v5.0.8 loaded successfully';
+            libraryStatus.className = 'status success';
+            log('Library loaded successfully', 'success');
+            
+            // Enable chart initialization
+            document.getElementById('init-chart').disabled = false;
+            return true;
+        }
+        
+        // Test 2: Chart Initialization
+        function testChartInitialization() {
+            try {
+                const container = document.getElementById('chart-container');
+                container.innerHTML = ''; // Clear container
+                
+                log('Creating chart...', 'info');
+                chart = LightweightCharts.createChart(container, {
+                    layout: {
+                        background: { color: '#1a1a1a' },
+                        textColor: '#d1d4dc',
+                    },
+                    grid: {
+                        vertLines: { color: '#2a2a2a' },
+                        horzLines: { color: '#2a2a2a' },
+                    },
+                    crosshair: {
+                        mode: 1, // Normal crosshair mode
+                    },
+                    rightPriceScale: {
+                        borderColor: '#485158',
+                    },
+                    timeScale: {
+                        borderColor: '#485158',
+                        timeVisible: true,
+                        secondsVisible: false,
+                    },
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                });
+                
+                log('Chart created successfully', 'success');
+                testResults.push('✅ Chart initialization');
+                
+                // Enable candlestick series creation
+                document.getElementById('load-data').disabled = false;
+                return true;
+                
+            } catch (error) {
+                log(`Chart initialization failed: ${error.message}`, 'error');
+                testResults.push('❌ Chart initialization');
+                return false;
+            }
+        }
+        
+        // Test 3: Candlestick Series Creation
+        function testCandlestickSeries() {
+            try {
+                log('Creating candlestick series...', 'info');
+                
+                candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+                    upColor: '#4bffb5',
+                    downColor: '#ff4976',
+                    borderDownColor: '#ff4976',
+                    borderUpColor: '#4bffb5',
+                    wickDownColor: '#ff4976',
+                    wickUpColor: '#4bffb5',
+                });
+                
+                log('Candlestick series created successfully', 'success');
+                testResults.push('✅ Candlestick series creation');
+                
+                // Generate sample data
+                const sampleData = generateSampleData();
+                log(`Generated ${sampleData.length} sample data points`, 'info');
+                
+                // Set data to series
+                candlestickSeries.setData(sampleData);
+                log('Sample data loaded to candlestick series', 'success');
+                testResults.push('✅ Data loading');
+                
+                // Fit content
+                chart.timeScale().fitContent();
+                log('Chart fitted to content', 'success');
+                
+                // Enable indicators and crosshair tests
+                document.getElementById('add-indicators').disabled = false;
+                document.getElementById('test-crosshair').disabled = false;
+                
+                return true;
+                
+            } catch (error) {
+                log(`Candlestick series creation failed: ${error.message}`, 'error');
+                testResults.push('❌ Candlestick series creation');
+                return false;
+            }
+        }
+        
+        // Test 4: Add Indicators
+        function testIndicators() {
+            try {
+                log('Adding SMA indicator...', 'info');
+                
+                // Validate that chart and candlestick series exist
+                if (!chart) {
+                    throw new Error('Chart not initialized');
+                }
+                if (!candlestickSeries) {
+                    throw new Error('Candlestick series not available');
+                }
+                
+                const smaSeries = chart.addSeries(LightweightCharts.LineSeries, {
+                    color: '#2196F3',
+                    lineWidth: 2,
+                    title: '20-SMA',
+                });
+                
+                log('SMA series created successfully', 'success');
+                
+                // Generate SMA data
+                const smaData = generateSMAData();
+                log(`Generated ${smaData.length} SMA data points`, 'info');
+                
+                // Validate SMA data format
+                if (smaData.length === 0) {
+                    throw new Error('No SMA data generated');
+                }
+                
+                // Check first data point format
+                const firstPoint = smaData[0];
+                if (!firstPoint.time || !firstPoint.value) {
+                    throw new Error('Invalid SMA data format');
+                }
+                
+                smaSeries.setData(smaData);
+                log('SMA indicator added successfully', 'success');
+                testResults.push('✅ SMA indicator');
+                
+                // Test signal markers with proper validation
+                log('Adding signal markers...', 'info');
+                
+                // Get the time range from existing data
+                const currentTime = Math.floor(Date.now() / 1000);
+                const markers = [
+                    {
+                        time: currentTime - 3600, // 1 hour ago
+                        position: 'belowBar',
+                        color: '#4bffb5',
+                        shape: 'arrowUp',
+                        text: 'LONG @ 895.50',
+                    },
+                    {
+                        time: currentTime - 1800, // 30 minutes ago
+                        position: 'aboveBar',
+                        color: '#ff4976',
+                        shape: 'arrowDown',
+                        text: 'SHORT @ 897.20',
+                    }
+                ];
+                
+                log(`Setting ${markers.length} markers`, 'info');
+                candlestickSeries.setMarkers(markers);
+                log('Signal markers added successfully', 'success');
+                testResults.push('✅ Signal markers');
+                
+                return true;
+                
+            } catch (error) {
+                log(`Indicator test failed: ${error.message}`, 'error');
+                log(`Error stack: ${error.stack}`, 'error');
+                testResults.push('❌ Indicators');
+                return false;
+            }
+        }
+        
+        // Test 5: Crosshair Events
+        function testCrosshair() {
+            try {
+                log('Setting up crosshair event handler...', 'info');
+                
+                chart.subscribeCrosshairMove(param => {
+                    if (param.time) {
+                        try {
+                            let data = null;
+                            if (param.seriesPrices && param.seriesPrices.has && param.seriesPrices.has(candlestickSeries)) {
+                                data = param.seriesPrices.get(candlestickSeries);
+                            } else if (param.seriesData && param.seriesData.has && param.seriesData.has(candlestickSeries)) {
+                                data = param.seriesData.get(candlestickSeries);
+                            }
+                            
+                            if (data) {
+                                log(`Crosshair: OHLC = ${data.open}/${data.high}/${data.low}/${data.close}`, 'info');
+                            }
+                        } catch (error) {
+                            log(`Crosshair error: ${error.message}`, 'error');
+                        }
+                    }
+                });
+                
+                log('Crosshair event handler set up successfully', 'success');
+                testResults.push('✅ Crosshair events');
+                
+                // Display final results
+                displayFinalResults();
+                
+                return true;
+                
+            } catch (error) {
+                log(`Crosshair test failed: ${error.message}`, 'error');
+                testResults.push('❌ Crosshair events');
+                displayFinalResults();
+                return false;
+            }
+        }
+        
+        // Generate sample OHLC data
+        function generateSampleData() {
+            const data = [];
+            const basePrice = 895;
+            let currentPrice = basePrice;
+            const now = Math.floor(Date.now() / 1000);
+            
+            for (let i = 100; i >= 0; i--) {
+                const time = now - (i * 60); // 1-minute intervals
+                const open = currentPrice;
+                const volatility = 2.0; // Increased volatility for better visibility
+                const change = (Math.random() - 0.5) * volatility;
+                const high = open + Math.abs(change) + Math.random() * 1.5;
+                const low = open - Math.abs(change) - Math.random() * 1.5;
+                const close = open + change;
+                
+                data.push({
+                    time,
+                    open: parseFloat(open.toFixed(2)),
+                    high: parseFloat(high.toFixed(2)),
+                    low: parseFloat(low.toFixed(2)),
+                    close: parseFloat(close.toFixed(2)),
+                });
+                
+                currentPrice = close;
+            }
+            
+            return data;
+        }
+        
+        // Generate SMA data
+        function generateSMAData() {
+            const data = [];
+            const now = Math.floor(Date.now() / 1000);
+            let smaValue = 895;
+            
+            for (let i = 100; i >= 0; i--) {
+                const time = now - (i * 60); // 1-minute intervals
+                smaValue += (Math.random() - 0.5) * 0.2;
+                
+                data.push({
+                    time: time,
+                    value: parseFloat(smaValue.toFixed(2)),
+                });
+            }
+            
+            // Validate generated data
+            if (data.length === 0) {
+                throw new Error('No SMA data generated');
+            }
+            
+            // Sort by time to ensure proper order
+            data.sort((a, b) => a.time - b.time);
+            
+            return data;
+        }
+        
+        // Display final test results
+        function displayFinalResults() {
+            const successCount = testResults.filter(r => r.startsWith('✅')).length;
+            const totalTests = testResults.length;
+            
+            if (successCount === totalTests) {
+                updateStatus(`🎉 All ${totalTests} tests passed! Candlestick functionality is working correctly.`, 'success');
+                log(`All ${totalTests} tests completed successfully!`, 'success');
+            } else {
+                updateStatus(`⚠️ ${successCount}/${totalTests} tests passed. Some issues detected.`, 'error');
+                log(`${successCount}/${totalTests} tests passed`, 'warn');
+            }
+            
+            log('=== Test Summary ===', 'info');
+            testResults.forEach(result => {
+                log(result, result.startsWith('✅') ? 'success' : 'error');
+            });
+        }
+        
+        // Event listeners
+        document.getElementById('init-chart').addEventListener('click', testChartInitialization);
+        document.getElementById('load-data').addEventListener('click', testCandlestickSeries);
+        document.getElementById('add-indicators').addEventListener('click', testIndicators);
+        document.getElementById('test-crosshair').addEventListener('click', testCrosshair);
+        document.getElementById('clear-logs').addEventListener('click', () => {
+            document.getElementById('logs').innerHTML = '';
+            testResults = [];
+            updateStatus('🧪 Test results will appear here...', 'info');
+        });
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            log('Page loaded, testing library...', 'info');
+            testLibraryLoading();
+        });
+        
+        // Handle resize
+        window.addEventListener('resize', () => {
+            if (chart) {
+                const container = document.getElementById('chart-container');
+                chart.applyOptions({
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

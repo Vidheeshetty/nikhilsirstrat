@@ -94,22 +94,24 @@ class IndicatorManager {
             const highFractals = indicatorData.fractals
                 .filter(fractal => fractal.type === 'high')
                 .map(fractal => ({
-                    time: Math.floor(new Date(fractal.timestamp).getTime() / 1000),
+                    time: fractal.time || Math.floor(new Date(fractal.timestamp).getTime() / 1000),
                     value: fractal.price
                 }));
 
             const lowFractals = indicatorData.fractals
                 .filter(fractal => fractal.type === 'low')
                 .map(fractal => ({
-                    time: Math.floor(new Date(fractal.timestamp).getTime() / 1000),
+                    time: fractal.time || Math.floor(new Date(fractal.timestamp).getTime() / 1000),
                     value: fractal.price
                 }));
 
-            // Add high fractals
+            // Add high fractals as line series with markers
             if (highFractals.length > 0) {
                 this.chartManager.addIndicator('fractals_high', 'fractal', {
                     color: '#E91E63',
-                    title: 'High Fractals',
+                    lineWidth: 1,
+                    lineStyle: 1, // Dotted line
+                    title: 'High Fractals (5-bar)',
                     fractalsType: 'high'
                 }, highFractals);
                 
@@ -117,15 +119,18 @@ class IndicatorManager {
                     type: 'fractal',
                     color: '#E91E63',
                     visible: true,
-                    data: highFractals
+                    data: highFractals,
+                    window: 5  // From strategy config
                 });
             }
 
-            // Add low fractals
+            // Add low fractals as line series with markers
             if (lowFractals.length > 0) {
                 this.chartManager.addIndicator('fractals_low', 'fractal', {
                     color: '#4CAF50',
-                    title: 'Low Fractals',
+                    lineWidth: 1,
+                    lineStyle: 1, // Dotted line
+                    title: 'Low Fractals (5-bar)',
                     fractalsType: 'low'
                 }, lowFractals);
                 
@@ -133,9 +138,29 @@ class IndicatorManager {
                     type: 'fractal',
                     color: '#4CAF50',
                     visible: true,
-                    data: lowFractals
+                    data: lowFractals,
+                    window: 5  // From strategy config
                 });
             }
+        } else {
+            console.log('ℹ️ No fractal data available - indicators will show when fractals are detected');
+            
+            // Create placeholder indicators for UI consistency
+            this.indicators.set('fractals_high', {
+                type: 'fractal',
+                color: '#E91E63',
+                visible: true,
+                data: [],
+                window: 5
+            });
+            
+            this.indicators.set('fractals_low', {
+                type: 'fractal',
+                color: '#4CAF50',
+                visible: true,
+                data: [],
+                window: 5
+            });
         }
     }
 
@@ -159,7 +184,8 @@ class IndicatorManager {
      */
     convertIndicatorData(data) {
         return data.map(point => ({
-            time: Math.floor(new Date(point.timestamp).getTime() / 1000),
+            // Handle both 'time' (Unix) and 'timestamp' (ISO) formats
+            time: point.time || Math.floor(new Date(point.timestamp).getTime() / 1000),
             value: parseFloat(point.value)
         }));
     }

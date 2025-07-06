@@ -121,6 +121,7 @@ class PaperTradingStrategyRunner:
         # Strategy-specific runner class mappings
         STRATEGY_RUNNERS = {
             "SmaFractalScalper": "src.strategies.sma_fractal_scalper.runner.papertrade_runner.sma_scalper_paper_runner.SmaFractalScalperPaperRunner",
+            "SmaFractalScalperV2": "src.strategies.sma_fractal_scalper_v2.runner.papertrade_runner.sma_scalper_v2_paper_runner.SmaFractalScalperV2PaperRunner",
             "TrendRiding": "src.strategies.trend_riding.runner.paper_runner.TrendRidingPaperRunner",
             "SwingRangeExpansion": "src.strategies.swing_range_expansion.runner.paper_runner.SwingRangeExpansionPaperRunner",
         }

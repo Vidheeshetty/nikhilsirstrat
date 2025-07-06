@@ -3,10 +3,10 @@
  * Orchestrates all modules and handles UI interactions
  */
 
-import DataService from './modules/DataService.js';
-import ChartManager from './modules/ChartManager.js';
-import IndicatorManager from './modules/IndicatorManager.js';
-import TimeframeManager from './modules/TimeframeManager.js';
+import DataService from './modules/DataService.js?v=1.6';
+import ChartManager from './modules/ChartManager.js?v=1.6';
+import IndicatorManager from './modules/IndicatorManager.js?v=1.6';
+import TimeframeManager from './modules/TimeframeManager.js?v=1.6';
 
 class TradingDashboard {
     constructor() {
@@ -16,7 +16,7 @@ class TradingDashboard {
         this.timeframeManager = null;
         this.updateInterval = null;
         this.settings = {
-            updateFrequency: 1000,
+            updateFrequency: 5000,
             chartTheme: 'dark',
             autoFitChart: true
         };
@@ -29,7 +29,7 @@ class TradingDashboard {
         try {
             console.log('🚀 Initializing Trading Dashboard...');
             
-            // Initialize UI components
+            // Initialize UI components (without keyboard shortcuts)
             this.initUI();
             
             // Initialize chart manager
@@ -46,6 +46,15 @@ class TradingDashboard {
                 this.dataService
             );
             this.timeframeManager.init();
+            
+            // Initialize indicators
+            await this.indicatorManager.initializeIndicators();
+            
+            // Initialize indicator button states
+            this.initializeIndicatorStates();
+            
+            // Setup keyboard shortcuts (after all managers are initialized)
+            this.setupKeyboardShortcuts();
             
             // Connect to WebSocket
             await this.dataService.connectWebSocket();
@@ -78,8 +87,7 @@ class TradingDashboard {
         // Setup modal handlers
         this.setupModalHandlers();
         
-        // Setup keyboard shortcuts
-        this.setupKeyboardShortcuts();
+        // Note: keyboard shortcuts setup moved to after managers are initialized
         
         // Update connection status
         this.updateConnectionStatus('connecting');
@@ -131,6 +139,14 @@ class TradingDashboard {
                 this.toggleFullscreen();
             });
         }
+        
+        // Clear cache button
+        const clearCacheBtn = document.getElementById('clear-cache-btn');
+        if (clearCacheBtn) {
+            clearCacheBtn.addEventListener('click', () => {
+                this.clearBrowserCache();
+            });
+        }
     }
 
     /**
@@ -143,20 +159,59 @@ class TradingDashboard {
             // Load historical chart data
             await this.chartManager.loadHistoricalData();
             
-            // Initialize indicators
+            // Initialize indicators (this will load and display them)
             await this.indicatorManager.initializeIndicators();
             
             // Setup indicator controls
             this.setupIndicatorControls();
             
-            // Load current metrics
-            await this.updateMetrics();
+            // Load current metrics (but don't reload indicators)
+            await this.updateMetricsOnly();
             
             console.log('✅ Initial data loaded');
             
         } catch (error) {
             console.error('❌ Failed to load initial data:', error);
             this.showError('Failed to load chart data');
+        }
+    }
+
+    /**
+     * Update metrics without reloading indicators
+     */
+    async updateMetricsOnly() {
+        try {
+            // Get current indicator values from chart manager (no API call)
+            const indicatorValues = this.indicatorManager.getCurrentValues();
+            
+            // Update SMA values if available
+            if (indicatorValues.sma_5) {
+                const sma5El = document.getElementById('sma-5-value');
+                if (sma5El) {
+                    sma5El.textContent = `₹${indicatorValues.sma_5.value.toFixed(2)}`;
+                }
+            }
+            
+            if (indicatorValues.sma_200) {
+                const sma200El = document.getElementById('sma-200-value');
+                if (sma200El) {
+                    sma200El.textContent = `₹${indicatorValues.sma_200.value.toFixed(2)}`;
+                }
+            }
+            
+            // Update trend status
+            const trendStatus = this.indicatorManager.getTrendStatus();
+            const trendEl = document.getElementById('sma-trend');
+            if (trendEl) {
+                trendEl.textContent = trendStatus.trend;
+                trendEl.className = `metric-value ${trendStatus.trend.toLowerCase()}`;
+            }
+            
+            // ✅ REMOVED API CALL - All metrics now come via WebSocket
+            console.log('📊 Metrics updated from local data (no API call)');
+            
+        } catch (error) {
+            console.error('❌ Error updating metrics:', error);
         }
     }
 
@@ -220,7 +275,80 @@ class TradingDashboard {
      */
     handleIndicatorUpdate(data) {
         this.indicatorManager.handleIndicatorUpdate(data);
-        this.updateIndicatorValues();
+        
+        // Update all UI elements from WebSocket data
+        if (data.data) {
+            const indicators = data.data;
+            
+            // Update price and trend
+            if (indicators.current_price) {
+                const priceEl = document.getElementById('current-price');
+                if (priceEl) {
+                    priceEl.textContent = `₹${indicators.current_price.toFixed(2)}`;
+                }
+            }
+            
+            // Update SMA values
+            if (indicators.sma_short) {
+                const sma5El = document.getElementById('sma-5-value');
+                if (sma5El) {
+                    sma5El.textContent = `₹${indicators.sma_short.toFixed(2)}`;
+                }
+            }
+            
+            if (indicators.sma_long) {
+                const sma200El = document.getElementById('sma-200-value');
+                if (sma200El) {
+                    sma200El.textContent = `₹${indicators.sma_long.toFixed(2)}`;
+                }
+            }
+            
+            // Update trend
+            if (indicators.sma_trend) {
+                const trendEl = document.getElementById('sma-trend');
+                if (trendEl) {
+                    trendEl.textContent = indicators.sma_trend;
+                    trendEl.className = `metric-value ${indicators.sma_trend.toLowerCase()}`;
+                }
+            }
+            
+            // Update trading metrics (handle both field names for compatibility)
+            if (indicators.total_trades !== undefined || indicators.executed_trades !== undefined) {
+                const tradesEl = document.getElementById('executed-trades');
+                if (tradesEl) {
+                    tradesEl.textContent = indicators.executed_trades || indicators.total_trades || 0;
+                }
+            }
+            
+            if (indicators.total_signals !== undefined) {
+                const signalsEl = document.getElementById('total-signals');
+                if (signalsEl) {
+                    signalsEl.textContent = indicators.total_signals;
+                }
+            }
+            
+            if (indicators.fractal_status) {
+                const fractalEl = document.getElementById('fractal-status');
+                if (fractalEl) {
+                    fractalEl.textContent = indicators.fractal_status;
+                }
+            }
+            
+            if (indicators.no_signal_reason) {
+                const reasonEl = document.getElementById('no-signal-reason');
+                if (reasonEl) {
+                    reasonEl.textContent = indicators.no_signal_reason;
+                }
+            }
+            
+            // Update strategy status
+            if (indicators.strategy_status) {
+                const strategyStatusEl = document.getElementById('strategy-status-value');
+                if (strategyStatusEl) {
+                    strategyStatusEl.textContent = indicators.strategy_status;
+                }
+            }
+        }
     }
 
     /**
@@ -251,23 +379,26 @@ class TradingDashboard {
             `${trade.side} ${trade.quantity} @ ₹${trade.price}`
         );
         
-        // Update metrics
-        this.updateMetrics();
+        // Update metrics from WebSocket data only (no API call)
+        this.updateMetricsOnly();
     }
 
     /**
      * Start real-time updates
      */
     startRealTimeUpdates() {
+        // CRITICAL: Always clear any existing interval first
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+        }
+        
         // Start indicator updates
         this.indicatorManager.startRealTimeUpdates();
         
-        // Update metrics periodically
-        this.updateInterval = setInterval(() => {
-            this.updateMetrics();
-        }, this.settings.updateFrequency);
-        
-        console.log('🔄 Started real-time updates');
+        // ✅ REMOVED POLLING - All data now comes via WebSocket
+        // No more setInterval polling - WebSocket handles all real-time updates
+        console.log('✅ Real-time updates started (WebSocket only - no polling)');
     }
 
     /**
@@ -301,39 +432,9 @@ class TradingDashboard {
                 trendEl.className = `metric-value ${trendStatus.trend.toLowerCase()}`;
             }
             
-            // Fetch additional metrics from API
-            try {
-                const response = await fetch('/api/indicators');
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Update executed trades
-                    const tradesEl = document.getElementById('executed-trades');
-                    if (tradesEl) {
-                        tradesEl.textContent = data.executed_trades || 0;
-                    }
-                    
-                    // Update total signals
-                    const signalsEl = document.getElementById('total-signals');
-                    if (signalsEl) {
-                        signalsEl.textContent = data.total_signals || 0;
-                    }
-                    
-                    // Update fractal status
-                    const fractalStatusEl = document.getElementById('fractal-status');
-                    if (fractalStatusEl) {
-                        fractalStatusEl.textContent = data.fractal_status || '--';
-                    }
-                    
-                    // Update strategy status
-                    const strategyStatusEl = document.getElementById('strategy-status-value');
-                    if (strategyStatusEl) {
-                        strategyStatusEl.textContent = data.strategy_status || 'Running';
-                    }
-                }
-            } catch (error) {
-                console.warn('⚠️ Failed to fetch additional metrics:', error);
-            }
+            // ✅ REMOVED API POLLING - All metrics now come via WebSocket indicator_update events
+            // The handleIndicatorUpdate() method handles all metrics updates in real-time
+            console.log('📊 Metrics updated (WebSocket-only, no API calls)');
             
         } catch (error) {
             console.warn('⚠️ Failed to update metrics:', error);
@@ -480,7 +581,9 @@ class TradingDashboard {
             switch (e.key) {
                 case 'f':
                     e.preventDefault();
-                    this.chartManager.fitContent();
+                    if (this.chartManager) {
+                        this.chartManager.fitContent();
+                    }
                     break;
                 case 's':
                     e.preventDefault();
@@ -494,9 +597,164 @@ class TradingDashboard {
                     break;
             }
         });
+
+        // Setup indicator collapse toggle
+        const collapseBtn = document.getElementById('indicators-collapse-btn');
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', this.toggleIndicatorPanel.bind(this));
+        }
+
+        // Setup individual indicator toggles
+        this.setupIndicatorToggles();
+    }
+
+    /**
+     * Setup individual indicator toggle buttons
+     */
+    setupIndicatorToggles() {
+        const toggleButtons = document.querySelectorAll('.indicator-toggle');
         
-        // Setup timeframe shortcuts
-        this.timeframeManager.setupKeyboardShortcuts();
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const indicatorId = button.getAttribute('data-indicator');
+                this.toggleIndicator(indicatorId, button);
+            });
+        });
+    }
+
+    /**
+     * Toggle indicator panel visibility
+     */
+    toggleIndicatorPanel() {
+        const controls = document.getElementById('indicator-controls');
+        const collapseBtn = document.getElementById('indicators-collapse-btn');
+        const collapseIcon = collapseBtn.querySelector('.collapse-icon');
+        
+        if (controls.classList.contains('collapsed')) {
+            controls.classList.remove('collapsed');
+            collapseBtn.classList.remove('collapsed');
+            collapseIcon.textContent = '▼';
+        } else {
+            controls.classList.add('collapsed');
+            collapseBtn.classList.add('collapsed');
+            collapseIcon.textContent = '▶';
+        }
+    }
+
+    /**
+     * Toggle individual indicator visibility
+     */
+    toggleIndicator(indicatorId, button) {
+        if (!this.indicatorManager) return;
+        
+        const isVisible = this.indicatorManager.toggleIndicator(indicatorId);
+        
+        // Update button state
+        if (isVisible) {
+            button.classList.remove('hidden');
+            button.classList.add('active');
+            button.title = 'Hide indicator';
+        } else {
+            button.classList.add('hidden');
+            button.classList.remove('active');
+            button.title = 'Show indicator';
+        }
+        
+        // Log activity
+        this.addActivity(`${isVisible ? 'Showed' : 'Hid'} ${this.getIndicatorDisplayName(indicatorId)}`);
+    }
+
+    /**
+     * Get human-readable indicator name
+     */
+    getIndicatorDisplayName(indicatorId) {
+        const names = {
+            'sma_5': '5-SMA',
+            'sma_200': '200-SMA', 
+            'fractals_high': 'High Fractals',
+            'fractals_low': 'Low Fractals',
+            'signals': 'Trade Signals'
+        };
+        return names[indicatorId] || indicatorId;
+    }
+
+    /**
+     * Initialize indicator button states
+     */
+    initializeIndicatorStates() {
+        if (!this.indicatorManager) return;
+        
+        const toggleButtons = document.querySelectorAll('.indicator-toggle');
+        
+        toggleButtons.forEach(button => {
+            const indicatorId = button.getAttribute('data-indicator');
+            const indicator = this.indicatorManager.indicators.get(indicatorId);
+            
+            if (indicator) {
+                if (indicator.visible) {
+                    button.classList.add('active');
+                    button.classList.remove('hidden');
+                    button.title = 'Hide indicator';
+                } else {
+                    button.classList.remove('active');
+                    button.classList.add('hidden');
+                    button.title = 'Show indicator';
+                }
+            }
+        });
+    }
+
+    /**
+     * Clear browser cache and reload page
+     */
+    clearBrowserCache() {
+        // Show confirmation dialog
+        const confirmed = confirm(
+            'This will clear the browser cache and reload the page. ' +
+            'This may help resolve dashboard loading issues. Continue?'
+        );
+        
+        if (!confirmed) return;
+        
+        // Clear various browser caches
+        try {
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            
+            // Clear IndexedDB (if supported)
+            if ('indexedDB' in window) {
+                indexedDB.databases().then(databases => {
+                    databases.forEach(db => {
+                        indexedDB.deleteDatabase(db.name);
+                    });
+                });
+            }
+            
+            // Clear service worker caches (if supported)
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                });
+            }
+            
+            // Add timestamp to force reload
+            const timestamp = Date.now();
+            const url = new URL(window.location);
+            url.searchParams.set('_cache_bust', timestamp);
+            
+            // Reload with cache busting
+            window.location.href = url.toString();
+            
+        } catch (error) {
+            console.error('Error clearing cache:', error);
+            // Fallback: hard reload
+            window.location.reload(true);
+        }
     }
 
     /**
@@ -573,7 +831,7 @@ class TradingDashboard {
      */
     resetSettings() {
         this.settings = {
-            updateFrequency: 1000,
+            updateFrequency: 5000,
             chartTheme: 'dark',
             autoFitChart: true
         };
@@ -589,13 +847,21 @@ class TradingDashboard {
      * Apply current settings
      */
     applySettings() {
-        // Update update interval
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-            this.updateInterval = setInterval(() => {
-                this.updateMetrics();
-            }, this.settings.updateFrequency);
+        // ✅ REMOVED POLLING - No more interval creation
+        // Settings now only affect chart appearance, not data polling
+        
+        // Apply chart theme
+        if (this.chartManager) {
+            this.chartManager.applyTheme(this.settings.chartTheme);
         }
+        
+        // Apply auto-fit setting
+        if (this.settings.autoFitChart && this.chartManager) {
+            this.chartManager.fitContent();
+        }
+        
+        console.log('⚙️ Settings applied (no polling intervals created)');
+        this.addActivity('Settings', 'Settings applied successfully');
     }
 
     /**
@@ -617,8 +883,12 @@ class TradingDashboard {
      * Cleanup on page unload
      */
     cleanup() {
+        console.log('🧹 Cleaning up dashboard...');
+        
+        // CRITICAL: Clear all intervals
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
+            this.updateInterval = null;
         }
         
         if (this.indicatorManager) {
@@ -632,6 +902,8 @@ class TradingDashboard {
         if (this.chartManager) {
             this.chartManager.destroy();
         }
+        
+        console.log('✅ Dashboard cleanup completed');
     }
 }
 

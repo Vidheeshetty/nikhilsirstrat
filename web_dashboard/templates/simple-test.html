@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Library Test</title>
+    <style>
+        body {
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: monospace;
+        }
+        .log {
+            padding: 5px;
+            margin: 2px 0;
+            border-left: 3px solid #666;
+            padding-left: 10px;
+        }
+        .success { border-color: #51cf66; color: #51cf66; }
+        .error { border-color: #ff6b6b; color: #ff6b6b; }
+        .info { border-color: #74c0fc; color: #74c0fc; }
+    </style>
+</head>
+<body>
+    <h1>TradingView Library Test</h1>
+    <div id="output"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = message;
+            output.appendChild(div);
+            console.log(message);
+        }
+
+        // Test before library loads
+        log('Before library load: ' + typeof window.LightweightCharts, 'info');
+    </script>
+
+    <script src="/static/libs/lightweight-charts.standalone.production.js?v=5.0.8&nocache=${Date.now()}"></script>
+    
+    <script>
+        // Test immediately after library loads
+        log('After library load: ' + typeof window.LightweightCharts, 'info');
+        
+        if (typeof window.LightweightCharts !== 'undefined') {
+            log('✅ LightweightCharts loaded successfully', 'success');
+            
+            const props = Object.getOwnPropertyNames(window.LightweightCharts);
+            log('Properties: ' + props.join(', '), 'info');
+            
+            // Test createChart
+            if (typeof window.LightweightCharts.createChart === 'function') {
+                log('✅ createChart function available', 'success');
+            } else {
+                log('❌ createChart function missing', 'error');
+            }
+            
+            // Test CandlestickSeries
+            if (window.LightweightCharts.CandlestickSeries) {
+                log('✅ CandlestickSeries available: ' + typeof window.LightweightCharts.CandlestickSeries, 'success');
+            } else {
+                log('❌ CandlestickSeries missing', 'error');
+            }
+            
+            // Test version
+            if (window.LightweightCharts.version) {
+                log('Version: ' + window.LightweightCharts.version(), 'info');
+            }
+            
+            // Now try to create a chart
+            try {
+                const container = document.createElement('div');
+                container.style.width = '400px';
+                container.style.height = '300px';
+                document.body.appendChild(container);
+                
+                const chart = window.LightweightCharts.createChart(container, {
+                    width: 400,
+                    height: 300
+                });
+                
+                log('✅ Chart created successfully', 'success');
+                
+                // Test different series creation methods
+                try {
+                    // Method 1: addCandlestickSeries (v4.x)
+                    if (typeof chart.addCandlestickSeries === 'function') {
+                        const series1 = chart.addCandlestickSeries();
+                        log('✅ Method 1: addCandlestickSeries() works', 'success');
+                    } else {
+                        log('❌ Method 1: addCandlestickSeries() not available', 'error');
+                        
+                        // Method 2: addSeries with string (v5.x)
+                        try {
+                            const series2 = chart.addSeries(LightweightCharts.CandlestickSeries);
+                            log('✅ Method 2: addSeries(CandlestickSeries) works', 'success');
+                        } catch (e) {
+                            log('❌ Method 2 failed: ' + e.message, 'error');
+                            
+                            // Method 3: addSeries with CandlestickSeries constant
+                            try {
+                                const series3 = chart.addSeries(window.LightweightCharts.CandlestickSeries);
+                                log('✅ Method 3: addSeries(CandlestickSeries) works', 'success');
+                            } catch (e) {
+                                log('❌ Method 3 failed: ' + e.message, 'error');
+                            }
+                        }
+                    }
+                } catch (e) {
+                    log('❌ Series creation error: ' + e.message, 'error');
+                }
+                
+            } catch (e) {
+                log('❌ Chart creation failed: ' + e.message, 'error');
+            }
+            
+        } else {
+            log('❌ LightweightCharts failed to load', 'error');
+        }
+    </script>
+</body>
+</html> 

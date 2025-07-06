@@ -416,7 +416,161 @@ is insufficient to catch template or rounding regressions.
 
 > **Rule**: PRs or Cursor edits that create/rename significant tests **must** update `docs/test_impact_matrix.md` in the same commit.  CI should fail if the matrix is stale.
 
-## 11. Branch Workflow – dev ↔ main
+## 11. Pluggable Strategy Architecture
+
+**MANDATORY: All new strategies MUST use the pluggable architecture pattern established in SMA Fractal Scalper V2.**
+
+### 11.1 Architecture Components
+
+#### 11.1.1 Indicators Layer (`utils/indicators/`)
+- Pure mathematical calculations (SMA, EMA, RSI, Fractal, etc.)
+- Configuration-driven management via YAML
+- Chart visualization integration
+- Reusable across strategies
+
+#### 11.1.2 Signal Generation Layer (`utils/signals/`)
+- Combines indicator outputs using configurable logic
+- Pluggable signal strategies (SMA crossover, RSI+Bollinger, etc.)
+- Confidence scoring and filtering
+- Separate from strategy execution
+
+#### 11.1.3 Strategy Execution Layer (`src/strategies/*/`)
+- Focuses on position management and risk control
+- Uses indicator and signal managers
+- Configuration-driven indicator/signal selection
+
+### 11.2 Implementation Requirements
+
+- **Indicators**: Inherit from `BaseIndicator`, implement in `utils/indicators/implementations.py`
+- **Signals**: Inherit from `BaseSignalGenerator`, implement in `utils/signals/implementations.py`
+- **Configuration**: Separate YAML files for indicators (`indicators.yaml`) and signals (`signals.yaml`)
+- **Testing**: Individual component tests + integration tests
+- **Documentation**: Signal generation logic documented in strategy folder README.md
+
+### 11.3 Benefits
+
+- ✅ Easy testing of individual components
+- ✅ Dynamic enable/disable of indicators/signals
+- ✅ Chart visualization configuration
+- ✅ Reusable components across strategies
+- ✅ Configuration-driven development
+
+### 11.4 Required Strategy Structure
+
+```
+src/strategies/my_strategy/
+├── __init__.py
+├── config.py           # Strategy configuration
+├── strategy.py         # Main strategy class
+├── indicators.yaml     # Indicator configuration
+├── signals.yaml        # Signal generation configuration
+└── README.md          # Signal logic documentation
+```
+
+### 11.5 Example Reference Implementation
+
+See `src/strategies/sma_fractal_scalper_v2/` for complete reference implementation.
+
+### 11.6 Mandatory Strategy Test Suite
+
+For **every new strategy** created with the template in Section 11.4, you **must** add a matching test folder:
+
+```
+/tests/strategies/{strategy_name}/
+├── test_strategy.py   # Core entry/exit & lifecycle logic
+├── test_config.py     # YAML/Config loading & schema validation
+└── test_runner.py     # Runner initialisation & paper-trading execution
+```
+
+* All tests use **pytest** and follow the existing marker convention (`@pytest.mark.dev`, `@pytest.mark.prod`, etc.).
+* Broker / market-data dependencies must be **mocked** (e.g. `pytest-mock`, monkey-patching `utils.brokers.*`) so tests run offline & deterministically.
+* `test_strategy.py` should cover:
+  * entry/exit signal generation with sample bar data
+  * position lifecycle (open → adjust → close)
+  * edge-cases (no data, stale data, error handling)
+* `test_config.py` validates:
+  * YAML schema via `utils.validators.data_schema`
+  * correct parsing into the strategy's `config.py` dataclass
+* `test_runner.py` ensures the **paper-trading runner** starts, processes a mocked data stream, and reports trades without exceptions.
+* **CI Enforcement**: a PR adding `src/strategies/{strategy_name}/` must fail if the corresponding test directory does not exist or `pytest -m prod` fails.
+* Cursor must auto-generate skeleton test files when scaffolding a new strategy package.
+
+## 12. Learning Documentation System
+
+**MANDATORY: All significant learnings, fixes, and solutions MUST be documented in the learning log.**
+
+### 12.1 Learning Log Location
+
+* **Primary learning log**: `cursorrules.support/learning_log.md`
+* **Format**: Tabular format with Date, Area, Lesson, Importance columns
+* **Character limit**: ≤ 120 characters per lesson to maintain readability
+
+### 12.2 What Must Be Documented
+
+**CRITICAL (Importance: Critical)**:
+- Complete system failures and their fixes
+- Security vulnerabilities and patches
+- Data corruption/loss prevention fixes
+- Performance bottlenecks and optimizations
+
+**HIGH (Importance: High)**:
+- Configuration issues causing service failures
+- Integration problems between components
+- Testing framework improvements
+- Architectural decisions with long-term impact
+
+**MEDIUM (Importance: Med)**:
+- Code quality improvements
+- Refactoring lessons
+- Development workflow optimizations
+- Library/dependency learnings
+
+### 12.3 Cursor Learning Documentation Workflow
+
+**MANDATORY PRE-DEVELOPMENT**: Before starting any significant development work, Cursor MUST:
+
+1. **Consult the learning log** (`cursorrules.support/learning_log.md`) for relevant past learnings
+2. **Search memory** for related issues and solutions
+3. **Reference applicable learnings** in the development approach
+4. **Avoid repeating documented mistakes** by following established solutions
+
+**MANDATORY POST-DEVELOPMENT**: After resolving any significant issue, Cursor MUST:
+
+1. **Immediately update the learning log** with the fix
+2. **Update memory** with the learning for future reference
+3. **Escalate importance** if the same issue recurs (Med → High → Critical)
+4. **Reference the learning** in future similar situations
+
+**Examples of Pre-Development Consultation**:
+- Before implementing web dashboard features → Check for UI/JavaScript module learnings
+- Before adding new strategy components → Review strategy architecture learnings
+- Before modifying configuration systems → Check configuration-related learnings
+- Before implementing testing → Review testing framework learnings
+
+### 12.4 Learning Log Entry Format
+
+```markdown
+| YYYY-MM-DD | Area | Lesson (≤120 chars) | Importance |
+```
+
+**Example**:
+```markdown
+| 2025-07-03 | Web Dashboard | Chart "Failed to initialize dashboard": (1) FastAPI needs `mimetypes.add_type('application/javascript', '.js')` before mounting static files for ES6 modules (2) ChartManager constructor accessed undefined `this.container.clientWidth` - use defaults, set in initChart(). Always use Selenium tests not manual testing. | Critical |
+```
+
+### 12.5 Automation and Enforcement
+
+* The `1dev_com.sh` script parses **High** and **Critical** items and warns if patterns re-appear
+* Cursor MUST check the learning log before implementing solutions to avoid repeating mistakes
+* Each learning entry should be referenced when similar issues arise
+
+### 12.6 Memory Integration
+
+* All learning log entries MUST be stored in Cursor's memory system
+* Memory entries should reference the learning log for detailed context
+* Contradictory learnings should update/delete previous memories
+
+## 13. Branch Workflow – dev ↔ main
 
 * All day-to-day feature work should be committed to the **`development`** branch.
 * After all tests pass **Cursor should ask**: *"Do you want me to commit & push these changes to development? Suggested message: <auto-generated message> (you can edit)."*  
@@ -431,3 +585,101 @@ is insufficient to catch template or rounding regressions.
   3. Tags the merge commit with `ci:sync-main-YYYYMMDD`.
   4. Pushes `main` to origin.
 * Cursor edits that touch either helper script **must** update this section and `docs/runbook.md` accordingly.
+
+## 14. Paper Trading UI & User Management Architecture Rules
+
+The following rules strengthen the front-end architecture, ensure consistency with the pluggable strategy pattern (Section 11) and align data contracts with the shared utils modules.
+
+### 14.1 User & Strategy Session Architecture Rule
+* Every dashboard/WebSocket session is defined by a tuple **(user_id, strategy_id)**.
+* The **JWT access-token** (passed via `Authorization: Bearer <token>`) MUST include these claims:
+  * `sub` → user id
+  * `strategy` → active strategy key (e.g. `sma_fractal_scalper`)
+  * `role` → UI role (`viewer`, `trader`, `admin`)
+* FastAPI dependencies must resolve the token once and inject a `SessionContext` object so downstream routes / websocket handlers access `ctx.user_id` and `ctx.strategy` without re-parsing.
+* Session state (last timeframe, hidden indicators, UI prefs) is cached in **Redis** (or an in-memory fallback) under the composite key `session:{user_id}:{strategy}`.
+
+### 14.2 Modular UI Architecture Rule
+* **MANDATORY**: All front-end logic lives as ES-modules under `web_dashboard/static/js/modules/`.
+* Keep modules atomic: one class per feature (`ChartManager`, `IndicatorManager`, `StrategyPanel`, etc.).
+* Shared helpers belong to `web_dashboard/static/js/utils/` and **must not** duplicate code already present in `utils/*` on the Python side.
+* When adding a module export **both** a default class and named exports for helper functions to facilitate tree-shaking.
+* Selenium Page-Objects must map one-to-one with major modules (e.g. `StrategyPanel` ↔ `strategy_panel.py`).
+
+### 14.3 Paper Trading Dashboard Rule
+* Route `/chart` is the single SPA entry-point.  Strategy selection happens via query-param `?strategy=<key>` or user preference.
+* The dashboard **MUST** support multiple strategies in parallel (tabbed UI).  Opening a new tab with `?strategy=xyz` creates a new WebSocket channel without reloading the page.
+* Dashboard state for each strategy is namespaced (store keys prefixed with `strategy.<key>.`).
+
+### 14.4 TradingView Chart Integration Rule
+* Use **Lightweight-Charts v5+** production bundle (`static/libs/lightweight-charts.standalone.production.js`).
+* `ChartManager` must stay library-agnostic; it exposes generic methods (`addIndicator`, `addMarkers`, `fitContent`).
+* Indicator visualisation happens exclusively through `IndicatorManager`; strategy-specific logic **must never** touch `ChartManager` internals.
+* No direct DOM mutation for drawing – always go through the Lightweight-Charts API.
+
+### 14.5 Strategy Detail Panel Rule
+* The right-hand **Strategy Panel** shows live metrics (status, position, last signal, P&L, win-rate, etc.).
+* Backend emits `strategy_update` events over WebSocket; the panel subscribes via `DataService` and re-renders diff-patch style.
+* Selenium tests (`TestChartIndicators.test_trading_signals_on_chart`) must assert the panel updates when a `strategy_update` arrives.
+
+### 14.6 Data API Route Convention Rule
+| Purpose | HTTP Prefix | WS Prefix | Example |
+|---------|-------------|-----------|---------|
+| Chart data & indicators | `/api/chart/*` | `/ws/chart` | `/api/chart/indicators?strategy=sma` |
+| Strategy ops / state    | `/api/strategy/*` | `/ws/strategy` | `/api/strategy/toggle?sma` |
+| User auth & prefs       | `/api/user/*` | n/a | `/api/user/preferences` |
+* All new routes **must** follow this convention; mixed naming (`/api/chart_data`) is forbidden.
+
+### 14.7 FastAPI User Auth Rule
+* Implement **OAuth2 Password + JWT** (`fastapi.security.OAuth2PasswordBearer`).
+* Anonymous requests return **401**; front-end redirects to `/login`.
+* Never trust headers like `X-User-Id` alone – always validate the JWT.
+* Utilities for token generation / verification live in `utils/auth/` and are unit-tested.
+
+### 14.8 Live Mode Ready Rule
+* Features built for paper/backtest **must** degrade gracefully and remain compatible with **live-trading** mode.
+* **No HTTP polling**: all real-time UI updates flow via WebSocket events (`bar_update`, `indicator_update`, `strategy_update`).
+* Provide fallback UI stubs when live data is unavailable (e.g. greyed-out trend status).
+* Selenium real-time tests (`@pytest.mark.realtime`) must pass with the `--live-mode` flag, verifying charts and panels update against a live data feed.
+
+> **Enforcement**: Cursor must refuse a commit or raise a warning if new UI/API code violates any rule in Section 14.
+
+## 15. Strategy Parameter Versioning & Experiment-Tracking Rules
+
+These rules formalise how parameters, sweeps, and experiment metadata are stored and tested.  They complement Section 11 (pluggable strategies) and Section 12 (learning log).
+
+### 15.1 PostgreSQL Parameter Versioning
+* Each strategy **must** persist its configuration parameters in the `strategy_parameters` table:
+  | Column | Type | Notes |
+  |--------|------|-------|
+  | id | SERIAL PK |  |
+  | strategy_key | TEXT | `sma_fractal_scalper_v2` |
+  | version | INT  | auto-increment per strategy |
+  | yaml | JSONB | canonical YAML parsed to JSONB |
+  | created_at | TIMESTAMPTZ | default `NOW()` |
+* The dataclass in `config.py` needs a `__version__` attribute that is synchronised with the DB row.
+* Runner initialisation logs **both** the hash of the YAML blob and the DB `version` id.  Mismatch = hard error.
+
+### 15.2 Parameter-Sweep Tracking (Grid & Monte-Carlo)
+* Sweeps are recorded in `parameter_sweeps` with:
+  | sweep_id | strategy_key | method (`grid`/`mc`) | hyperparams JSONB | created_by |
+* Each run generated by a sweep inserts into `parameter_runs` referencing `sweep_id` + `param_set_hash`.
+* `utils.experiments.sweeper` must populate these tables automatically.
+* Sweep status (`queued`, `running`, `done`, `failed`) is updated via `utils.runners.base_batch_runner` hooks.
+
+### 15.3 Run Metadata vs Results Separation
+* Store immutable *metadata* in `run_metadata` keyed by `(user_id, strategy_key, param_version, run_id)`; include timestamps, git commit hash, Docker image tag.
+* Store heavy *results* (trades, metrics) in `run_results` referencing the same PK; large JSONB blobs or S3 link are acceptable.
+* Reporters (`ReportController`, `PaperTradingReporter`) fetch from **run_results**, not from metadata.
+
+### 15.4 Mandatory Runner Tests with Mocked Feeds
+* Each runner (`backtest_runner`, `papertrade_runner`, `live_runner`) **must** have tests:
+  * Path: `tests/runners/test_{runner_name}.py` or inside strategy-specific folder.
+  * Use `pytest-mock` or fixtures to monkey-patch broker feeds (no live data).
+  * Assert:
+    * runner initialises with given `param_version`
+    * inserts correct metadata rows
+    * produces at least one trade in the mocked scenario
+* Missing tests → CI fails; Cursor must refuse commit.
+
+> **Enforcement**: CI migration scripts create/maintain the four tables above; PRs touching runners/config must run integration tests against a **`postgres:14-alpine`** service in Docker-Compose CI.

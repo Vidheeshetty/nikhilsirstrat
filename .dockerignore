@@ -1,0 +1,102 @@
+# Large data directories
+nautilus_trader/
+venv/
+.venv/
+env/
+.env/
+
+# Data and catalog directories
+data/
+catalog-data/
+raw-data/
+runlogs/
+testlogs/
+reports/
+
+# Jupyter and notebook files
+notebooks/
+Jupyter Code/
+*.ipynb
+
+# Legacy and old code
+legacy_src/
+legacy_tests/
+old-code/
+debug-code/
+
+# Development files
+.git/
+.gitignore
+*.pyc
+__pycache__/
+.pytest_cache/
+.coverage
+.tox/
+.mypy_cache/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+docs/
+guide/
+*.md
+README*
+
+# Example files
+examples/
+sample_outputs/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Keep only essential files for Docker build
+!requirements*.txt
+!scripts/
+!src/
+!utils/
+!config/
+!web_dashboard/
+!docker/
+!VERSION
+
+# Include essential config files (MUST come before exclusions)
+!config/**/*.yaml
+!config/**/*.yml
+!src/**/*.yaml
+!src/**/*.yml
+
+# Exclude specific large files (AFTER inclusions)
+*.parquet
+*.csv
+*.json
+# Exclude YAML files except those already included above
+*.yaml
+*.yml
+
+# Exclude specific large files
+*.parquet
+*.csv
+*.json
+*.yaml
+*.yml
+!config/**/*.yaml
+!config/**/*.yml
+!src/**/*.yaml
+!src/**/*.yml 

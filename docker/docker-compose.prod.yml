@@ -20,8 +20,6 @@ services:
     <<: *common-env
     networks:
       - backend_net
-    depends_on:
-      - paper-trading-daemon
 
   paper-trading-server:
     image: gtalknitin/ntplatform:${DEPLOY_TAG:-latest}
@@ -42,6 +40,8 @@ services:
       start_period: 40s
     networks:
       - backend_net
+    depends_on:
+      - paper-trading-daemon
 
   # ------------------------------------------
   # Reverse proxy and TLS
@@ -85,43 +85,3 @@ volumes:
   paper_trading_logs:
   certbot-etc:
   certbot-var:
-
-# ------------------------------------------
-# DEV-STAGING stack (activate with --profile dev)
-# Uses separate containers & internal ports; nginx routes dev.synaptic… here
-# ------------------------------------------
-paper-trading-daemon-dev:
-  profiles: ["dev"]
-  image: gtalknitin/ntplatform:${DEPLOY_TAG:-dev}
-  container_name: paper-trading-daemon-dev
-  restart: unless-stopped
-  command: ["python", "scripts/paper_trading/run_paper_trading_daemon.py", "--config", "config/paper_trading/my_zerodha.yaml"]
-  volumes:
-    - paper_trading_data:/workspace/runlogs
-    - paper_trading_logs:/workspace/logs
-  <<: *common-env
-  networks:
-    - backend_net
-
-paper-trading-server-dev:
-  profiles: ["dev"]
-  image: gtalknitin/ntplatform:${DEPLOY_TAG:-dev}
-  container_name: paper-trading-server-dev
-  restart: unless-stopped
-  command: ["python", "scripts/paper_trading/paper_trading_server.py", "--host", "0.0.0.0", "--port", "8000", "--config", "config/paper_trading/my_zerodha.yaml"]
-  expose:
-    - "8000"
-  volumes:
-    - paper_trading_data:/workspace/runlogs
-    - paper_trading_logs:/workspace/logs
-  <<: *common-env
-  healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:8000/api/status"]
-    interval: 30s
-    timeout: 10s
-    retries: 3
-    start_period: 40s
-  networks:
-    - backend_net
-  depends_on:
-    - paper-trading-daemon-dev 

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marker Test - TradingView Lightweight Charts v5.0.8</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        #chart {
+            width: 100%;
+            height: 400px;
+            background: white;
+            margin: 20px 0;
+        }
+        .info {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #ff4444;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>TradingView Lightweight Charts v5.0.8 - Marker Test</h1>
+    
+    <div class="info">
+        <h3>Testing createSeriesMarkers() method in TradingView v5.0.8</h3>
+        <p>This page tests the new markers API to fix the fractal indicators.</p>
+    </div>
+    
+    <div id="chart"></div>
+    
+    <div id="debug-info">
+        <h3>Debug Information:</h3>
+        <pre id="debug-output"></pre>
+    </div>
+
+    <script src="/static/libs/lightweight-charts.standalone.production.js?v=5.0.8"></script>
+    <script>
+        const debugOutput = document.getElementById('debug-output');
+        
+        function log(message) {
+            console.log(message);
+            debugOutput.textContent += message + '\n';
+        }
+        
+        try {
+            log('=== TradingView Lightweight Charts v5.0.8 Marker Test ===');
+            log('Creating chart...');
+            
+            const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+                width: 800,
+                height: 400,
+                layout: {
+                    background: { color: '#1a1a1a' },
+                    textColor: '#ffffff',
+                },
+                grid: {
+                    vertLines: { color: '#444' },
+                    horzLines: { color: '#444' },
+                },
+            });
+            
+            log('✅ Chart created successfully');
+            
+            // Create candlestick series
+            log('Creating candlestick series...');
+            const candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+                upColor: '#26a69a',
+                downColor: '#ef5350',
+                borderVisible: false,
+                wickUpColor: '#26a69a',
+                wickDownColor: '#ef5350',
+            });
+            
+            log('✅ Candlestick series created successfully');
+            
+            // Add sample data
+            const data = [
+                { time: '2023-01-01', open: 100, high: 110, low: 95, close: 105 },
+                { time: '2023-01-02', open: 105, high: 115, low: 100, close: 108 },
+                { time: '2023-01-03', open: 108, high: 120, low: 103, close: 112 },
+                { time: '2023-01-04', open: 112, high: 118, low: 107, close: 115 },
+                { time: '2023-01-05', open: 115, high: 125, low: 110, close: 120 },
+            ];
+            
+            candlestickSeries.setData(data);
+            log('✅ Data set successfully');
+            
+            // Test markers using the new v5.0.8 API
+            log('Testing markers with new v5.0.8 API...');
+            
+            // Check if createSeriesMarkers exists
+            if (typeof LightweightCharts.createSeriesMarkers === 'function') {
+                log('✅ createSeriesMarkers function found!');
+                
+                const markers = [
+                    {
+                        time: '2023-01-02',
+                        position: 'aboveBar',
+                        color: '#e91e63',
+                        shape: 'circle',
+                        text: 'High Fractal',
+                    },
+                    {
+                        time: '2023-01-04',
+                        position: 'belowBar', 
+                        color: '#4caf50',
+                        shape: 'circle',
+                        text: 'Low Fractal',
+                    }
+                ];
+                
+                try {
+                    // Use the new API
+                    const seriesMarkers = LightweightCharts.createSeriesMarkers(chart, candlestickSeries, {
+                        markers: markers
+                    });
+                    
+                    log('✅ SUCCESS: Markers created using createSeriesMarkers!');
+                    log('Markers object:', seriesMarkers);
+                    
+                    // Show success message on page
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'success';
+                    successDiv.innerHTML = '<h3>✅ SUCCESS!</h3><p>Markers are working with the new v5.0.8 API using createSeriesMarkers()</p>';
+                    document.body.insertBefore(successDiv, document.getElementById('debug-info'));
+                    
+                } catch (error) {
+                    log('❌ Error with createSeriesMarkers: ' + error.message);
+                    
+                    // Try alternative approach - maybe it's a plugin
+                    log('Trying alternative approaches...');
+                    
+                    // Check if it's available as a plugin or different method
+                    log('Available LightweightCharts methods:');
+                    Object.getOwnPropertyNames(LightweightCharts).forEach(prop => {
+                        if (typeof LightweightCharts[prop] === 'function') {
+                            log('  - ' + prop);
+                        }
+                    });
+                }
+                
+            } else {
+                log('❌ createSeriesMarkers method NOT found!');
+                
+                // List all available methods
+                log('Available LightweightCharts methods:');
+                Object.getOwnPropertyNames(LightweightCharts).forEach(prop => {
+                    if (typeof LightweightCharts[prop] === 'function') {
+                        log('  - ' + prop);
+                    }
+                });
+                
+                // Check if setMarkers still exists on series
+                log('\\nChecking series methods:');
+                const seriesMethods = Object.getOwnPropertyNames(candlestickSeries);
+                seriesMethods.forEach(method => {
+                    if (typeof candlestickSeries[method] === 'function') {
+                        log('  - ' + method);
+                    }
+                });
+                
+                // Check prototype methods
+                log('\\nChecking series prototype methods:');
+                const prototypeMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(candlestickSeries));
+                prototypeMethods.forEach(method => {
+                    if (typeof candlestickSeries[method] === 'function') {
+                        log('  - ' + method);
+                    }
+                });
+            }
+            
+        } catch (error) {
+            log('❌ Error: ' + error.message);
+            log('Stack: ' + error.stack);
+            
+            // Show error message on page
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerHTML = '<h3>❌ ERROR</h3><p>' + error.message + '</p>';
+            document.body.insertBefore(errorDiv, document.getElementById('debug-info'));
+        }
+    </script>
+</body>
+</html> 

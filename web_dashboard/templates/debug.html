@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Debug Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        #chart-container {
+            width: 800px;
+            height: 400px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #2d5a2d; }
+        .error { background: #5a2d2d; }
+        .info { background: #2d4a5a; }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #666;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #444;
+        }
+        .debug-info {
+            background: #222;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>TradingView Charts Debug Test</h1>
+    
+    <div id="status" class="status info">Page loaded. Testing library...</div>
+    
+    <button onclick="testLibrary()">Test Library</button>
+    <button onclick="testAPI()">Test API</button>
+    <button onclick="testChart()">Test Chart</button>
+    <button onclick="clearCache()">Clear Cache & Reload</button>
+    
+    <div id="debug-info" class="debug-info"></div>
+    
+    <div id="chart-container"></div>
+
+    <script src="/static/libs/lightweight-charts.standalone.production.js?v=5.0.8"></script>
+    <script>
+        let chart = null;
+        let candlestickSeries = null;
+
+        function log(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            const debugDiv = document.getElementById('debug-info');
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            
+            statusDiv.textContent = logMessage;
+            statusDiv.className = `status ${type}`;
+            
+            debugDiv.innerHTML += `<div style="color: ${type === 'error' ? '#ff6b6b' : type === 'success' ? '#51cf66' : '#74c0fc'}">${logMessage}</div>`;
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+            
+            console.log(logMessage);
+        }
+
+        function clearCache() {
+            log('Clearing cache and reloading...', 'info');
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                    location.reload(true);
+                });
+            } else {
+                location.reload(true);
+            }
+        }
+
+        function testLibrary() {
+            log('Testing TradingView library...', 'info');
+            
+            if (typeof window.LightweightCharts === 'undefined') {
+                log('❌ LightweightCharts not found on window object', 'error');
+                return;
+            }
+            
+            log('✅ LightweightCharts found on window object', 'success');
+            
+            // Log available properties and methods
+            const props = Object.getOwnPropertyNames(window.LightweightCharts);
+            log(`Available properties: ${props.join(', ')}`, 'info');
+            
+            // Test createChart function
+            if (typeof window.LightweightCharts.createChart === 'function') {
+                log('✅ createChart function available', 'success');
+            } else {
+                log('❌ createChart function not available', 'error');
+            }
+            
+            // Check for series types
+            const seriesTypes = ['CandlestickSeries', 'LineSeries', 'AreaSeries'];
+            seriesTypes.forEach(type => {
+                if (window.LightweightCharts[type]) {
+                    log(`✅ ${type} available`, 'success');
+                } else {
+                    log(`❌ ${type} not available`, 'error');
+                }
+            });
+        }
+
+        function testAPI() {
+            log('Testing API connection...', 'info');
+            
+            fetch('/api/chart/data?symbol=GOLDGUINEA&timeframe=1m&bars=5')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    log(`✅ API Response received with ${data.count} bars`, 'success');
+                    log(`Sample data: ${JSON.stringify(data.bars.slice(0, 2))}`, 'info');
+                })
+                .catch(error => {
+                    log(`❌ API Error: ${error.message}`, 'error');
+                });
+        }
+
+        function testChart() {
+            log('Testing chart creation...', 'info');
+            
+            if (typeof window.LightweightCharts === 'undefined') {
+                log('❌ LightweightCharts not available', 'error');
+                return;
+            }
+            
+            const container = document.getElementById('chart-container');
+            
+            try {
+                // Create chart
+                chart = window.LightweightCharts.createChart(container, {
+                    width: 800,
+                    height: 400,
+                    layout: {
+                        background: { color: '#1a1a1a' },
+                        textColor: '#d1d4dc',
+                    },
+                    grid: {
+                        vertLines: { color: '#2a2a2a' },
+                        horzLines: { color: '#2a2a2a' },
+                    },
+                    rightPriceScale: {
+                        borderColor: '#485158',
+                    },
+                    timeScale: {
+                        borderColor: '#485158',
+                    },
+                });
+                
+                log('✅ Chart created successfully', 'success');
+                
+                // Check what methods are available on the chart object
+                const chartMethods = Object.getOwnPropertyNames(chart);
+                log(`Chart methods: ${chartMethods.join(', ')}`, 'info');
+                
+                // Try different ways to add candlestick series
+                try {
+                    // Method 1: v5.0.8 correct API (addSeries with CandlestickSeries)
+                    if (window.LightweightCharts.CandlestickSeries) {
+                        candlestickSeries = chart.addSeries(window.LightweightCharts.CandlestickSeries, {
+                            upColor: '#4bffb5',
+                            downColor: '#ff4976',
+                            borderDownColor: '#ff4976',
+                            borderUpColor: '#4bffb5',
+                            wickDownColor: '#ff4976',
+                            wickUpColor: '#4bffb5',
+                        });
+                        log('✅ Method 1: addSeries(CandlestickSeries) works', 'success');
+                    } else {
+                        log('❌ Method 1 failed: CandlestickSeries not available', 'error');
+                        
+                        // Method 2: Direct method (v4.x style)
+                        if (typeof chart.addCandlestickSeries === 'function') {
+                            candlestickSeries = chart.addCandlestickSeries({
+                                upColor: '#4bffb5',
+                                downColor: '#ff4976',
+                                borderDownColor: '#ff4976',
+                                borderUpColor: '#4bffb5',
+                                wickDownColor: '#ff4976',
+                                wickUpColor: '#4bffb5',
+                            });
+                            log('✅ Method 2: addCandlestickSeries() works', 'success');
+                        } else {
+                            log('❌ Method 2 failed: addCandlestickSeries() not available', 'error');
+                            
+                            // Method 3: Generic addSeries with string (alternative)
+                            if (typeof chart.addSeries === 'function') {
+                                try {
+                                    candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+                                        upColor: '#4bffb5',
+                                        downColor: '#ff4976',
+                                        borderDownColor: '#ff4976',
+                                        borderUpColor: '#4bffb5',
+                                        wickDownColor: '#ff4976',
+                                        wickUpColor: '#4bffb5',
+                                    });
+                                    log('✅ Method 3: addSeries(CandlestickSeries) works', 'success');
+                                } catch (e) {
+                                    log(`❌ Method 3 failed: ${e.message}`, 'error');
+                                }
+                            } else {
+                                log('❌ All methods failed: addSeries method not available', 'error');
+                            }
+                        }
+                    }
+                    
+                    if (candlestickSeries) {
+                        // Add some sample data with proper Unix timestamps
+                        const now = Math.floor(Date.now() / 1000);
+                        const sampleData = [
+                            { time: now - 120, open: 895.0, high: 897.5, low: 893.0, close: 896.2 },
+                            { time: now - 60, open: 896.2, high: 898.1, low: 894.5, close: 897.8 },
+                            { time: now, open: 897.8, high: 899.0, low: 896.0, close: 898.5 },
+                        ];
+                        
+                        candlestickSeries.setData(sampleData);
+                        log('✅ Sample data added to chart', 'success');
+                        
+                        // Fit chart to content
+                        chart.timeScale().fitContent();
+                        log('✅ Chart fitted to content', 'success');
+                    }
+                    
+                } catch (seriesError) {
+                    log(`❌ Series Error: ${seriesError.message}`, 'error');
+                }
+                
+            } catch (chartError) {
+                log(`❌ Chart Error: ${chartError.message}`, 'error');
+            }
+        }
+
+        // Test library on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testLibrary();
+            }, 100);
+        });
+    </script>
+</body>
+</html> 
