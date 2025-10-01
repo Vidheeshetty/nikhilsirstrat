@@ -1,0 +1,22 @@
+source_csv: "raw-data/source=NSER/instrument=FUT/venue=NSE/symbol=NIFTY/timeframe=DAILY/year=2023/NIFTY_2023.csv"
+destination_catalog: "catalog-data/nifty-2023/catalog"
+destination_meta: "catalog-data/nifty-2023/catalog-meta"
+
+# Data description
+data_kind: bar
+bar_interval: "1-DAY"
+
+# Instrument metadata
+symbol: NIFTY
+venue: NSE
+price_precision: 2
+price_increment: 0.05
+multiplier: 50
+
+# Extra meta fields from NSER data
+extra_meta_fields:
+  - OI
+  - IV
+
+# Processing options
+clean: true

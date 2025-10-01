@@ -1,6 +1,6 @@
-source_csv: "data/futures/NSER/*.csv"
-destination_catalog: "catalog-data/shared/catalog"
-destination_meta: "catalog-data/shared/catalog-meta"
+source_csv: "data/futures/YF/nifty50_1year_complete.csv"
+destination_catalog: "catalog-data/nd_tt_v4/catalog"
+destination_meta: "catalog-data/nd_tt_v4/catalog-meta"
 
 # Data description
 data_kind: bar
@@ -15,5 +15,5 @@ multiplier: 50
 
 # Extra meta fields
 extra_meta_fields:
-  - impliedVolatility
-  - openInterest 
+  - Volume
+  - Total_OI

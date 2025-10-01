@@ -100,9 +100,9 @@ def main() -> None:
     catalog_path = args.catalog_path or default_catalog_path
 
     # Propagate env vars for deeper layers ------------------------------
+    import os
+    
     if catalog_path:
-        import os
-
         os.environ["DATA_CATALOG_ROOTS"] = catalog_path
 
     if args.bar_interval:
@@ -110,7 +110,18 @@ def main() -> None:
 
     dm = DataManager(catalog_path=catalog_path)
     if len(instruments) == 1 and instruments[0].upper() == "ALL":
-        instruments = dm.get_all_instrument_ids()
+        # For nd_tt_v4 strategy, bypass broken DataManager and use direct catalog access
+        if strategy_name == "nd_tt_v4":
+            try:
+                from nautilus_trader.persistence.catalog.parquet import ParquetDataCatalog
+                catalog = ParquetDataCatalog("catalog-data/nifty-2023/catalog")
+                instruments = [str(inst.id) for inst in catalog.instruments()]
+                print(f"Found {len(instruments)} NIFTY instruments for nd_tt_v4 strategy")
+            except Exception as e:
+                print(f"Failed to load instruments directly: {e}")
+                instruments = dm.get_all_instrument_ids()
+        else:
+            instruments = dm.get_all_instrument_ids()
 
     # ------------------------------------------------------------------
     # Dynamically resolve runner classes based on strategy_name

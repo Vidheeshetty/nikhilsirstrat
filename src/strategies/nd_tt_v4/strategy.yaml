@@ -1,0 +1,17 @@
+# ND_TT_V4 default configuration
+
+strategy_name: "ND_TT_V4"
+description: "Top/bottom buffer breakout with reversal management"
+version: "1.0.0"
+
+instrument_id: "NIFTY.FUT.NSE"
+bar_interval: "1-DAY"
+
+buffer_percentage: 0.00001
+stop_loss_percentage: 0.02
+order_quantity: 1
+initial_capital: 500000.0
+warmup_bars: 10
+
+report_label: "ND_TT_V4"
+

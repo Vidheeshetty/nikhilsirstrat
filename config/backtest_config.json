@@ -1,5 +1,5 @@
 {
-    "catalog_path": "catalog-data/source=NSER/instrument=FUT/venue=NSE/symbol=NIFTY/timeframe=DAILY",
+    "catalog_path": "catalog-data/nifty-2023/catalog",
     "output_dir": "backtest_results",
     "log_level": "INFO",
     "risk_engine": {
