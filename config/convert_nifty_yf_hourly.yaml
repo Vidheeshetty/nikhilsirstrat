@@ -1,0 +1,26 @@
+# Configuration for converting Yahoo Finance NIFTY futures HOURLY data to Parquet
+# Source: NIFTY_FUT_hourly_data_with_expiry.csv
+# This data contains hourly bars with TIME column but no OI or IV
+
+source_csv: "data/futures/YF/NIFTY_FUT_hourly_data_with_expiry.csv"
+destination_catalog: "catalog-data/nifty-yf-hourly/catalog"
+destination_meta: "catalog-data/nifty-yf-hourly/catalog-meta"
+
+# Data description
+data_kind: bar
+bar_interval: "1-HOUR"
+
+# Instrument metadata
+symbol: NIFTY
+venue: NSE
+price_precision: 2
+price_increment: 0.05
+multiplier: 75
+
+# Extra meta fields from YF data
+# Note: No OI or IV in this hourly dataset
+extra_meta_fields: []
+
+# Processing options
+clean: true
+

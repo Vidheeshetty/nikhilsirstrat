@@ -1,0 +1,26 @@
+# Configuration for converting YahooFinance continuous NIFTY futures HOURLY data
+# CSV Source: data/futures/YF/NIFTY_FUT_hourly_data.csv
+
+source_csv: "data/futures/YF/NIFTY_FUT_hourly_data.csv"
+destination_catalog: "catalog-data/nifty-continuous-yf-hourly/catalog"
+destination_meta: "catalog-data/nifty-continuous-yf-hourly/catalog-meta"
+
+# Data description - HOURLY bars
+data_kind: bar
+bar_interval: "1-HOUR"
+
+# Instrument metadata
+symbol: NIFTY
+venue: NSE
+price_precision: 2
+price_increment: 0.05
+multiplier: 50
+
+# Extra metadata fields from YF hourly data
+# NOTE: NO OI (Open Interest) available in hourly data!
+extra_meta_fields:
+  - VOLUME
+
+# Processing options
+clean: true
+

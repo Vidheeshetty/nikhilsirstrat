@@ -70,10 +70,28 @@ def load_csv(cfg: ConverterConfig) -> pd.DataFrame:
     for path in csv_paths:
         logger.info("📖 Reading %s", path)
         df = pd.read_csv(path)
+        
+        # Strip whitespace from column names to handle "VOLUME " with trailing space
+        df.columns = df.columns.str.strip()
+        
         if "DATE" not in df.columns:
             logger.warning("⚠️  %s missing DATE column – skipped", path.name)
             continue
-        df["DATE"] = pd.to_datetime(df["DATE"], utc=True)
+        
+        # Handle hourly data with TIME column
+        if "TIME" in df.columns:
+            # Combine DATE and TIME into a single timestamp
+            # DATE format: DD-MM-YYYY, TIME format: HH:MM:SS+TZ
+            df["DATE"] = pd.to_datetime(
+                df["DATE"].astype(str) + " " + df["TIME"].astype(str),
+                dayfirst=True,
+                utc=True
+            )
+            logger.info("✅ Combined DATE + TIME for hourly data")
+        else:
+            # Parse dates with dayfirst=True for DD-MM-YYYY format, then convert to UTC
+            df["DATE"] = pd.to_datetime(df["DATE"], dayfirst=True, utc=True)
+        
         frames.append(df)
 
     if not frames:
@@ -83,16 +101,25 @@ def load_csv(cfg: ConverterConfig) -> pd.DataFrame:
 
 
 def build_instrument(cfg: ConverterConfig, expiry_str: str) -> FuturesContract:
-    """Create a unique FuturesContract encoding *expiry_str* (YYYY-MM-DD) into the symbol.
+    """Create a unique FuturesContract encoding *expiry_str* into the symbol.
 
     Example resulting instrument ID: ``NIFTY20250627.FUT.NSE``.
+    Handles both YYYY-MM-DD and DD-MM-YYYY date formats.
     """
 
-    # Convert value to plain 'YYYY-MM-DD' string first
+    # Convert value to plain string first
     expiry_clean = str(expiry_str).split(" ")[0]
-    expiry_dt = datetime.strptime(expiry_clean, "%Y-%m-%d").replace(
-        tzinfo=timezone.utc
-    ) + timedelta(hours=23, minutes=59)
+    
+    # Try to parse date - handle both YYYY-MM-DD and DD-MM-YYYY formats
+    try:
+        expiry_dt = datetime.strptime(expiry_clean, "%Y-%m-%d")
+    except ValueError:
+        try:
+            expiry_dt = datetime.strptime(expiry_clean, "%d-%m-%Y")
+        except ValueError:
+            raise ValueError(f"Cannot parse expiry date '{expiry_clean}'. Expected YYYY-MM-DD or DD-MM-YYYY format.")
+    
+    expiry_dt = expiry_dt.replace(tzinfo=timezone.utc) + timedelta(hours=23, minutes=59)
 
     symbol_with_expiry = f"{cfg.symbol}{expiry_dt.strftime('%Y%m%d')}.FUT"
 

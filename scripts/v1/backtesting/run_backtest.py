@@ -114,9 +114,11 @@ def main() -> None:
         if strategy_name == "nd_tt_v4":
             try:
                 from nautilus_trader.persistence.catalog.parquet import ParquetDataCatalog
-                catalog = ParquetDataCatalog("catalog-data/nifty-2023/catalog")
+                # Use the catalog_path from environment or config, not hardcoded path
+                actual_catalog = catalog_path or "catalog-data/nifty-2023/catalog"
+                catalog = ParquetDataCatalog(actual_catalog)
                 instruments = [str(inst.id) for inst in catalog.instruments()]
-                print(f"Found {len(instruments)} NIFTY instruments for nd_tt_v4 strategy")
+                print(f"Found {len(instruments)} NIFTY instruments for nd_tt_v4 strategy from {actual_catalog}")
             except Exception as e:
                 print(f"Failed to load instruments directly: {e}")
                 instruments = dm.get_all_instrument_ids()

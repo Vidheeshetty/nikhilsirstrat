@@ -1,0 +1,26 @@
+# Configuration for converting YahooFinance continuous NIFTY futures data
+# CSV Source: data/futures/YF/NIFTY_FUT_daily_data_continous.csv
+
+source_csv: "data/futures/YF/NIFTY_FUT_daily_data_continous.csv"
+destination_catalog: "catalog-data/nifty-continuous-yf/catalog"
+destination_meta: "catalog-data/nifty-continuous-yf/catalog-meta"
+
+# Data description
+data_kind: bar
+bar_interval: "1-DAY"
+
+# Instrument metadata
+symbol: NIFTY
+venue: NSE
+price_precision: 2
+price_increment: 0.05
+multiplier: 50
+
+# Extra metadata fields from YF data
+extra_meta_fields:
+  - OI
+  - VOLUME
+
+# Processing options
+clean: true
+

@@ -1,0 +1,27 @@
+# Configuration for converting Yahoo Finance NIFTY futures data to Parquet
+# Source: NIFTY_FUT_daily_data_with_expiry.csv
+# This data contains individual expiry contracts with OI but no IV
+
+source_csv: "data/futures/YF/NIFTY_FUT_daily_data_with_expiry.csv"
+destination_catalog: "catalog-data/nifty-yf-daily/catalog"
+destination_meta: "catalog-data/nifty-yf-daily/catalog-meta"
+
+# Data description
+data_kind: bar
+bar_interval: "1-DAY"
+
+# Instrument metadata
+symbol: NIFTY
+venue: NSE
+price_precision: 2
+price_increment: 0.05
+multiplier: 75
+
+# Extra meta fields from YF data
+# Note: Only OI available, no IV in this dataset
+extra_meta_fields:
+  - OI
+
+# Processing options
+clean: true
+

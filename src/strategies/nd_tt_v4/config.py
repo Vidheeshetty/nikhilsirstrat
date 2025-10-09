@@ -18,7 +18,7 @@ class NdTtV4Config(StrategyConfigBase):
     buffer_percentage: float = 0.00001  # 0.001% expressed as decimal
     stop_loss_percentage: float = 0.02  # 2% expressed as decimal
     initial_capital: float = 500_000.0
-    order_quantity: float = 1.0
+    order_quantity: float = 1.0  # Number of contracts
     instrument_id: Optional[str] = None
     bar_interval: str = "1-DAY"
     warmup_bars: int = 10
