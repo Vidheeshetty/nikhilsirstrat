@@ -132,7 +132,7 @@ class NdTtV4Strategy(BaseStrategy):
                 entry_reason = f"Bottom Buffer Breach (Swing: {self._last_bottom.price:.2f}, Buffer: {bottom_buffer:.2f}, Low: {low_px:.2f})"
                 self._enter_position("SHORT", close_px, reason=entry_reason)
                 return
-            if long_stop < (bottom_buffer or float("inf")) and low_px <= long_stop:
+            if long_stop > (bottom_buffer or -float("inf")) and low_px <= long_stop:
                 reason = f"Stop Loss Hit (Entry: {self._entry_price:.2f}, Stop: {long_stop:.2f}, Low: {low_px:.2f}, SL%: {self.config.stop_loss_percentage*100:.2f}%)"
                 self._exit_position(long_stop, reason=reason)
                 return
@@ -145,7 +145,7 @@ class NdTtV4Strategy(BaseStrategy):
                 entry_reason = f"Top Buffer Breach (Swing: {self._last_top.price:.2f}, Buffer: {top_buffer:.2f}, High: {high_px:.2f})"
                 self._enter_position("LONG", close_px, reason=entry_reason)
                 return
-            if short_stop > (top_buffer or -float("inf")) and high_px >= short_stop:
+            if short_stop < (top_buffer or float("inf")) and high_px >= short_stop:
                 reason = f"Stop Loss Hit (Entry: {self._entry_price:.2f}, Stop: {short_stop:.2f}, High: {high_px:.2f}, SL%: {self.config.stop_loss_percentage*100:.2f}%)"
                 self._exit_position(short_stop, reason=reason)
 
